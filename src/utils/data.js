@@ -11,6 +11,12 @@ import { uid } from "./id.js";
  *     links:    [{ id, titulo, url }],
  *     datas:    [{ id, titulo, data, hora }],
  *   }],
+ *   afazeres: [{
+ *     id, nome, data (opcional, "YYYY-MM-DD"), hora (opcional, "HH:MM"),
+ *     rotina: { tipo: "nenhuma"|"diaria"|"semanal"|"quinzenal"|"mensal"|"personalizada", intervaloDias },
+ *     urgencia: 1 | 2 | 3,
+ *     feito: boolean,
+ *   }],
  * }
  */
 export function dadosVazios() {
@@ -19,5 +25,6 @@ export function dadosVazios() {
     periodos: [{ id, nome: "2026.1" }],
     periodoAtivoId: id,
     cadeiras: [],
+    afazeres: [],
   };
 }

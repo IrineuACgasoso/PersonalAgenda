@@ -5,6 +5,8 @@ import usePersistedData from "./hooks/usePersistedData";
 import Sidebar from "./components/Sidebar";
 import VisaoCadeiras from "./components/VisaoCadeiras";
 import VisaoAgenda from "./components/VisaoAgenda";
+import VisaoAfazeres from "./components/VisaoAfazeres";
+import VisaoGeral from "./components/VisaoGeral";
 import PainelCadeira from "./components/PainelCadeira";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
@@ -92,6 +94,46 @@ export default function App() {
     if (cadeiraAbertaId === id) setCadeiraAbertaId(null);
   };
 
+  /* ---- ações afazeres ---- */
+  const afazeres = data.afazeres || [];
+
+  const criarAfazer = (afazer) => {
+    const novo = { id: uid(), feito: false, ...afazer };
+    persist({ ...data, afazeres: [...afazeres, novo] });
+  };
+
+  const atualizarAfazer = (id, patch) => {
+    persist({
+      ...data,
+      afazeres: afazeres.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    });
+  };
+
+  const alternarFeitoAfazer = (id) => {
+    persist({
+      ...data,
+      afazeres: afazeres.map((a) =>
+        a.id === id ? { ...a, feito: !a.feito } : a
+      ),
+    });
+  };
+
+  const excluirAfazer = (id) => {
+    persist({ ...data, afazeres: afazeres.filter((a) => a.id !== id) });
+  };
+
+  const limparAfazeresConcluidos = () => {
+    const concluidos = afazeres.filter((a) => a.feito);
+    if (concluidos.length === 0) return;
+    if (
+      !window.confirm(
+        `Apagar definitivamente ${concluidos.length} afazer${concluidos.length !== 1 ? "es" : ""} concluído${concluidos.length !== 1 ? "s" : ""}?`
+      )
+    )
+      return;
+    persist({ ...data, afazeres: afazeres.filter((a) => !a.feito) });
+  };
+
   return (
     <div className="app">
       <Sidebar
@@ -107,7 +149,18 @@ export default function App() {
       />
 
       <main className="main">
-        {!periodoAtivo ? (
+        {aba === "afazeres" ? (
+          <VisaoAfazeres
+            afazeres={afazeres}
+            onCriar={criarAfazer}
+            onAtualizar={atualizarAfazer}
+            onAlternarFeito={alternarFeitoAfazer}
+            onExcluir={excluirAfazer}
+            onLimparConcluidos={limparAfazeresConcluidos}
+          />
+        ) : aba === "visaogeral" ? (
+          <VisaoGeral cadeiras={data.cadeiras} afazeres={afazeres} />
+        ) : !periodoAtivo ? (
           <EstadoVazio
             texto="Crie um período para começar"
             onAcao={() => setModalPeriodo(true)}

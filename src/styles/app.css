@@ -589,6 +589,342 @@ h2.titulo-secao {
   border-color: #6366f1;
 }
 
+/* ---------- sidebar: colapso de períodos ---------- */
+.sidebar-secao-label {
+  cursor: default;
+}
+
+.chevron-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: #8a8a92;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sidebar-secao-titulo {
+  flex: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.periodos-secao.recolhida {
+  margin-bottom: 8px;
+}
+
+/* ---------- afazeres ---------- */
+.afazer-form {
+  background: #171920;
+  border: 1px solid #23252b;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.checkbox-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #c4c4cc;
+  margin: 10px 0;
+  cursor: pointer;
+}
+
+.checkbox-linha input {
+  width: 15px;
+  height: 15px;
+  accent-color: #6366f1;
+}
+
+.urgencia-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.urgencia-opcao {
+  background: #1a1c22;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  padding: 6px 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.urgencia-opcao.ativa {
+  background: #23252b;
+}
+
+.urgencia-bateria {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.urgencia-segmento {
+  width: 6px;
+  height: 14px;
+  border: 1.5px solid;
+  border-radius: 2px;
+}
+
+.item-afazer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #171920;
+  border: 1px solid #23252b;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.item-afazer.feito {
+  opacity: 0.5;
+}
+
+.item-afazer.feito .item-linha-titulo {
+  text-decoration: line-through;
+}
+
+.check-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1.5px solid #3a3c44;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.check-btn.marcado {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.afazer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.btn-secundario:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- visão geral: filtros e calendário mensal ---------- */
+.filtros-linha {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.filtro-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #171920;
+  border: 1px solid #2a2c33;
+  color: #8a8a92;
+  border-radius: 20px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.filtro-chip.ativo {
+  background: #23252b;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.calendario-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.calendario-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 150px;
+  text-align: center;
+}
+
+.calendario-grid-head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.calendario-dia-head {
+  text-align: center;
+  font-size: 11px;
+  color: #6b6b74;
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendario-celula {
+  min-height: 64px;
+  border: 1px solid #23252b;
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  background: #171920;
+}
+
+.calendario-celula.vazia {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.calendario-celula.hoje {
+  border-color: #6366f1;
+}
+
+.calendario-celula.selecionada {
+  background: #23252b;
+}
+
+.calendario-numero {
+  font-size: 12px;
+  color: #c4c4cc;
+}
+
+.calendario-pontos {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.calendario-ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.calendario-mais {
+  font-size: 9.5px;
+  color: #8a8a92;
+}
+
+/* ---------- mobile ---------- */
+.mobile-menu-btn {
+  display: none;
+}
+
+.sidebar-scrim {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    border: 1px solid #2a2c33;
+    background: #171920;
+    color: #e8e8ea;
+    z-index: 60;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 55;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    width: 260px;
+    box-shadow: 2px 0 18px rgba(0, 0, 0, 0.4);
+  }
+
+  .sidebar.mobile-aberta {
+    transform: translateX(0);
+  }
+
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 54;
+  }
+
+  .main {
+    max-width: 100%;
+    padding: 66px 16px 24px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid.duas-colunas {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .grid-cadeiras {
+    grid-template-columns: 1fr;
+  }
+
+  .painel-lateral {
+    width: 100%;
+  }
+
+  .agenda-wrap {
+    overflow-x: auto;
+  }
+
+  .agenda-grid-head,
+  .agenda-body {
+    min-width: 640px;
+  }
+
+  .calendario-celula {
+    min-height: 48px;
+  }
+}
+
 /* ---------- modal pequeno ---------- */
 .modal-pequeno {
   background: #171920;
