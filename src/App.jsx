@@ -134,6 +134,49 @@ export default function App() {
     persist({ ...data, afazeres: afazeres.filter((a) => !a.feito) });
   };
 
+  /* ---- backup: exportar / importar ---- */
+  const exportarBackup = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const hoje = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `agenda-backup-${hoje}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const importarBackup = (arquivo) => {
+    const leitor = new FileReader();
+    leitor.onload = (e) => {
+      try {
+        const importado = JSON.parse(e.target.result);
+        if (!importado || typeof importado !== "object" || !Array.isArray(importado.periodos)) {
+          throw new Error("formato inválido");
+        }
+        if (
+          !window.confirm(
+            "Importar este backup vai substituir TODOS os dados atuais. Deseja continuar?"
+          )
+        )
+          return;
+        persist({
+          periodos: importado.periodos ?? [],
+          cadeiras: importado.cadeiras ?? [],
+          afazeres: importado.afazeres ?? [],
+          periodoAtivoId: importado.periodoAtivoId ?? null,
+        });
+      } catch {
+        window.alert("Não foi possível ler este arquivo. Verifique se é um backup válido (.json).");
+      }
+    };
+    leitor.readAsText(arquivo);
+  };
+
   return (
     <div className="app">
       <Sidebar
@@ -146,6 +189,8 @@ export default function App() {
         aba={aba}
         setAba={setAba}
         status={status}
+        onExportarBackup={exportarBackup}
+        onImportarBackup={importarBackup}
       />
 
       <main className="main">

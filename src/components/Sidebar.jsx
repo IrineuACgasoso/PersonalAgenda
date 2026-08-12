@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Plus,
   Trash2,
@@ -9,6 +9,8 @@ import {
   ListChecks,
   LayoutGrid,
   Menu,
+  Download,
+  Upload,
 } from "lucide-react";
 import { SIDEBAR_STATE_KEY } from "../constants.js";
 
@@ -31,11 +33,14 @@ export default function Sidebar({
   aba,
   setAba,
   status,
+  onExportarBackup,
+  onImportarBackup,
 }) {
   const [periodosAberto, setPeriodosAberto] = useState(
     () => lerEstadoInicial().periodosAberto ?? true
   );
   const [mobileAberta, setMobileAberta] = useState(false);
+  const inputImportRef = useRef(null);
 
   const alternarPeriodos = () => {
     const proximo = !periodosAberto;
@@ -156,6 +161,29 @@ export default function Sidebar({
           <button className={`nav-btn${aba === "visaogeral" ? " ativo" : ""}`} onClick={() => irPara("visaogeral")}>
             <LayoutGrid size={15} /> Calendário geral
           </button>
+        </div>
+
+        <div className="sidebar-secao backup-secao">
+          <div className="sidebar-secao-label">
+            <span>Backup</span>
+          </div>
+          <button className="nav-btn" onClick={onExportarBackup} title="Baixa um arquivo .json com todos os seus dados">
+            <Download size={15} /> Exportar dados
+          </button>
+          <button className="nav-btn" onClick={() => inputImportRef.current?.click()} title="Restaura dados a partir de um backup .json">
+            <Upload size={15} /> Importar dados
+          </button>
+          <input
+            ref={inputImportRef}
+            type="file"
+            accept="application/json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const arquivo = e.target.files?.[0];
+              if (arquivo) onImportarBackup(arquivo);
+              e.target.value = "";
+            }}
+          />
         </div>
 
         <div className="status-footer">

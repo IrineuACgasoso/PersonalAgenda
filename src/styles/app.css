@@ -129,8 +129,13 @@ body {
   color: #fff;
 }
 
-.status-footer {
+.backup-secao {
   margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #23252b;
+}
+
+.status-footer {
   display: flex;
   align-items: center;
   gap: 6px;
