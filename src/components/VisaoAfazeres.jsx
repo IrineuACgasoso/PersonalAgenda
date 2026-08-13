@@ -1,6 +1,6 @@
 // src/components/VisaoAfazeres.jsx
-import React, { useState } from "react";
-import { Plus, Trash2, Check, Trash, Repeat, Clock, Tag } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
 import { CORES, ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
@@ -31,7 +31,7 @@ function BarraUrgencia({ nivel }) {
   );
 }
 
-function FormularioAfazer({ onCriar }) {
+function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
   const [nome, setNome] = useState("");
   const [temData, setTemData] = useState(false);
   const [data, setData] = useState("");
@@ -39,7 +39,22 @@ function FormularioAfazer({ onCriar }) {
   const [rotinaTipo, setRotinaTipo] = useState("nenhuma");
   const [intervaloDias, setIntervaloDias] = useState(3);
   const [urgencia, setUrgencia] = useState(1);
-  const [cor, setCor] = useState(CORES[6]); // Roxo padrão
+  const [cor, setCor] = useState(CORES[6]);
+
+  useEffect(() => {
+    if (itemEmEdicao) {
+      setNome(itemEmEdicao.nome || "");
+      setTemData(!!itemEmEdicao.data);
+      setData(itemEmEdicao.data || "");
+      setHora(itemEmEdicao.hora || "");
+      setRotinaTipo(itemEmEdicao.rotina?.tipo || "nenhuma");
+      setIntervaloDias(itemEmEdicao.rotina?.intervaloDias || 3);
+      setUrgencia(itemEmEdicao.urgencia || 1);
+      setCor(itemEmEdicao.cor || CORES[6]);
+    } else {
+      limpar();
+    }
+  }, [itemEmEdicao]);
 
   const limpar = () => {
     setNome("");
@@ -50,19 +65,15 @@ function FormularioAfazer({ onCriar }) {
     setIntervaloDias(3);
     setUrgencia(1);
     setCor(CORES[6]);
+    if (onCancelarEdicao) onCancelarEdicao();
   };
 
-  const adicionar = () => {
+  const submit = () => {
     const n = nome.trim();
-    if (!n) {
-      window.alert("Dê um nome para o afazer.");
-      return;
-    }
-    if (temData && !data) {
-      window.alert("Escolha a data ou desmarque a opção de data/hora.");
-      return;
-    }
-    onCriar({
+    if (!n) return window.alert("Dê um nome para o afazer.");
+    if (temData && !data) return window.alert("Escolha a data ou desmarque a opção de data/hora.");
+
+    onSalvar({
       nome: n,
       data: temData ? data : "",
       hora: temData ? hora : "",
@@ -71,7 +82,7 @@ function FormularioAfazer({ onCriar }) {
         intervaloDias: rotinaTipo === "personalizada" ? Number(intervaloDias) || 1 : undefined,
       },
       urgencia,
-      cor, // Garante envio da cor selecionada
+      cor,
     });
     limpar();
   };
@@ -83,10 +94,9 @@ function FormularioAfazer({ onCriar }) {
         placeholder="Nome do afazer, ex: Estudar para a prova"
         value={nome}
         onChange={(e) => setNome(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && adicionar()}
+        onKeyDown={(e) => e.key === "Enter" && submit()}
       />
 
-      {/* Seleção de Cor em Destaque */}
       <div style={{ marginTop: 12, marginBottom: 12 }}>
         <span className="subtle" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
           Cor de identificação:
@@ -105,7 +115,6 @@ function FormularioAfazer({ onCriar }) {
                 border: cor === c ? "2px solid #ffffff" : "2px solid transparent",
                 cursor: "pointer",
                 boxShadow: cor === c ? `0 0 0 2px ${c}` : "none",
-                transition: "transform 0.1s ease",
                 transform: cor === c ? "scale(1.15)" : "scale(1)",
               }}
             />
@@ -157,25 +166,17 @@ function FormularioAfazer({ onCriar }) {
         )}
       </div>
 
-      {rotinaTipo === "personalizada" && (
-        <div className="urgencia-picker" style={{ marginTop: 8 }}>
-          {[1, 2, 3].map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`urgencia-opcao${urgencia === n ? " ativa" : ""}`}
-              onClick={() => setUrgencia(n)}
-              style={{ borderColor: URGENCIA_CORES[n] }}
-            >
-              <BarraUrgencia nivel={n} />
-            </button>
-          ))}
-        </div>
-      )}
-
-      <button className="btn-primario full" onClick={adicionar} style={{ marginTop: 12 }}>
-        <Plus size={15} /> Adicionar afazer
-      </button>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button className="btn-primario full" onClick={submit}>
+          {itemEmEdicao ? <Check size={15} /> : <Plus size={15} />}
+          {itemEmEdicao ? "Salvar alterações" : "Adicionar afazer"}
+        </button>
+        {itemEmEdicao && (
+          <button className="btn-secundario" onClick={limpar} title="Cancelar edição">
+            <X size={15} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -183,10 +184,22 @@ function FormularioAfazer({ onCriar }) {
 export default function VisaoAfazeres({
   afazeres,
   onCriar,
+  onEditar,
   onAlternarFeito,
   onExcluir,
   onLimparConcluidos,
 }) {
+  const [itemEmEdicao, setItemEmEdicao] = useState(null);
+
+  const salvarHandler = (dados) => {
+    if (itemEmEdicao) {
+      if (onEditar) onEditar(itemEmEdicao.id, dados);
+      setItemEmEdicao(null);
+    } else {
+      onCriar(dados);
+    }
+  };
+
   const pendentes = afazeres.filter((a) => !a.feito);
   const concluidos = afazeres.filter((a) => a.feito);
 
@@ -210,13 +223,16 @@ export default function VisaoAfazeres({
           style={{ marginLeft: "auto" }}
           onClick={onLimparConcluidos}
           disabled={concluidos.length === 0}
-          title="Apaga definitivamente os afazeres marcados como concluídos"
         >
           <Trash size={14} /> Apagar concluídos ({concluidos.length})
         </button>
       </div>
 
-      <FormularioAfazer onCriar={onCriar} />
+      <FormularioAfazer
+        onSalvar={salvarHandler}
+        itemEmEdicao={itemEmEdicao}
+        onCancelarEdicao={() => setItemEmEdicao(null)}
+      />
 
       {ordenados.length === 0 ? (
         <EstadoVazio texto="Nenhum afazer cadastrado ainda" />
@@ -228,16 +244,12 @@ export default function VisaoAfazeres({
               <div
                 key={a.id}
                 className={`item-afazer${a.feito ? " feito" : ""}`}
-                style={{
-                  borderLeft: `4px solid ${corAfazer}`, // Borda esquerda destacada na cor
-                  paddingLeft: 12,
-                }}
+                style={{ borderLeft: `4px solid ${corAfazer}`, paddingLeft: 12 }}
               >
                 <button
                   className={`check-btn${a.feito ? " marcado" : ""}`}
                   onClick={() => onAlternarFeito(a.id)}
                   style={{ borderColor: a.feito ? "transparent" : corAfazer }}
-                  title={a.feito ? "Marcar como pendente" : "Marcar como concluído"}
                 >
                   {a.feito && <Check size={13} />}
                 </button>
@@ -245,17 +257,6 @@ export default function VisaoAfazeres({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="item-linha-titulo" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span>{a.nome}</span>
-                    {/* Badge de cor discreta */}
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: corAfazer,
-                        display: "inline-block",
-                        flexShrink: 0,
-                      }}
-                    />
                   </div>
                   <div className="subtle afazer-meta">
                     {a.data && (
@@ -274,7 +275,10 @@ export default function VisaoAfazeres({
                 </div>
 
                 <BarraUrgencia nivel={a.urgencia} />
-                <button className="icon-btn-ghost" onClick={() => onExcluir(a.id)}>
+                <button className="icon-btn-ghost" onClick={() => setItemEmEdicao(a)} title="Editar afazer">
+                  <Edit2 size={13} />
+                </button>
+                <button className="icon-btn-ghost" onClick={() => onExcluir(a.id)} title="Excluir afazer">
                   <Trash2 size={13} />
                 </button>
               </div>

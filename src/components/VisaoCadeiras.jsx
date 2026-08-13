@@ -1,8 +1,16 @@
+// src/components/VisaoCadeiras.jsx
 import React, { useState } from "react";
 import { Plus, Trash2, Clock, Link as LinkIcon, Calendar } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 
-export default function VisaoCadeiras({ periodoAtivo, cadeiras, onCriar, onAbrir, onExcluir }) {
+export default function VisaoCadeiras({
+  periodoAtivo,
+  cadeiras,
+  onCriar,
+  onAbrir,
+  onExcluir,
+  onAtualizarPeriodo,
+}) {
   const [novoNome, setNovoNome] = useState("");
 
   const adicionar = () => {
@@ -14,14 +22,45 @@ export default function VisaoCadeiras({ periodoAtivo, cadeiras, onCriar, onAbrir
 
   return (
     <div>
-      <div className="header-bar">
-        <h1 className="titulo-pagina">{periodoAtivo.nome}</h1>
-        <span className="subtle">
-          {cadeiras.length} cadeira{cadeiras.length !== 1 ? "s" : ""}
-        </span>
+      <div className="header-bar" style={{ alignItems: "flex-start", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
+          <h1 className="titulo-pagina">{periodoAtivo.nome}</h1>
+          <span className="subtle" style={{ marginLeft: "auto" }}>
+            {cadeiras.length} cadeira{cadeiras.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {/* Configuração de Data de Início e Fim do Período */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+          <span className="subtle">Duração do período:</span>
+          <label style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <span className="subtle">De:</span>
+            <input
+              type="date"
+              className="input"
+              style={{ padding: "3px 8px", fontSize: 12 }}
+              value={periodoAtivo.dataInicio || ""}
+              onChange={(e) =>
+                onAtualizarPeriodo && onAtualizarPeriodo(periodoAtivo.id, { dataInicio: e.target.value })
+              }
+            />
+          </label>
+          <label style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <span className="subtle">Até:</span>
+            <input
+              type="date"
+              className="input"
+              style={{ padding: "3px 8px", fontSize: 12 }}
+              value={periodoAtivo.dataFim || ""}
+              onChange={(e) =>
+                onAtualizarPeriodo && onAtualizarPeriodo(periodoAtivo.id, { dataFim: e.target.value })
+              }
+            />
+          </label>
+        </div>
       </div>
 
-      <div className="add-row">
+      <div className="add-row" style={{ marginTop: 16 }}>
         <input
           className="input"
           placeholder="Nome da cadeira, ex: Cálculo II"

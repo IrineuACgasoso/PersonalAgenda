@@ -28,7 +28,7 @@ function lerFiltrosIniciais() {
   }
 }
 
-export default function VisaoGeral({ cadeiras, afazeres }) {
+export default function VisaoGeral({ cadeiras, afazeres, periodos = [] }) {
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
@@ -51,12 +51,22 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
   const inicioISO = toISO(primeiroDiaMes);
   const fimISO = toISO(ultimoDiaMes);
 
-  // eventos do tipo "avaliações" (datas importantes das cadeiras)
+  // Auxiliar para verificar se a data está dentro do período da cadeira
+  const cadeiraEstaAtivaNaData = (cadeira, dataISO) => {
+    const periodo = periodos.find((p) => p.id === cadeira.periodoId);
+    if (!periodo) return true; // Se não houver vínculo de período, exibe normalmente
+    if (periodo.dataInicio && dataISO < periodo.dataInicio) return false;
+    if (periodo.dataFim && dataISO > periodo.dataFim) return false;
+    return true;
+  };
+
+  // eventos do tipo "avaliações" (respeitando intervalo do período)
   const avaliacoes = useMemo(() => {
     if (!filtros.avaliacoes) return [];
     return cadeiras.flatMap((c) =>
       c.datas
         .filter((d) => d.data >= inicioISO && d.data <= fimISO)
+        .filter((d) => cadeiraEstaAtivaNaData(c, d.data))
         .map((d) => ({
           tipo: "avaliacoes",
           data: d.data,
@@ -66,16 +76,19 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
           origem: c.nome,
         }))
     );
-  }, [cadeiras, filtros.avaliacoes, inicioISO, fimISO]);
+  }, [cadeiras, periodos, filtros.avaliacoes, inicioISO, fimISO]);
 
-  // eventos do tipo "aulas" (horários fixos semanais, projetados no mês)
+  // eventos do tipo "aulas" (respeitando intervalo do período)
   const aulas = useMemo(() => {
     if (!filtros.aulas) return [];
     const lista = [];
     for (let d = new Date(primeiroDiaMes); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
-      const diaSemana = (d.getDay() + 6) % 7; // 0 = segunda
+      const diaSemana = (d.getDay() + 6) % 7;
       const dataISO = toISO(d);
+
       cadeiras.forEach((c) => {
+        if (!cadeiraEstaAtivaNaData(c, dataISO)) return;
+
         c.horarios
           .filter((h) => h.dia === diaSemana)
           .forEach((h) => {
@@ -91,9 +104,8 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
       });
     }
     return lista;
-  }, [cadeiras, filtros.aulas, mes, ano]);
+  }, [cadeiras, periodos, filtros.aulas, mes, ano]);
 
-  // eventos do tipo "afazeres" (usando a cor personalizada de cada afazer)
   const eventosAfazeres = useMemo(() => {
     if (!filtros.afazeres) return [];
     const lista = [];
@@ -130,7 +142,7 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
   const [diaSelecionado, setDiaSelecionado] = useState(null);
 
   const celulas = useMemo(() => {
-    const offset = (primeiroDiaMes.getDay() + 6) % 7; // segunda = 0
+    const offset = (primeiroDiaMes.getDay() + 6) % 7;
     const total = ultimoDiaMes.getDate();
     const dias = [];
     for (let i = 0; i < offset; i++) dias.push(null);
@@ -217,7 +229,7 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
           {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
         </h2>
         {diaSelecionado && eventosDoDiaSelecionado.length === 0 && (
-          <EstadoVazio texto="Nenhum evento neste dia" pequeno />
+          <EstadoVazio texto="Nenum evento neste dia" pequeno />
         )}
         {diaSelecionado && eventosDoDiaSelecionado.length > 0 && (
           <div className="lista-proximas-datas">
@@ -228,7 +240,17 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
                   <div className="data-item-titulo">{ev.titulo}</div>
                   <div className="subtle">{ev.origem}</div>
                 </div>
-                <div className="data-item-data">{ev.hora || ""}</div>
+                {/* Aumento no tamanho e destaque do horário */}
+                <div
+                  className="data-item-data"
+                  style={{
+                    fontSize: "1.15rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  {ev.hora || ""}
+                </div>
               </div>
             ))}
           </div>
