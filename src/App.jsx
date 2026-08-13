@@ -12,7 +12,9 @@ import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 
 export default function App() {
-  const { data, persist, status } = usePersistedData();
+  // 1. AQUI: Adicionados user, loginWithGoogle e logout
+  const { data, persist, status, user, loginWithGoogle, logout } = usePersistedData();
+  
   const [aba, setAba] = useState("cadeiras");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
@@ -191,6 +193,10 @@ export default function App() {
         status={status}
         onExportarBackup={exportarBackup}
         onImportarBackup={importarBackup}
+        /* 2. AQUI: Props repassadas para a Sidebar */
+        user={user}
+        loginWithGoogle={loginWithGoogle}
+        logout={logout}
       />
 
       <main className="main">

@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import React, { useState, useRef } from "react";
 import {
   Plus,
@@ -11,6 +12,8 @@ import {
   Menu,
   Download,
   Upload,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { SIDEBAR_STATE_KEY } from "../constants.js";
 
@@ -35,6 +38,9 @@ export default function Sidebar({
   status,
   onExportarBackup,
   onImportarBackup,
+  user,
+  loginWithGoogle,
+  logout,
 }) {
   const [periodosAberto, setPeriodosAberto] = useState(
     () => lerEstadoInicial().periodosAberto ?? true
@@ -186,9 +192,36 @@ export default function Sidebar({
           />
         </div>
 
-        <div className="status-footer">
-          <span className={`status-dot ${status}`} />
-          {status === "saved" ? "Tudo salvo" : status === "saving" ? "Salvando..." : "Erro ao salvar"}
+        {/* --- Conta / Nuvem & Status --- */}
+        <div className="status-footer" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+          {user ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="Foto do usuário" style={{ width: 22, height: 22, borderRadius: "50%" }} />
+                ) : (
+                  <div className="logo-dot" />
+                )}
+                <span className="subtle" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: 12 }}>
+                  {user.displayName || user.email}
+                </span>
+              </div>
+              <button className="icon-btn-ghost" onClick={logout} title="Sair da conta">
+                <LogOut size={14} />
+              </button>
+            </div>
+          ) : (
+            <button className="btn-secundario" onClick={loginWithGoogle} style={{ width: "100%", padding: "6px 8px", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <LogIn size={14} /> Entrar p/ Sincronizar
+            </button>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span className={`status-dot ${status}`} />
+            <span style={{ fontSize: 11 }}>
+              {status === "saved" ? (user ? "Nuvem sincronizada" : "Salvo localmente") : status === "saving" ? "Salvando..." : status === "loading" ? "Carregando..." : "Erro ao salvar"}
+            </span>
+          </div>
         </div>
       </aside>
     </>
