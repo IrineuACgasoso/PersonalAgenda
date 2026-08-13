@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState } from "react";
 import { CORES } from "./constants";
 import { uid } from "./utils/id";
@@ -12,13 +13,11 @@ import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 
 export default function App() {
-  // 1. AQUI: Adicionados user, loginWithGoogle e logout
   const { data, persist, status, user, loginWithGoogle, logout } = usePersistedData();
   
   const [aba, setAba] = useState("cadeiras");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
-  const [editandoPeriodoId, setEditandoPeriodoId] = useState(null);
 
   if (!data) {
     return (
@@ -36,6 +35,10 @@ export default function App() {
   const cadeiraAberta = data.cadeiras.find((c) => c.id === cadeiraAbertaId);
 
   /* ---- ações períodos ---- */
+  const selecionarPeriodo = (id) => {
+    persist({ ...data, periodoAtivoId: id });
+  };
+
   const criarPeriodo = (nome) => {
     const novo = { id: uid(), nome };
     persist({
@@ -45,10 +48,13 @@ export default function App() {
     });
   };
 
-  const renomearPeriodo = (id, nome) => {
+  // Atualiza nome ou datas do período diretamente no estado unificado
+  const atualizarPeriodo = (id, patch) => {
     persist({
       ...data,
-      periodos: data.periodos.map((p) => (p.id === id ? { ...p, nome } : p)),
+      periodos: data.periodos.map((p) =>
+        p.id === id ? { ...p, ...patch } : p
+      ),
     });
   };
 
@@ -184,16 +190,15 @@ export default function App() {
       <Sidebar
         data={data}
         periodoAtivo={periodoAtivo}
-        onSelecionarPeriodo={(id) => persist({ ...data, periodoAtivoId: id })}
+        onSelecionarPeriodo={selecionarPeriodo}
         onNovoPeriodo={() => setModalPeriodo(true)}
-        onEditarPeriodo={(id) => setEditandoPeriodoId(id)}
+        onAtualizarPeriodo={atualizarPeriodo}
         onExcluirPeriodo={excluirPeriodo}
         aba={aba}
         setAba={setAba}
         status={status}
         onExportarBackup={exportarBackup}
         onImportarBackup={importarBackup}
-        /* 2. AQUI: Props repassadas para a Sidebar */
         user={user}
         loginWithGoogle={loginWithGoogle}
         logout={logout}
@@ -204,13 +209,17 @@ export default function App() {
           <VisaoAfazeres
             afazeres={afazeres}
             onCriar={criarAfazer}
-            onAtualizar={atualizarAfazer}
+            onEditar={atualizarAfazer}
             onAlternarFeito={alternarFeitoAfazer}
             onExcluir={excluirAfazer}
             onLimparConcluidos={limparAfazeresConcluidos}
           />
         ) : aba === "visaogeral" ? (
-          <VisaoGeral cadeiras={data.cadeiras} afazeres={afazeres} />
+            <VisaoGeral
+              cadeiras={data.cadeiras}
+              afazeres={afazeres}
+              periodos={data.periodos}
+            />
         ) : !periodoAtivo ? (
           <EstadoVazio
             texto="Crie um período para começar"
@@ -224,6 +233,7 @@ export default function App() {
             onCriar={criarCadeira}
             onAbrir={setCadeiraAbertaId}
             onExcluir={excluirCadeira}
+            onAtualizarPeriodo={atualizarPeriodo}
           />
         ) : (
           <VisaoAgenda
@@ -251,20 +261,6 @@ export default function App() {
             setModalPeriodo(false);
           }}
           onCancelar={() => setModalPeriodo(false)}
-        />
-      )}
-
-      {editandoPeriodoId && (
-        <ModalTexto
-          titulo="Renomear período"
-          valorInicial={
-            data.periodos.find((p) => p.id === editandoPeriodoId)?.nome
-          }
-          onConfirmar={(v) => {
-            renomearPeriodo(editandoPeriodoId, v);
-            setEditandoPeriodoId(null);
-          }}
-          onCancelar={() => setEditandoPeriodoId(null)}
         />
       )}
     </div>

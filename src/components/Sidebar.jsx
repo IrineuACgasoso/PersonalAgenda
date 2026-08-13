@@ -14,6 +14,8 @@ import {
   Upload,
   LogIn,
   LogOut,
+  Check,
+  X,
 } from "lucide-react";
 import { SIDEBAR_STATE_KEY } from "../constants.js";
 
@@ -48,6 +50,10 @@ export default function Sidebar({
   const [mobileAberta, setMobileAberta] = useState(false);
   const inputImportRef = useRef(null);
 
+  // Estados locais para controlar a EDIÇÃO INLINE
+  const [editandoId, setEditandoId] = useState(null);
+  const [nomeTemp, setNomeTemp] = useState("");
+
   const alternarPeriodos = () => {
     const proximo = !periodosAberto;
     setPeriodosAberto(proximo);
@@ -64,6 +70,14 @@ export default function Sidebar({
   const irPara = (novaAba) => {
     setAba(novaAba);
     setMobileAberta(false);
+  };
+
+  const salvarEdicaoInline = (id) => {
+    const nomeLimpo = nomeTemp.trim();
+    if (nomeLimpo && onEditarPeriodo) {
+      onEditarPeriodo(id, { nome: nomeLimpo });
+    }
+    setEditandoId(null);
   };
 
   return (
@@ -112,35 +126,83 @@ export default function Sidebar({
           </div>
           {periodosAberto && (
             <div className="periodo-lista">
-              {data.periodos.map((p) => (
-                <div
-                  key={p.id}
-                  className={`periodo-item${p.id === periodoAtivo?.id ? " ativo" : ""}`}
-                  onClick={() => onSelecionarPeriodo(p.id)}
-                >
-                  <span className="periodo-nome">{p.nome}</span>
-                  <div className="periodo-acoes">
-                    <button
-                      className="icon-btn-ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditarPeriodo(p.id);
-                      }}
-                    >
-                      <Edit2 size={12} />
-                    </button>
-                    <button
-                      className="icon-btn-ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onExcluirPeriodo(p.id);
-                      }}
-                    >
-                      <Trash2 size={12} />
-                    </button>
+              {data.periodos.map((p) => {
+                const estaEditando = editandoId === p.id;
+
+                return (
+                  <div
+                    key={p.id}
+                    className={`periodo-item${p.id === periodoAtivo?.id ? " ativo" : ""}`}
+                    onClick={() => !estaEditando && onSelecionarPeriodo(p.id)}
+                  >
+                    {estaEditando ? (
+                      /* CAMPO DE EDIÇÃO INLINE */
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%" }}>
+                        <input
+                          className="input"
+                          style={{ padding: "2px 6px", fontSize: 12, height: 24, flex: 1 }}
+                          value={nomeTemp}
+                          onChange={(e) => setNomeTemp(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") salvarEdicaoInline(p.id);
+                            if (e.key === "Escape") setEditandoId(null);
+                          }}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <button
+                          className="icon-btn-ghost"
+                          title="Salvar"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            salvarEdicaoInline(p.id);
+                          }}
+                        >
+                          <Check size={13} color="#10b981" />
+                        </button>
+                        <button
+                          className="icon-btn-ghost"
+                          title="Cancelar"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditandoId(null);
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      /* EXIBIÇÃO NORMAL */
+                      <>
+                        <span className="periodo-nome">{p.nome}</span>
+                        <div className="periodo-acoes">
+                          <button
+                            className="icon-btn-ghost"
+                            title="Renomear"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditandoId(p.id);
+                              setNomeTemp(p.nome);
+                            }}
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            className="icon-btn-ghost"
+                            title="Excluir"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onExcluirPeriodo(p.id);
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

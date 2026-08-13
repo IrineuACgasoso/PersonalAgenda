@@ -863,6 +863,7 @@ h2.titulo-secao {
 .sidebar-scrim {
   display: none;
 }
+}
 
 @media (max-width: 860px) {
   /* Evita que a tela esprema ou role para os lados no celular */

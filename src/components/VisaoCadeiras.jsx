@@ -1,6 +1,6 @@
 // src/components/VisaoCadeiras.jsx
-import React, { useState } from "react";
-import { Plus, Trash2, Clock, Link as LinkIcon, Calendar } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Trash2, Clock, Link as LinkIcon, Calendar, Check } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 
 export default function VisaoCadeiras({
@@ -12,6 +12,18 @@ export default function VisaoCadeiras({
   onAtualizarPeriodo,
 }) {
   const [novoNome, setNovoNome] = useState("");
+  
+  // Estado local para controlar as datas sem bug de re-render
+  const [dataInicio, setDataInicio] = useState(periodoAtivo?.dataInicio || "");
+  const [dataFim, setDataFim] = useState(periodoAtivo?.dataFim || "");
+  const [salvo, setSalvo] = useState(false);
+
+  // Sincroniza o estado local quando troca de período
+  useEffect(() => {
+    setDataInicio(periodoAtivo?.dataInicio || "");
+    setDataFim(periodoAtivo?.dataFim || "");
+    setSalvo(false);
+  }, [periodoAtivo?.id]);
 
   const adicionar = () => {
     const nome = novoNome.trim();
@@ -20,9 +32,17 @@ export default function VisaoCadeiras({
     setNovoNome("");
   };
 
+  const salvarDatas = () => {
+    if (onAtualizarPeriodo && periodoAtivo) {
+      onAtualizarPeriodo(periodoAtivo.id, { dataInicio, dataFim });
+      setSalvo(true);
+      setTimeout(() => setSalvo(false), 2000);
+    }
+  };
+
   return (
     <div>
-      <div className="header-bar" style={{ alignItems: "flex-start", flexDirection: "column", gap: 8 }}>
+      <div className="header-bar" style={{ alignItems: "flex-start", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
           <h1 className="titulo-pagina">{periodoAtivo.nome}</h1>
           <span className="subtle" style={{ marginLeft: "auto" }}>
@@ -30,33 +50,41 @@ export default function VisaoCadeiras({
           </span>
         </div>
 
-        {/* Configuração de Data de Início e Fim do Período */}
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+        {/* Seleção de Datas com Botão de Salvar */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
           <span className="subtle">Duração do período:</span>
-          <label style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          
+          <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <span className="subtle">De:</span>
             <input
               type="date"
               className="input"
-              style={{ padding: "3px 8px", fontSize: 12 }}
-              value={periodoAtivo.dataInicio || ""}
-              onChange={(e) =>
-                onAtualizarPeriodo && onAtualizarPeriodo(periodoAtivo.id, { dataInicio: e.target.value })
-              }
+              style={{ padding: "4px 8px", fontSize: 12, width: "auto" }}
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
             />
           </label>
-          <label style={{ display: "flex", gap: 4, alignItems: "center" }}>
+
+          <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <span className="subtle">Até:</span>
             <input
               type="date"
               className="input"
-              style={{ padding: "3px 8px", fontSize: 12 }}
-              value={periodoAtivo.dataFim || ""}
-              onChange={(e) =>
-                onAtualizarPeriodo && onAtualizarPeriodo(periodoAtivo.id, { dataFim: e.target.value })
-              }
+              style={{ padding: "4px 8px", fontSize: 12, width: "auto" }}
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
             />
           </label>
+
+          <button
+            type="button"
+            className="btn-secundario"
+            style={{ padding: "4px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+            onClick={salvarDatas}
+          >
+            <Check size={13} color={salvo ? "#10b981" : "currentColor"} />
+            {salvo ? "Salvo!" : "Salvar datas"}
+          </button>
         </div>
       </div>
 
