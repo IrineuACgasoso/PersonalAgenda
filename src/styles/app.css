@@ -855,6 +855,27 @@ h2.titulo-secao {
     flex-direction: column;
   }
 
+  /* ---------- mobile ajustado ---------- */
+.mobile-menu-btn {
+  display: none;
+}
+
+.sidebar-scrim {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  /* Evita que a tela esprema ou role para os lados no celular */
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .app {
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
   .mobile-menu-btn {
     display: flex;
     align-items: center;
@@ -871,16 +892,20 @@ h2.titulo-secao {
     z-index: 60;
   }
 
+  /* Ajustado a altura e a rolagem da sidebar no celular */
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
     z-index: 55;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
-    width: 260px;
+    width: 280px;
+    max-width: 85vw;
     box-shadow: 2px 0 18px rgba(0, 0, 0, 0.4);
+    overflow-y: auto; /* Permite rolar a sidebar se a tela do celular for pequena */
   }
 
   .sidebar.mobile-aberta {
@@ -891,11 +916,13 @@ h2.titulo-secao {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     z-index: 54;
   }
 
+  /* Conteúdo Principal Ocupa a Tela Toda */
   .main {
+    width: 100%;
     max-width: 100%;
     padding: 66px 16px 24px;
   }
@@ -928,21 +955,4 @@ h2.titulo-secao {
   .calendario-celula {
     min-height: 48px;
   }
-}
-
-/* ---------- modal pequeno ---------- */
-.modal-pequeno {
-  background: #171920;
-  border: 1px solid #23252b;
-  border-radius: 12px;
-  padding: 20px;
-  width: 320px;
-  margin: auto;
-}
-
-.modal-acoes {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  justify-content: flex-end;
 }
