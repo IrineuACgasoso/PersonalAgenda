@@ -501,18 +501,50 @@ h2.titulo-secao {
   outline: none;
 }
 
+/* Container de cores com scroll lateral */
+/* Container de cores com scroll lateral */
 .painel-cores {
   display: flex;
-  gap: 6px;
-  margin-top: 12px;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  
+  /* PADDING: Dá o respiro necessário no topo, fundo e laterais para o scale e o anel não cortarem */
+  padding: 8px 6px 8px 6px; 
+  
+  /* Barra de scroll discreta (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: #2a2c33 transparent;
 }
 
+/* Barra de scroll discreta (Chrome/Safari/Edge) */
+.painel-cores::-webkit-scrollbar {
+  height: 4px;
+}
+.painel-cores::-webkit-scrollbar-track {
+  background: transparent;
+}
+.painel-cores::-webkit-scrollbar-thumb {
+  background: #2a2c33;
+  border-radius: 4px;
+}
+
+/* Bolinha de cor */
 .cor-swatch {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: none;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cor-swatch:hover {
+  transform: scale(1.15);
 }
 
 .painel-tabs {

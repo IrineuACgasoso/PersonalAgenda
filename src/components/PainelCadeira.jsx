@@ -66,19 +66,25 @@ export default function PainelCadeira({
           </button>
         </div>
 
-        <div className="painel-cores">
-          {CORES.map((c) => (
-            <button
-              key={c}
-              onClick={() => onAtualizar({ cor: c })}
-              className="cor-swatch"
-              style={{
-                background: c,
-                outline: c === cadeira.cor ? "2px solid #fff" : "none",
-                boxShadow: c === cadeira.cor ? `0 0 0 2px ${c}` : "none",
-              }}
-            />
-          ))}
+        {/* SELETOR DE CORES COM SCROLL LATERAL */}
+        <div className="painel-cores" style={{ marginTop: 8 }}>
+          {CORES.map((c) => {
+            const ativa = c === cadeira.cor;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => onAtualizar({ cor: c })}
+                className="cor-swatch"
+                style={{
+                  background: c,
+                  /* Usa box-shadow duplo: cria um anel branco envolta da bolinha sem cortar */
+                  boxShadow: ativa ? `0 0 0 2px #18181b, 0 0 0 4px #ffffff` : "none",
+                  transform: ativa ? "scale(1.1)" : undefined,
+                }}
+              />
+            );
+          })}
         </div>
 
         <div className="painel-tabs">

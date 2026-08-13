@@ -5,6 +5,7 @@ import { CORES, ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../consta
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 
+
 function rotinaLabel(rotina) {
   if (!rotina || rotina.tipo === "nenhuma") return null;
   if (rotina.tipo === "personalizada") {
@@ -40,6 +41,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
   const [intervaloDias, setIntervaloDias] = useState(3);
   const [urgencia, setUrgencia] = useState(1);
   const [cor, setCor] = useState(CORES[6]);
+  const [expandidoCores, setExpandidoCores] = useState(false); // <--- ESTADO ADICIONADO
 
   useEffect(() => {
     if (itemEmEdicao) {
@@ -97,23 +99,21 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
         onKeyDown={(e) => e.key === "Enter" && submit()}
       />
 
+      {/* SELETOR DE CORES EXPANDÍVEL */}
       <div style={{ marginTop: 12, marginBottom: 12 }}>
         <span className="subtle" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
           Cor de identificação:
         </span>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="painel-cores">
           {CORES.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setCor(c)}
+              className="cor-swatch"
               style={{
-                width: 24,
-                height: 24,
-                borderRadius: "50%",
                 background: c,
-                border: cor === c ? "2px solid #ffffff" : "2px solid transparent",
-                cursor: "pointer",
+                outline: cor === c ? "2px solid #ffffff" : "none",
                 boxShadow: cor === c ? `0 0 0 2px ${c}` : "none",
                 transform: cor === c ? "scale(1.15)" : "scale(1)",
               }}
@@ -180,6 +180,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
     </div>
   );
 }
+
 
 export default function VisaoAfazeres({
   afazeres,
