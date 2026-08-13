@@ -81,7 +81,15 @@ export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
               <button className="icon-btn-ghost" onClick={() => iniciarEdicao(d)} title="Editar data">
                 <Edit2 size={13} />
               </button>
-              <button className="icon-btn-ghost" onClick={() => onRemover(d.id)} title="Excluir data">
+              <button
+                className="icon-btn-ghost"
+                onClick={() => {
+                  if (window.confirm(`Excluir a data "${d.titulo}"?`)) {
+                    onRemover(d.id);
+                  }
+                }}
+                title="Excluir data"
+              >
                 <Trash2 size={13} />
               </button>
             </div>

@@ -192,7 +192,9 @@ export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
                   className="icon-btn-ghost"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRemover(l.id);
+                    if (window.confirm(`Excluir o código do Classroom "${l.titulo}"?`)) {
+                      onRemover(l.id);
+                    }
                   }}
                   title="Excluir"
                 >
@@ -226,7 +228,9 @@ export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onRemover(l.id);
+                  if (window.confirm(`Excluir o link "${l.titulo}"?`)) {
+                    onRemover(l.id);
+                  }
                 }}
                 title="Excluir link"
               >

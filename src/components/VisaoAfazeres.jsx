@@ -278,7 +278,15 @@ export default function VisaoAfazeres({
                 <button className="icon-btn-ghost" onClick={() => setItemEmEdicao(a)} title="Editar afazer">
                   <Edit2 size={13} />
                 </button>
-                <button className="icon-btn-ghost" onClick={() => onExcluir(a.id)} title="Excluir afazer">
+                <button
+                  className="icon-btn-ghost"
+                  onClick={() => {
+                    if (window.confirm(`Excluir o afazer "${a.nome}"?`)) {
+                      onExcluir(a.id);
+                    }
+                  }}
+                  title="Excluir afazer"
+                >
                   <Trash2 size={13} />
                 </button>
               </div>

@@ -93,7 +93,15 @@ export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
               <button className="icon-btn-ghost" onClick={() => iniciarEdicao(h)} title="Editar horário">
                 <Edit2 size={13} />
               </button>
-              <button className="icon-btn-ghost" onClick={() => onRemover(h.id)} title="Excluir horário">
+              <button
+                className="icon-btn-ghost"
+                onClick={() => {
+                  if (window.confirm(`Excluir o horário de ${DIAS_FULL[h.dia]} (${h.inicio}–${h.fim})?`)) {
+                    onRemover(h.id);
+                  }
+                }}
+                title="Excluir horário"
+              >
                 <Trash2 size={13} />
               </button>
             </div>
