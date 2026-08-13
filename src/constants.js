@@ -1,11 +1,12 @@
 export const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 export const DIAS_FULL = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 export const CORES = [
-   "#ec4899", "#10b981", "#14b8a6", 
-   "#666666",
-   "#3b82f6", "#6366f1", "#666666", 
-   "#8b5cf6", "#f59e0b", "#ff8800",
-   "#ef4444", "#eb1111"];
+  "#0011ff", "#00acfc", "#00ff4c", "#0c3d00", "#10b981",
+  "#14b8a6", "#221e1e", "#3b82f6", "#4700cc", "#6366f1",
+  "#666666", "#81792c", "#8b5cf6", "#ec4899", "#eb1111",
+  "#ebfc00", "#ef4444", "#f59e0b", "#ff00ea", "#ff8800",
+  "#ffffff",
+];
 export const HORA_INICIO = 6; // grade das 6h às 23h
 export const HORA_FIM = 23;
 export const STORAGE_KEY = "painel-academico-data";
