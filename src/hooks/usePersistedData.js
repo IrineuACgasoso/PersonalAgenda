@@ -1,8 +1,8 @@
 // src/hooks/usePersistedData.js
 import { useState, useEffect } from "react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
-import { db, auth, loginComGoogle, fazerLogout } from "../firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { db, auth, loginComGoogle, fazerLogout, EMAIL_PERMITIDO } from "../firebase";
 import { STORAGE_KEY } from "../constants";
 
 const DADOS_PADRAO = {
@@ -17,11 +17,19 @@ export default function usePersistedData() {
   const [data, setData] = useState(null);
   const [status, setStatus] = useState("loading"); // "saved" | "saving" | "error" | "loading"
 
-  // 1. Escuta alterações na Autenticação
+  // 1. Escuta alterações na Autenticação (Persistente)
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (!currentUser) {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        // Validação extra de segurança do e-mail
+        if (currentUser.email !== EMAIL_PERMITIDO) {
+          await signOut(auth);
+          setUser(null);
+          return;
+        }
+        setUser(currentUser);
+      } else {
+        setUser(null);
         const local = localStorage.getItem(STORAGE_KEY);
         setData(local ? JSON.parse(local) : DADOS_PADRAO);
         setStatus("saved");
@@ -31,7 +39,7 @@ export default function usePersistedData() {
     return () => unsubscribeAuth();
   }, []);
 
-  // 2. Escuta alterações no Firestore quando o usuário está logado
+  // 2. Escuta alterações no Firestore
   useEffect(() => {
     if (!user) return;
 
@@ -45,7 +53,6 @@ export default function usePersistedData() {
           setData(docSnap.data());
           setStatus("saved");
         } else {
-          // Migra dados locais para a nuvem no primeiro login
           const localDataRaw = localStorage.getItem(STORAGE_KEY);
           const dataParaSalvar = localDataRaw
             ? JSON.parse(localDataRaw)
@@ -66,12 +73,11 @@ export default function usePersistedData() {
     return () => unsubscribeSnapshot();
   }, [user]);
 
-  // 3. Função para persistir dados (Salva no Firestore E/OU LocalStorage)
+  // 3. Função para persistir dados
   const persist = async (newData) => {
-    // Clona e sanitiza o objeto para evitar rejeição por campos "undefined"
     const dataSanitizada = JSON.parse(JSON.stringify(newData));
 
-    setData(dataSanitizada); // Atualização otimista
+    setData(dataSanitizada);
     setStatus("saving");
 
     try {
@@ -85,7 +91,6 @@ export default function usePersistedData() {
     } catch (err) {
       console.error("Erro ao salvar dados:", err);
       setStatus("error");
-      alert("Erro ao sincronizar com a nuvem. Verifique sua conexão.");
     }
   };
 
