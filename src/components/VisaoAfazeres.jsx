@@ -1,6 +1,6 @@
 // src/components/VisaoAfazeres.jsx
 import React, { useState } from "react";
-import { Plus, Trash2, Check, Trash, Repeat, Clock } from "lucide-react";
+import { Plus, Trash2, Check, Trash, Repeat, Clock, Tag } from "lucide-react";
 import { CORES, ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
@@ -71,7 +71,7 @@ function FormularioAfazer({ onCriar }) {
         intervaloDias: rotinaTipo === "personalizada" ? Number(intervaloDias) || 1 : undefined,
       },
       urgencia,
-      cor,
+      cor, // Garante envio da cor selecionada
     });
     limpar();
   };
@@ -86,38 +86,40 @@ function FormularioAfazer({ onCriar }) {
         onKeyDown={(e) => e.key === "Enter" && adicionar()}
       />
 
-      {/* Seleção de Cor */}
-      <div style={{ marginTop: 10 }}>
+      {/* Seleção de Cor em Destaque */}
+      <div style={{ marginTop: 12, marginBottom: 12 }}>
         <span className="subtle" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
-          Cor do afazer:
+          Cor de identificação:
         </span>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {CORES.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setCor(c)}
               style={{
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
                 borderRadius: "50%",
                 background: c,
                 border: cor === c ? "2px solid #ffffff" : "2px solid transparent",
                 cursor: "pointer",
-                boxShadow: cor === c ? "0 0 0 2px " + c : "none",
+                boxShadow: cor === c ? `0 0 0 2px ${c}` : "none",
+                transition: "transform 0.1s ease",
+                transform: cor === c ? "scale(1.15)" : "scale(1)",
               }}
             />
           ))}
         </div>
       </div>
 
-      <label className="checkbox-linha" style={{ marginTop: 10 }}>
+      <label className="checkbox-linha">
         <input type="checkbox" checked={temData} onChange={(e) => setTemData(e.target.checked)} />
         Definir dia/hora (vai para o calendário)
       </label>
 
       {temData && (
-        <div className="form-grid duas-colunas">
+        <div className="form-grid duas-colunas" style={{ marginTop: 8 }}>
           <input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} />
           <input className="input" type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
         </div>
@@ -171,7 +173,7 @@ function FormularioAfazer({ onCriar }) {
         </div>
       )}
 
-      <button className="btn-primario full" onClick={adicionar} style={{ marginTop: 10 }}>
+      <button className="btn-primario full" onClick={adicionar} style={{ marginTop: 12 }}>
         <Plus size={15} /> Adicionar afazer
       </button>
     </div>
@@ -220,49 +222,64 @@ export default function VisaoAfazeres({
         <EstadoVazio texto="Nenhum afazer cadastrado ainda" />
       ) : (
         <div className="lista-itens" style={{ marginTop: 20 }}>
-          {ordenados.map((a) => (
-            <div key={a.id} className={`item-afazer${a.feito ? " feito" : ""}`}>
-              {/* Barra de cor do afazer */}
+          {ordenados.map((a) => {
+            const corAfazer = a.cor || "#8b5cf6";
+            return (
               <div
+                key={a.id}
+                className={`item-afazer${a.feito ? " feito" : ""}`}
                 style={{
-                  width: 4,
-                  height: 24,
-                  borderRadius: 2,
-                  background: a.cor || "#8b5cf6",
-                  marginRight: 6,
-                  flexShrink: 0,
+                  borderLeft: `4px solid ${corAfazer}`, // Borda esquerda destacada na cor
+                  paddingLeft: 12,
                 }}
-              />
-              <button
-                className={`check-btn${a.feito ? " marcado" : ""}`}
-                onClick={() => onAlternarFeito(a.id)}
-                title={a.feito ? "Marcar como pendente" : "Marcar como concluído"}
               >
-                {a.feito && <Check size={13} />}
-              </button>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="item-linha-titulo">{a.nome}</div>
-                <div className="subtle afazer-meta">
-                  {a.data && (
-                    <span>
-                      <Clock size={11} style={{ verticalAlign: "-1px", marginRight: 3 }} />
-                      {formatarData(a.data)}{a.hora ? ` · ${a.hora}` : ""}
-                    </span>
-                  )}
-                  {rotinaLabel(a.rotina) && (
-                    <span>
-                      <Repeat size={11} style={{ verticalAlign: "-1px", margin: "0 3px 0 8px" }} />
-                      {rotinaLabel(a.rotina)}
-                    </span>
-                  )}
+                <button
+                  className={`check-btn${a.feito ? " marcado" : ""}`}
+                  onClick={() => onAlternarFeito(a.id)}
+                  style={{ borderColor: a.feito ? "transparent" : corAfazer }}
+                  title={a.feito ? "Marcar como pendente" : "Marcar como concluído"}
+                >
+                  {a.feito && <Check size={13} />}
+                </button>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="item-linha-titulo" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>{a.nome}</span>
+                    {/* Badge de cor discreta */}
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: corAfazer,
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                  </div>
+                  <div className="subtle afazer-meta">
+                    {a.data && (
+                      <span>
+                        <Clock size={11} style={{ verticalAlign: "-1px", marginRight: 3 }} />
+                        {formatarData(a.data)}{a.hora ? ` · ${a.hora}` : ""}
+                      </span>
+                    )}
+                    {rotinaLabel(a.rotina) && (
+                      <span>
+                        <Repeat size={11} style={{ verticalAlign: "-1px", margin: "0 3px 0 8px" }} />
+                        {rotinaLabel(a.rotina)}
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                <BarraUrgencia nivel={a.urgencia} />
+                <button className="icon-btn-ghost" onClick={() => onExcluir(a.id)}>
+                  <Trash2 size={13} />
+                </button>
               </div>
-              <BarraUrgencia nivel={a.urgencia} />
-              <button className="icon-btn-ghost" onClick={() => onExcluir(a.id)}>
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
