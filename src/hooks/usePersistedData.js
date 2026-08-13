@@ -3,12 +3,12 @@ import { useState, useEffect } from "react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth, loginComGoogle, fazerLogout } from "../firebase";
-
-const LOCAL_STORAGE_KEY = "cadeiras_app_data";
+import { STORAGE_KEY } from "../constants";
 
 const DADOS_PADRAO = {
   periodos: [{ id: "p1", nome: "2026.1" }],
   cadeiras: [],
+  afazeres: [],
   periodoAtivoId: "p1",
 };
 
@@ -22,8 +22,7 @@ export default function usePersistedData() {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (!currentUser) {
-        // Quando deslogado, lê do localStorage
-        const local = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const local = localStorage.getItem(STORAGE_KEY);
         setData(local ? JSON.parse(local) : DADOS_PADRAO);
         setStatus("saved");
       }
@@ -46,14 +45,15 @@ export default function usePersistedData() {
           setData(docSnap.data());
           setStatus("saved");
         } else {
-          // Migra dados do localStorage para a nuvem no 1º login
-          const localDataRaw = localStorage.getItem(LOCAL_STORAGE_KEY);
+          // Migra dados locais para a nuvem no primeiro login
+          const localDataRaw = localStorage.getItem(STORAGE_KEY);
           const dataParaSalvar = localDataRaw
             ? JSON.parse(localDataRaw)
             : DADOS_PADRAO;
 
-          await setDoc(userDocRef, dataParaSalvar);
-          setData(dataParaSalvar);
+          const dataSanitizada = JSON.parse(JSON.stringify(dataParaSalvar));
+          await setDoc(userDocRef, dataSanitizada);
+          setData(dataSanitizada);
           setStatus("saved");
         }
       },
@@ -66,22 +66,26 @@ export default function usePersistedData() {
     return () => unsubscribeSnapshot();
   }, [user]);
 
-  // 3. Função para persistir dados (nuvem ou local)
+  // 3. Função para persistir dados (Salva no Firestore E/OU LocalStorage)
   const persist = async (newData) => {
-    setData(newData); // Atualização otimista
+    // Clona e sanitiza o objeto para evitar rejeição por campos "undefined"
+    const dataSanitizada = JSON.parse(JSON.stringify(newData));
+
+    setData(dataSanitizada); // Atualização otimista
     setStatus("saving");
 
     try {
       if (user) {
         const userDocRef = doc(db, "users", user.uid);
-        await setDoc(userDocRef, newData);
+        await setDoc(userDocRef, dataSanitizada);
       } else {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newData));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataSanitizada));
       }
       setStatus("saved");
     } catch (err) {
-      console.error("Erro ao salvar:", err);
+      console.error("Erro ao salvar dados:", err);
       setStatus("error");
+      alert("Erro ao sincronizar com a nuvem. Verifique sua conexão.");
     }
   };
 

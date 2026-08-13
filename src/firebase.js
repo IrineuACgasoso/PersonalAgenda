@@ -3,7 +3,6 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
-// Suas credenciais reais do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyD_GKUYFC90edRHGD9t19fKE4BQztBt0lc",
   authDomain: "personal-agenda-28cb5.firebaseapp.com",
@@ -19,5 +18,13 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export const loginComGoogle = () => signInWithPopup(auth, googleProvider);
+export const loginComGoogle = async () => {
+  try {
+    return await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    console.error("Erro ao fazer login:", error);
+    alert(`Não foi possível realizar o login: ${error.message}`);
+  }
+};
+
 export const fazerLogout = () => signOut(auth);

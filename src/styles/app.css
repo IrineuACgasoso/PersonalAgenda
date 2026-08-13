@@ -893,20 +893,29 @@ h2.titulo-secao {
   }
 
   /* Ajustado a altura e a rolagem da sidebar no celular */
+  @media (max-width: 860px) {
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
-    height: 100dvh;
+    height: 100dvh; /* Garante altura real no navegador mobile */
     z-index: 55;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     width: 280px;
     max-width: 85vw;
-    box-shadow: 2px 0 18px rgba(0, 0, 0, 0.4);
-    overflow-y: auto; /* Permite rolar a sidebar se a tela do celular for pequena */
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Permite rolar até a área do login */
   }
+
+  .status-footer {
+    margin-top: auto;
+    padding-bottom: 24px; /* Garante espaço extra no final da tela do celular */
+    flex-shrink: 0;
+  }
+}
 
   .sidebar.mobile-aberta {
     transform: translateX(0);
