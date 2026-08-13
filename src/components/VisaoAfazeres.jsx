@@ -1,6 +1,7 @@
+// src/components/VisaoAfazeres.jsx
 import React, { useState } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock } from "lucide-react";
-import { ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
+import { CORES, ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 
@@ -38,6 +39,7 @@ function FormularioAfazer({ onCriar }) {
   const [rotinaTipo, setRotinaTipo] = useState("nenhuma");
   const [intervaloDias, setIntervaloDias] = useState(3);
   const [urgencia, setUrgencia] = useState(1);
+  const [cor, setCor] = useState(CORES[6]); // Roxo padrão
 
   const limpar = () => {
     setNome("");
@@ -47,6 +49,7 @@ function FormularioAfazer({ onCriar }) {
     setRotinaTipo("nenhuma");
     setIntervaloDias(3);
     setUrgencia(1);
+    setCor(CORES[6]);
   };
 
   const adicionar = () => {
@@ -68,6 +71,7 @@ function FormularioAfazer({ onCriar }) {
         intervaloDias: rotinaTipo === "personalizada" ? Number(intervaloDias) || 1 : undefined,
       },
       urgencia,
+      cor,
     });
     limpar();
   };
@@ -82,7 +86,32 @@ function FormularioAfazer({ onCriar }) {
         onKeyDown={(e) => e.key === "Enter" && adicionar()}
       />
 
-      <label className="checkbox-linha">
+      {/* Seleção de Cor */}
+      <div style={{ marginTop: 10 }}>
+        <span className="subtle" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+          Cor do afazer:
+        </span>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {CORES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCor(c)}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: c,
+                border: cor === c ? "2px solid #ffffff" : "2px solid transparent",
+                cursor: "pointer",
+                boxShadow: cor === c ? "0 0 0 2px " + c : "none",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <label className="checkbox-linha" style={{ marginTop: 10 }}>
         <input type="checkbox" checked={temData} onChange={(e) => setTemData(e.target.checked)} />
         Definir dia/hora (vai para o calendário)
       </label>
@@ -193,6 +222,17 @@ export default function VisaoAfazeres({
         <div className="lista-itens" style={{ marginTop: 20 }}>
           {ordenados.map((a) => (
             <div key={a.id} className={`item-afazer${a.feito ? " feito" : ""}`}>
+              {/* Barra de cor do afazer */}
+              <div
+                style={{
+                  width: 4,
+                  height: 24,
+                  borderRadius: 2,
+                  background: a.cor || "#8b5cf6",
+                  marginRight: 6,
+                  flexShrink: 0,
+                }}
+              />
               <button
                 className={`check-btn${a.feito ? " marcado" : ""}`}
                 onClick={() => onAlternarFeito(a.id)}

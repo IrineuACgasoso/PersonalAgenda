@@ -1,9 +1,12 @@
+// src/components/VisaoGeral.jsx
 import React, { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { ocorrenciasNoIntervalo, toISO } from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+
+const FILTROS_KEY = "painel-academico-filtros-calendario";
 
 const TIPOS = [
   { chave: "aulas", label: "Aulas", icone: BookOpen },
@@ -16,14 +19,32 @@ const NOME_MESES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
+function lerFiltrosIniciais() {
+  try {
+    const raw = localStorage.getItem(FILTROS_KEY);
+    return raw ? JSON.parse(raw) : { aulas: true, avaliacoes: true, afazeres: true };
+  } catch {
+    return { aulas: true, avaliacoes: true, afazeres: true };
+  }
+}
+
 export default function VisaoGeral({ cadeiras, afazeres }) {
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
-  const [filtros, setFiltros] = useState({ aulas: true, avaliacoes: true, afazeres: true });
+  const [filtros, setFiltros] = useState(lerFiltrosIniciais);
 
-  const alternarFiltro = (chave) =>
-    setFiltros((f) => ({ ...f, [chave]: !f[chave] }));
+  const alternarFiltro = (chave) => {
+    setFiltros((prev) => {
+      const proximo = { ...prev, [chave]: !prev[chave] };
+      try {
+        localStorage.setItem(FILTROS_KEY, JSON.stringify(proximo));
+      } catch {
+        /* ignora erro de storage */
+      }
+      return proximo;
+    });
+  };
 
   const primeiroDiaMes = new Date(ano, mes, 1);
   const ultimoDiaMes = new Date(ano, mes + 1, 0);
@@ -72,7 +93,7 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
     return lista;
   }, [cadeiras, filtros.aulas, mes, ano]);
 
-  // eventos do tipo "afazeres" (incluindo recorrências)
+  // eventos do tipo "afazeres" (usando a cor personalizada de cada afazer)
   const eventosAfazeres = useMemo(() => {
     if (!filtros.afazeres) return [];
     const lista = [];
@@ -84,7 +105,7 @@ export default function VisaoGeral({ cadeiras, afazeres }) {
           data,
           hora: a.hora,
           titulo: a.nome,
-          cor: "#8b5cf6",
+          cor: a.cor || "#8b5cf6",
           origem: a.feito ? "concluído" : "pendente",
           feito: a.feito,
         });
