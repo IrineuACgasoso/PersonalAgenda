@@ -4,7 +4,7 @@ import { DIAS_FULL } from "../constants.js";
 import { toISO, ocorrenciasNoIntervalo } from "../utils/afazeres.js";
 import { getIntervaloMes, cadeiraEstaAtivaNaData } from "../utils/calendario.js";
 
-export function useEventosCalendario({ cadeiras = [], afazeres = [], periodos = [], ano, mes, filtros }) {
+export function useEventosCalendario({ cadeiras = [], compromissos = [], afazeres = [], periodos = [], ano, mes, filtros }) {
   const { primeiroDia, ultimoDia, inicioISO, fimISO } = useMemo(
     () => getIntervaloMes(ano, mes),
     [ano, mes]
@@ -56,7 +56,33 @@ export function useEventosCalendario({ cadeiras = [], afazeres = [], periodos = 
     return lista;
   }, [cadeiras, periodos, filtros.aulas, primeiroDia, ultimoDia]);
 
-  // 3. Afazeres
+  // 3. Compromissos (recorrência semanal, sem vínculo com vigência de período)
+  const eventosCompromissos = useMemo(() => {
+    if (!filtros.compromissos) return [];
+    const lista = [];
+    for (let d = new Date(primeiroDia); d <= ultimoDia; d.setDate(d.getDate() + 1)) {
+      const diaSemana = (d.getDay() + 6) % 7;
+      const dataISO = toISO(d);
+
+      compromissos.forEach((c) => {
+        (c.horarios || [])
+          .filter((h) => h.dia === diaSemana)
+          .forEach((h) => {
+            lista.push({
+              tipo: "compromissos",
+              data: dataISO,
+              hora: h.inicio,
+              titulo: c.nome,
+              cor: c.cor,
+              origem: h.local || DIAS_FULL[diaSemana],
+            });
+          });
+      });
+    }
+    return lista;
+  }, [compromissos, filtros.compromissos, primeiroDia, ultimoDia]);
+
+  // 4. Afazeres
   const eventosAfazeres = useMemo(() => {
     if (!filtros.afazeres) return [];
     const lista = [];
@@ -79,7 +105,7 @@ export function useEventosCalendario({ cadeiras = [], afazeres = [], periodos = 
 
   // Mapa final agrupado por data YYYY-MM-DD
   return useMemo(() => {
-    const todos = [...aulas, ...avaliacoes, ...eventosAfazeres];
+    const todos = [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres];
     const mapa = {};
 
     todos.forEach((ev) => {
@@ -92,5 +118,5 @@ export function useEventosCalendario({ cadeiras = [], afazeres = [], periodos = 
     );
 
     return mapa;
-  }, [aulas, avaliacoes, eventosAfazeres]);
+  }, [aulas, avaliacoes, eventosCompromissos, eventosAfazeres]);
 }

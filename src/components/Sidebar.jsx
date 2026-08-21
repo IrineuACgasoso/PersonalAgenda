@@ -1,12 +1,9 @@
 // src/components/Sidebar.jsx
 import React, { useState, useRef } from "react";
 import {
-  Plus,
-  Trash2,
-  Edit2,
   BookOpen,
   Calendar,
-  ChevronRight,
+  CalendarClock,
   ListChecks,
   LayoutGrid,
   Menu,
@@ -14,27 +11,9 @@ import {
   Upload,
   LogIn,
   LogOut,
-  Check,
-  X,
 } from "lucide-react";
-import { SIDEBAR_STATE_KEY } from "../constants.js";
-
-function lerEstadoInicial() {
-  try {
-    const raw = localStorage.getItem(SIDEBAR_STATE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
 
 export default function Sidebar({
-  data,
-  periodoAtivo,
-  onSelecionarPeriodo,
-  onNovoPeriodo,
-  onEditarPeriodo,
-  onExcluirPeriodo,
   aba,
   setAba,
   status,
@@ -44,40 +23,12 @@ export default function Sidebar({
   loginWithGoogle,
   logout,
 }) {
-  const [periodosAberto, setPeriodosAberto] = useState(
-    () => lerEstadoInicial().periodosAberto ?? true
-  );
   const [mobileAberta, setMobileAberta] = useState(false);
   const inputImportRef = useRef(null);
-
-  // Estados locais para controlar a EDIÇÃO INLINE
-  const [editandoId, setEditandoId] = useState(null);
-  const [nomeTemp, setNomeTemp] = useState("");
-
-  const alternarPeriodos = () => {
-    const proximo = !periodosAberto;
-    setPeriodosAberto(proximo);
-    try {
-      localStorage.setItem(
-        SIDEBAR_STATE_KEY,
-        JSON.stringify({ ...lerEstadoInicial(), periodosAberto: proximo })
-      );
-    } catch {
-      /* ignora erro de storage indisponível */
-    }
-  };
 
   const irPara = (novaAba) => {
     setAba(novaAba);
     setMobileAberta(false);
-  };
-
-  const salvarEdicaoInline = (id) => {
-    const nomeLimpo = nomeTemp.trim();
-    if (nomeLimpo && onEditarPeriodo) {
-      onEditarPeriodo(id, { nome: nomeLimpo });
-    }
-    setEditandoId(null);
   };
 
   return (
@@ -100,119 +51,15 @@ export default function Sidebar({
           <span className="logo-text">Minha agenda</span>
         </div>
 
-        <div className={`sidebar-secao periodos-secao${periodosAberto ? "" : " recolhida"}`}>
-          <div className="sidebar-secao-label">
-            <button
-              className="chevron-btn"
-              onClick={alternarPeriodos}
-              title={periodosAberto ? "Recolher períodos" : "Expandir períodos"}
-            >
-              <ChevronRight
-                size={13}
-                style={{
-                  transform: periodosAberto ? "rotate(90deg)" : "rotate(0deg)",
-                  transition: "transform 0.15s",
-                }}
-              />
-            </button>
-            <span className="sidebar-secao-titulo" onClick={alternarPeriodos}>
-              Período{periodosAberto ? "s" : ""}
-            </span>
-            {periodosAberto && (
-              <button className="icon-btn-sm" onClick={onNovoPeriodo} title="Novo período">
-                <Plus size={14} />
-              </button>
-            )}
-          </div>
-          {periodosAberto && (
-            <div className="periodo-lista">
-              {data.periodos.map((p) => {
-                const estaEditando = editandoId === p.id;
-
-                return (
-                  <div
-                    key={p.id}
-                    className={`periodo-item${p.id === periodoAtivo?.id ? " ativo" : ""}`}
-                    onClick={() => !estaEditando && onSelecionarPeriodo(p.id)}
-                  >
-                    {estaEditando ? (
-                      /* CAMPO DE EDIÇÃO INLINE */
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, width: "100%" }}>
-                        <input
-                          className="input"
-                          style={{ padding: "2px 6px", fontSize: 12, height: 24, flex: 1 }}
-                          value={nomeTemp}
-                          onChange={(e) => setNomeTemp(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") salvarEdicaoInline(p.id);
-                            if (e.key === "Escape") setEditandoId(null);
-                          }}
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <button
-                          className="icon-btn-ghost"
-                          title="Salvar"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            salvarEdicaoInline(p.id);
-                          }}
-                        >
-                          <Check size={13} color="#10b981" />
-                        </button>
-                        <button
-                          className="icon-btn-ghost"
-                          title="Cancelar"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditandoId(null);
-                          }}
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ) : (
-                      /* EXIBIÇÃO NORMAL */
-                      <>
-                        <span className="periodo-nome">{p.nome}</span>
-                        <div className="periodo-acoes">
-                          <button
-                            className="icon-btn-ghost"
-                            title="Renomear"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditandoId(p.id);
-                              setNomeTemp(p.nome);
-                            }}
-                          >
-                            <Edit2 size={12} />
-                          </button>
-                          <button
-                            className="icon-btn-ghost"
-                            title="Excluir"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onExcluirPeriodo(p.id);
-                            }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         <div className="sidebar-secao">
           <div className="sidebar-secao-label">
             <span>Visão</span>
           </div>
           <button className={`nav-btn${aba === "cadeiras" ? " ativo" : ""}`} onClick={() => irPara("cadeiras")}>
             <BookOpen size={15} /> Cadeiras
+          </button>
+          <button className={`nav-btn${aba === "compromissos" ? " ativo" : ""}`} onClick={() => irPara("compromissos")}>
+            <CalendarClock size={15} /> Compromissos
           </button>
           <button className={`nav-btn${aba === "afazeres" ? " ativo" : ""}`} onClick={() => irPara("afazeres")}>
             <ListChecks size={15} /> Afazeres

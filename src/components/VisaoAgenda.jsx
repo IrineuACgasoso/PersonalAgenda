@@ -1,7 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
+import { BookOpen, CalendarClock } from "lucide-react";
 import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+
+const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
+
+function lerFiltrosAgendaIniciais() {
+  try {
+    const raw = localStorage.getItem(FILTROS_AGENDA_KEY);
+    return raw ? { cadeiras: true, compromissos: true, ...JSON.parse(raw) } : { cadeiras: true, compromissos: true };
+  } catch {
+    return { cadeiras: true, compromissos: true };
+  }
+}
 
 function minutosParaTopo(hhmm, totalHoras) {
   const [h, m] = hhmm.split(":").map(Number);
@@ -9,13 +21,36 @@ function minutosParaTopo(hhmm, totalHoras) {
   return Math.max(0, Math.min(1, frac)) * 100;
 }
 
-export default function VisaoAgenda({ cadeiras, onAbrir }) {
-  const blocos = [];
-  cadeiras.forEach((c) => {
-    c.horarios.forEach((h) => {
-      blocos.push({ ...h, cadeiraId: c.id, cadeiraNome: c.nome, cor: c.cor });
+export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeira, onAbrirCompromisso }) {
+  const [filtros, setFiltros] = useState(lerFiltrosAgendaIniciais);
+
+  const alternarFiltro = (chave) => {
+    setFiltros((prev) => {
+      const proximo = { ...prev, [chave]: !prev[chave] };
+      try {
+        localStorage.setItem(FILTROS_AGENDA_KEY, JSON.stringify(proximo));
+      } catch {
+        /* ignora erros de storage */
+      }
+      return proximo;
     });
-  });
+  };
+
+  const blocos = [];
+  if (filtros.cadeiras) {
+    cadeiras.forEach((c) => {
+      c.horarios.forEach((h) => {
+        blocos.push({ ...h, tipo: "cadeira", origemId: c.id, origemNome: c.nome, cor: c.cor });
+      });
+    });
+  }
+  if (filtros.compromissos) {
+    compromissos.forEach((c) => {
+      c.horarios.forEach((h) => {
+        blocos.push({ ...h, tipo: "compromisso", origemId: c.id, origemNome: c.nome, cor: c.cor });
+      });
+    });
+  }
 
   const proximasDatas = cadeiras
     .flatMap((c) => c.datas.map((d) => ({ ...d, cadeiraNome: c.nome, cor: c.cor, cadeiraId: c.id })))
@@ -33,8 +68,23 @@ export default function VisaoAgenda({ cadeiras, onAbrir }) {
         </span>
       </div>
 
+      <div className="filtros-linha">
+        <button
+          className={`filtro-chip${filtros.cadeiras ? " ativo" : ""}`}
+          onClick={() => alternarFiltro("cadeiras")}
+        >
+          <BookOpen size={13} /> Cadeiras
+        </button>
+        <button
+          className={`filtro-chip${filtros.compromissos ? " ativo" : ""}`}
+          onClick={() => alternarFiltro("compromissos")}
+        >
+          <CalendarClock size={13} /> Compromissos
+        </button>
+      </div>
+
       {blocos.length === 0 ? (
-        <EstadoVazio texto="Cadastre horários nas cadeiras para ver a agenda" />
+        <EstadoVazio texto="Cadastre horários nas cadeiras ou compromissos para ver a agenda" />
       ) : (
         <div className="agenda-wrap">
           <div className="agenda-grid-head">
@@ -69,10 +119,12 @@ export default function VisaoAgenda({ cadeiras, onAbrir }) {
                           background: b.cor + "22",
                           borderLeft: `3px solid ${b.cor}`,
                         }}
-                        onClick={() => onAbrir(b.cadeiraId)}
-                        title={`${b.cadeiraNome} · ${b.inicio}–${b.fim}`}
+                        onClick={() =>
+                          b.tipo === "compromisso" ? onAbrirCompromisso(b.origemId) : onAbrirCadeira(b.origemId)
+                        }
+                        title={`${b.origemNome} · ${b.inicio}–${b.fim}`}
                       >
-                        <span className="agenda-bloco-titulo" style={{ color: b.cor }}>{b.cadeiraNome}</span>
+                        <span className="agenda-bloco-titulo" style={{ color: b.cor }}>{b.origemNome}</span>
                         <span className="agenda-bloco-hora">{b.inicio}–{b.fim}{b.local ? ` · ${b.local}` : ""}</span>
                       </div>
                     );
@@ -93,7 +145,7 @@ export default function VisaoAgenda({ cadeiras, onAbrir }) {
               <div
                 key={d.id}
                 className={`data-item${d.data < hojeStr ? " passada" : ""}`}
-                onClick={() => onAbrir(d.cadeiraId)}
+                onClick={() => onAbrirCadeira(d.cadeiraId)}
               >
                 <div className="data-item-faixa" style={{ background: d.cor }} />
                 <div style={{ flex: 1 }}>

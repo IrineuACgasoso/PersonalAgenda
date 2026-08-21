@@ -1,9 +1,12 @@
 // src/components/VisaoAfazeres.jsx
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
-import { CORES, ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
+import { ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+import SeletorCor from "./ui/SeletorCor.jsx";
+
+const COR_PADRAO_AFAZER = "#221e1e";
 
 
 function rotinaLabel(rotina) {
@@ -40,8 +43,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
   const [rotinaTipo, setRotinaTipo] = useState("nenhuma");
   const [intervaloDias, setIntervaloDias] = useState(3);
   const [urgencia, setUrgencia] = useState(1);
-  const [cor, setCor] = useState(CORES[6]);
-  const [expandidoCores, setExpandidoCores] = useState(false); // <--- ESTADO ADICIONADO
+  const [cor, setCor] = useState(COR_PADRAO_AFAZER);
 
   useEffect(() => {
     if (itemEmEdicao) {
@@ -52,7 +54,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
       setRotinaTipo(itemEmEdicao.rotina?.tipo || "nenhuma");
       setIntervaloDias(itemEmEdicao.rotina?.intervaloDias || 3);
       setUrgencia(itemEmEdicao.urgencia || 1);
-      setCor(itemEmEdicao.cor || CORES[6]);
+      setCor(itemEmEdicao.cor || COR_PADRAO_AFAZER);
     } else {
       limpar();
     }
@@ -66,7 +68,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
     setRotinaTipo("nenhuma");
     setIntervaloDias(3);
     setUrgencia(1);
-    setCor(CORES[6]);
+    setCor(COR_PADRAO_AFAZER);
     if (onCancelarEdicao) onCancelarEdicao();
   };
 
@@ -99,27 +101,9 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
         onKeyDown={(e) => e.key === "Enter" && submit()}
       />
 
-      {/* SELETOR DE CORES EXPANDÍVEL */}
+      {/* SELETOR DE COR (HEXADECIMAL LIVRE) */}
       <div style={{ marginTop: 12, marginBottom: 12 }}>
-        <span className="subtle" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
-          Cor de identificação:
-        </span>
-        <div className="painel-cores">
-          {CORES.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCor(c)}
-              className="cor-swatch"
-              style={{
-                background: c,
-                outline: cor === c ? "2px solid #ffffff" : "none",
-                boxShadow: cor === c ? `0 0 0 2px ${c}` : "none",
-                transform: cor === c ? "scale(1.15)" : "scale(1)",
-              }}
-            />
-          ))}
-        </div>
+        <SeletorCor valor={cor} onChange={setCor} label="Cor de identificação:" />
       </div>
 
       <label className="checkbox-linha">

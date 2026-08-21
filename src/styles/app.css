@@ -239,7 +239,7 @@ body {
   margin-bottom: 18px;
 }
 
-h1.titulo-pagina {
+.titulo-pagina {
   font-size: 22px;
   font-weight: 600;
   margin: 0;
@@ -501,52 +501,6 @@ h2.titulo-secao {
   outline: none;
 }
 
-/* Container de cores com scroll lateral */
-/* Container de cores com scroll lateral */
-.painel-cores {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  
-  /* PADDING: Dá o respiro necessário no topo, fundo e laterais para o scale e o anel não cortarem */
-  padding: 8px 6px 8px 6px; 
-  
-  /* Barra de scroll discreta (Firefox) */
-  scrollbar-width: thin;
-  scrollbar-color: #2a2c33 transparent;
-}
-
-/* Barra de scroll discreta (Chrome/Safari/Edge) */
-.painel-cores::-webkit-scrollbar {
-  height: 4px;
-}
-.painel-cores::-webkit-scrollbar-track {
-  background: transparent;
-}
-.painel-cores::-webkit-scrollbar-thumb {
-  background: #2a2c33;
-  border-radius: 4px;
-}
-
-/* Bolinha de cor */
-.cor-swatch {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  min-height: 22px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.cor-swatch:hover {
-  transform: scale(1.15);
-}
-
 .painel-tabs {
   display: flex;
   gap: 4px;
@@ -626,6 +580,128 @@ h2.titulo-secao {
   border-color: #6366f1;
 }
 
+/* ---------- seletor de período (dropdown no lugar da lista fixa) ---------- */
+.periodo-seletor-wrap {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.periodo-seletor-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: #1a1c22;
+  border: 1px solid #23252b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #fff;
+  text-align: left;
+}
+
+.periodo-seletor-btn:hover {
+  border-color: #2a2c33;
+}
+
+.periodo-seletor-nome {
+  font-size: 16px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.click-fora-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 40;
+}
+
+.periodo-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #1a1c22;
+  border: 1px solid #2a2c33;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 45;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Variante usada como título de página (ao invés de bloco fixo na sidebar) */
+.periodo-seletor-titulo {
+  margin-bottom: 0;
+  display: inline-block;
+}
+
+.periodo-seletor-titulo .periodo-seletor-btn {
+  width: auto;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  margin-left: -8px;
+}
+
+.periodo-seletor-titulo .periodo-seletor-btn:hover {
+  background: #1a1c22;
+  border-color: #23252b;
+}
+
+.periodo-seletor-titulo .periodo-seletor-nome {
+  white-space: nowrap;
+}
+
+.periodo-seletor-titulo .periodo-dropdown {
+  left: -8px;
+  right: auto;
+  width: 260px;
+}
+
+/* ---------- seletor de cor (hexadecimal livre) ---------- */
+.seletor-cor-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seletor-cor-swatch {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid #2a2c33;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.seletor-cor-swatch::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+
+.seletor-cor-swatch::-webkit-color-swatch {
+  border-radius: 6px;
+  border: none;
+}
+
+.seletor-cor-swatch::-moz-color-swatch {
+  border-radius: 6px;
+  border: none;
+}
+
+.seletor-cor-hex {
+  max-width: 130px;
+  font-family: monospace;
+  text-transform: lowercase;
+}
+
 /* ---------- sidebar: colapso de períodos ---------- */
 .sidebar-secao-label {
   cursor: default;
@@ -649,10 +725,6 @@ h2.titulo-secao {
   flex: 1;
   cursor: pointer;
   user-select: none;
-}
-
-.periodos-secao.recolhida {
-  margin-bottom: 8px;
 }
 
 /* ---------- afazeres ---------- */

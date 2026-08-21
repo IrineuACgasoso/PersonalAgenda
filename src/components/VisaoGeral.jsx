@@ -1,6 +1,6 @@
 // src/components/VisaoGeral.jsx
 import React, { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, CalendarClock } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
@@ -12,17 +12,19 @@ import EstadoVazio from "./ui/EstadoVazio.jsx";
 const TIPOS = [
   { chave: "aulas", label: "Aulas", icone: BookOpen },
   { chave: "avaliacoes", label: "Avaliações", icone: GraduationCap },
+  { chave: "compromissos", label: "Compromissos", icone: CalendarClock },
   { chave: "afazeres", label: "Afazeres/Eventos", icone: ListChecks },
 ];
 
-export default function VisaoGeral({ cadeiras = [], afazeres = [], periodos = [] }) {
+export default function VisaoGeral({ cadeiras = [], compromissos = [], afazeres = [], periodos = [] }) {
   const hoje = new Date();
+  const hojeISO = toISO(hoje);
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
-  const [diaSelecionado, setDiaSelecionado] = useState(null);
+  const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
 
   const { filtros, alternarFiltro } = useFiltrosCalendario();
-  const eventosPorDia = useEventosCalendario({ cadeiras, afazeres, periodos, ano, mes, filtros });
+  const eventosPorDia = useEventosCalendario({ cadeiras, compromissos, afazeres, periodos, ano, mes, filtros });
 
   const celulas = useMemo(() => gerarCelulasMes(ano, mes), [ano, mes]);
 
@@ -40,7 +42,6 @@ export default function VisaoGeral({ cadeiras = [], afazeres = [], periodos = []
     setDiaSelecionado(null);
   };
 
-  const hojeISO = toISO(hoje);
   const eventosDoDiaSelecionado = diaSelecionado ? eventosPorDia[diaSelecionado] || [] : [];
 
   return (

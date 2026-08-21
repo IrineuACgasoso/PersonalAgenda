@@ -8,6 +8,7 @@ import { STORAGE_KEY } from "../constants";
 const DADOS_PADRAO = {
   periodos: [{ id: "p1", nome: "2026.1" }],
   cadeiras: [],
+  compromissos: [],
   afazeres: [],
   periodoAtivoId: "p1",
 };

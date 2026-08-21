@@ -5,10 +5,12 @@ import { uid } from "./utils/id";
 import usePersistedData from "./hooks/usePersistedData";
 import Sidebar from "./components/Sidebar";
 import VisaoCadeiras from "./components/VisaoCadeiras";
+import VisaoCompromissos from "./components/VisaoCompromissos";
 import VisaoAgenda from "./components/VisaoAgenda";
 import VisaoAfazeres from "./components/VisaoAfazeres";
 import VisaoGeral from "./components/VisaoGeral";
 import PainelCadeira from "./components/PainelCadeira";
+import PainelCompromisso from "./components/PainelCompromisso";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 
@@ -17,6 +19,7 @@ export default function App() {
   
   const [aba, setAba] = useState("cadeiras");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
+  const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
 
   if (!data) {
@@ -33,6 +36,11 @@ export default function App() {
     (c) => c.periodoId === periodoAtivo?.id
   );
   const cadeiraAberta = data.cadeiras.find((c) => c.id === cadeiraAbertaId);
+  const compromissos = data.compromissos || [];
+  const compromissosDoPeriodo = compromissos.filter(
+    (c) => c.periodoId === periodoAtivo?.id
+  );
+  const compromissoAberto = compromissos.find((c) => c.id === compromissoAbertoId);
 
   /* ---- ações períodos ---- */
   const selecionarPeriodo = (id) => {
@@ -61,15 +69,19 @@ export default function App() {
   const excluirPeriodo = (id) => {
     if (
       !window.confirm(
-        "Excluir este período? As cadeiras dele também serão removidas."
+        "Excluir este período? As cadeiras e compromissos dele também serão removidos."
       )
     )
       return;
     const periodos = data.periodos.filter((p) => p.id !== id);
     const cadeiras = data.cadeiras.filter((c) => c.periodoId !== id);
+    const compromissosRestantes = compromissos.filter((c) => c.periodoId !== id);
     const periodoAtivoId =
       data.periodoAtivoId === id ? periodos[0]?.id ?? null : data.periodoAtivoId;
-    persist({ ...data, periodos, cadeiras, periodoAtivoId });
+    persist({ ...data, periodos, cadeiras, compromissos: compromissosRestantes, periodoAtivoId });
+    if (compromissoAbertoId && !compromissosRestantes.some((c) => c.id === compromissoAbertoId)) {
+      setCompromissoAbertoId(null);
+    }
   };
 
   /* ---- ações cadeiras ---- */
@@ -100,6 +112,35 @@ export default function App() {
     if (!window.confirm("Excluir esta cadeira e todos os seus dados?")) return;
     persist({ ...data, cadeiras: data.cadeiras.filter((c) => c.id !== id) });
     if (cadeiraAbertaId === id) setCadeiraAbertaId(null);
+  };
+
+  /* ---- ações compromissos ---- */
+  const criarCompromisso = (nome) => {
+    if (!periodoAtivo) return; // a tela só permite criar com um período selecionado
+    const novo = {
+      id: uid(),
+      nome,
+      periodoId: periodoAtivo.id,
+      cor: CORES[compromissos.length % CORES.length],
+      horarios: [],
+    };
+    persist({ ...data, compromissos: [...compromissos, novo] });
+    setCompromissoAbertoId(novo.id);
+  };
+
+  const atualizarCompromisso = (id, patch) => {
+    persist({
+      ...data,
+      compromissos: compromissos.map((c) =>
+        c.id === id ? { ...c, ...patch } : c
+      ),
+    });
+  };
+
+  const excluirCompromisso = (id) => {
+    if (!window.confirm("Excluir este compromisso e todos os seus horários?")) return;
+    persist({ ...data, compromissos: compromissos.filter((c) => c.id !== id) });
+    if (compromissoAbertoId === id) setCompromissoAbertoId(null);
   };
 
   /* ---- ações afazeres ---- */
@@ -175,6 +216,7 @@ export default function App() {
         persist({
           periodos: importado.periodos ?? [],
           cadeiras: importado.cadeiras ?? [],
+          compromissos: importado.compromissos ?? [],
           afazeres: importado.afazeres ?? [],
           periodoAtivoId: importado.periodoAtivoId ?? null,
         });
@@ -188,12 +230,6 @@ export default function App() {
   return (
     <div className="app">
       <Sidebar
-        data={data}
-        periodoAtivo={periodoAtivo}
-        onSelecionarPeriodo={selecionarPeriodo}
-        onNovoPeriodo={() => setModalPeriodo(true)}
-        onAtualizarPeriodo={atualizarPeriodo}
-        onExcluirPeriodo={excluirPeriodo}
         aba={aba}
         setAba={setAba}
         status={status}
@@ -217,6 +253,7 @@ export default function App() {
         ) : aba === "visaogeral" ? (
             <VisaoGeral
               cadeiras={data.cadeiras}
+              compromissos={compromissosDoPeriodo}
               afazeres={afazeres}
               periodos={data.periodos}
             />
@@ -226,19 +263,33 @@ export default function App() {
             onAcao={() => setModalPeriodo(true)}
             acaoTexto="Novo período"
           />
+        ) : aba === "compromissos" ? (
+          <VisaoCompromissos
+            periodoAtivo={periodoAtivo}
+            compromissos={compromissosDoPeriodo}
+            onCriar={criarCompromisso}
+            onAbrir={setCompromissoAbertoId}
+            onExcluir={excluirCompromisso}
+          />
         ) : aba === "cadeiras" ? (
           <VisaoCadeiras
+            periodos={data.periodos}
             periodoAtivo={periodoAtivo}
             cadeiras={cadeirasDoPeriodo}
             onCriar={criarCadeira}
             onAbrir={setCadeiraAbertaId}
             onExcluir={excluirCadeira}
+            onSelecionarPeriodo={selecionarPeriodo}
+            onNovoPeriodo={() => setModalPeriodo(true)}
             onAtualizarPeriodo={atualizarPeriodo}
+            onExcluirPeriodo={excluirPeriodo}
           />
         ) : (
           <VisaoAgenda
             cadeiras={cadeirasDoPeriodo}
-            onAbrir={setCadeiraAbertaId}
+            compromissos={compromissosDoPeriodo}
+            onAbrirCadeira={setCadeiraAbertaId}
+            onAbrirCompromisso={setCompromissoAbertoId}
           />
         )}
       </main>
@@ -249,6 +300,16 @@ export default function App() {
           onFechar={() => setCadeiraAbertaId(null)}
           onAtualizar={(patch) => atualizarCadeira(cadeiraAberta.id, patch)}
           onExcluir={() => excluirCadeira(cadeiraAberta.id)}
+        />
+      )}
+
+      {compromissoAberto && (
+        <PainelCompromisso
+          compromisso={compromissoAberto}
+          periodos={data.periodos}
+          onFechar={() => setCompromissoAbertoId(null)}
+          onAtualizar={(patch) => atualizarCompromisso(compromissoAberto.id, patch)}
+          onExcluir={() => excluirCompromisso(compromissoAberto.id)}
         />
       )}
 

@@ -156,7 +156,13 @@ export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
 
       <div className="lista-itens">
         {links.length === 0 && <EstadoVazio texto="Nenhum link ou código cadastrado" pequeno />}
-        {links.map((l) => {
+        {[...links]
+          .sort((a, b) => {
+            const aClassroom = a.isClassroom || !!a.codigoClassroom;
+            const bClassroom = b.isClassroom || !!b.codigoClassroom;
+            return aClassroom === bClassroom ? 0 : aClassroom ? -1 : 1;
+          })
+          .map((l) => {
           const ehClassroom = l.isClassroom || !!l.codigoClassroom;
 
           if (ehClassroom) {

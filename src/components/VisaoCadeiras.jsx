@@ -2,14 +2,19 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Clock, Link as LinkIcon, Calendar, Check } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+import SeletorPeriodo from "./ui/SeletorPeriodo.jsx";
 
 export default function VisaoCadeiras({
+  periodos,
   periodoAtivo,
   cadeiras,
   onCriar,
   onAbrir,
   onExcluir,
+  onSelecionarPeriodo,
+  onNovoPeriodo,
   onAtualizarPeriodo,
+  onExcluirPeriodo,
 }) {
   const [novoNome, setNovoNome] = useState("");
   
@@ -44,7 +49,14 @@ export default function VisaoCadeiras({
     <div>
       <div className="header-bar" style={{ alignItems: "flex-start", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
-          <h1 className="titulo-pagina">{periodoAtivo.nome}</h1>
+          <SeletorPeriodo
+            periodos={periodos}
+            periodoAtivo={periodoAtivo}
+            onSelecionar={onSelecionarPeriodo}
+            onNovo={onNovoPeriodo}
+            onAtualizar={onAtualizarPeriodo}
+            onExcluir={onExcluirPeriodo}
+          />
           <span className="subtle" style={{ marginLeft: "auto" }}>
             {cadeiras.length} cadeira{cadeiras.length !== 1 ? "s" : ""}
           </span>
