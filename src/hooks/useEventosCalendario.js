@@ -24,6 +24,7 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
           titulo: d.titulo,
           cor: c.cor,
           origem: c.nome,
+          chave: `avaliacoes|${d.data}|${d.titulo}|${d.hora || ""}`,
         }))
     );
   }, [cadeiras, periodos, filtros.avaliacoes, inicioISO, fimISO]);
@@ -49,6 +50,7 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
               titulo: c.nome,
               cor: c.cor,
               origem: h.local || DIAS_FULL[diaSemana],
+              chave: `aulas|${dataISO}|${c.nome}|${h.inicio || ""}`,
             });
           });
       });
@@ -75,6 +77,7 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
               titulo: c.nome,
               cor: c.cor,
               origem: h.local || DIAS_FULL[diaSemana],
+              chave: `compromissos|${dataISO}|${c.nome}|${h.inicio || ""}`,
             });
           });
       });
@@ -97,6 +100,9 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
           cor: a.cor || "#8b5cf6",
           origem: a.feito ? "concluído" : "pendente",
           feito: a.feito,
+          id: a.id,
+          chave: `afazeres|${a.id}|${data}`,
+          rotina: a.rotina,
         });
       });
     });

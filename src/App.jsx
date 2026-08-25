@@ -171,6 +171,19 @@ export default function App() {
     persist({ ...data, afazeres: afazeres.filter((a) => a.id !== id) });
   };
 
+  /* ---- ações eventos recorrentes (aulas/avaliações/compromissos) marcados como feitos na Visão Geral ---- */
+  const eventosConcluidos = data.eventosConcluidos || [];
+
+  const alternarEventoConcluido = (chave) => {
+    const jaConcluido = eventosConcluidos.includes(chave);
+    persist({
+      ...data,
+      eventosConcluidos: jaConcluido
+        ? eventosConcluidos.filter((c) => c !== chave)
+        : [...eventosConcluidos, chave],
+    });
+  };
+
   const limparAfazeresConcluidos = () => {
     const concluidos = afazeres.filter((a) => a.feito);
     if (concluidos.length === 0) return;
@@ -218,6 +231,7 @@ export default function App() {
           cadeiras: importado.cadeiras ?? [],
           compromissos: importado.compromissos ?? [],
           afazeres: importado.afazeres ?? [],
+          eventosConcluidos: importado.eventosConcluidos ?? [],
           periodoAtivoId: importado.periodoAtivoId ?? null,
         });
       } catch {
@@ -256,6 +270,10 @@ export default function App() {
               compromissos={compromissosDoPeriodo}
               afazeres={afazeres}
               periodos={data.periodos}
+              eventosConcluidos={eventosConcluidos}
+              onAlternarEventoConcluido={alternarEventoConcluido}
+              onAlternarFeitoAfazer={alternarFeitoAfazer}
+              onAtualizarAfazer={atualizarAfazer}
             />
         ) : !periodoAtivo ? (
           <EstadoVazio

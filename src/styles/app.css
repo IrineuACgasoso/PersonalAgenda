@@ -442,6 +442,46 @@ h2.titulo-secao {
   opacity: 0.45;
 }
 
+.data-item.arrastavel {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.data-item.arrastavel:active {
+  cursor: grabbing;
+}
+
+.calendario-celula.destino-drag {
+  transition: all 0.1s ease-out;
+}
+
+.drag-ghost {
+  position: fixed;
+  transform: translate(-50%, -130%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1c1e26;
+  border: 1.5px solid #6366f1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
+.drag-ghost-ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .data-item-faixa {
   width: 4px;
   align-self: stretch;

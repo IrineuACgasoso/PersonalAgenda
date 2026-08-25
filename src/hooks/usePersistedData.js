@@ -10,6 +10,7 @@ const DADOS_PADRAO = {
   cadeiras: [],
   compromissos: [],
   afazeres: [],
+  eventosConcluidos: [],
   periodoAtivoId: "p1",
 };
 
