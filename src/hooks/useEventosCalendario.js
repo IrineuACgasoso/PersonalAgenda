@@ -1,4 +1,3 @@
-// src/hooks/useEventosCalendario.js
 import { useMemo } from "react";
 import { DIAS_FULL } from "../constants.js";
 import { toISO, ocorrenciasNoIntervalo } from "../utils/afazeres.js";
@@ -58,7 +57,7 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
     return lista;
   }, [cadeiras, periodos, filtros.aulas, primeiroDia, ultimoDia]);
 
-  // 3. Compromissos (recorrência semanal, sem vínculo com vigência de período)
+  // 3. Compromissos
   const eventosCompromissos = useMemo(() => {
     if (!filtros.compromissos) return [];
     const lista = [];
@@ -85,21 +84,27 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
     return lista;
   }, [compromissos, filtros.compromissos, primeiroDia, ultimoDia]);
 
-  // 4. Afazeres
+  // 4. Afazeres (agora com checagem pontual por data)
   const eventosAfazeres = useMemo(() => {
     if (!filtros.afazeres) return [];
     const lista = [];
     afazeres.forEach((a) => {
       const ocorrencias = ocorrenciasNoIntervalo(a, inicioISO, fimISO);
       ocorrencias.forEach((data) => {
+        const ehRotina = a.rotina && a.rotina.tipo !== "nenhuma";
+        const concluido = ehRotina
+          ? Array.isArray(a.datasConcluidas) && a.datasConcluidas.includes(data)
+          : !!a.feito;
+
         lista.push({
           tipo: "afazeres",
           data,
           hora: a.hora,
           titulo: a.nome,
           cor: a.cor || "#8b5cf6",
-          origem: a.feito ? "concluído" : "pendente",
-          feito: a.feito,
+          origem: concluido ? "concluído" : "pendente",
+          feito: concluido,
+          datasConcluidas: a.datasConcluidas || [],
           id: a.id,
           chave: `afazeres|${a.id}|${data}`,
           rotina: a.rotina,
@@ -109,7 +114,6 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
     return lista;
   }, [afazeres, filtros.afazeres, inicioISO, fimISO]);
 
-  // Mapa final agrupado por data YYYY-MM-DD
   return useMemo(() => {
     const todos = [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres];
     const mapa = {};

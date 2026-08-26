@@ -14,8 +14,7 @@ function toISO(date) {
 
 /**
  * Gera as datas (strings "YYYY-MM-DD") em que um afazer ocorre dentro do
- * intervalo [inicioISO, fimISO] (inclusivo). Afazeres sem data não entram
- * no calendário e retornam [].
+ * intervalo [inicioISO, fimISO] (inclusivo), respeitando o limite de repetições.
  */
 export function ocorrenciasNoIntervalo(afazer, inicioISO, fimISO) {
   if (!afazer.data) return [];
@@ -25,6 +24,9 @@ export function ocorrenciasNoIntervalo(afazer, inicioISO, fimISO) {
   if (inicioBase > fimRange) return [];
 
   const tipo = afazer.rotina?.tipo || "nenhuma";
+  const limiteRepeticoes = Number(afazer.rotina?.totalRepeticoes) > 0 
+    ? Number(afazer.rotina.totalRepeticoes) 
+    : null;
   const ocorrencias = [];
 
   if (tipo === "nenhuma") {
@@ -34,40 +36,50 @@ export function ocorrenciasNoIntervalo(afazer, inicioISO, fimISO) {
     return ocorrencias;
   }
 
-  let passoDias = 1;
-  if (tipo === "diaria") passoDias = 1;
-  else if (tipo === "semanal") passoDias = 7;
-  else if (tipo === "quinzenal") passoDias = 15;
-  else if (tipo === "personalizada")
-    passoDias = Math.max(1, Number(afazer.rotina?.intervaloDias) || 1);
+  const avancarData = (date) => {
+    if (tipo === "mensal") {
+      const diaFixo = inicioBase.getDate();
+      return new Date(date.getFullYear(), date.getMonth() + 1, diaFixo);
+    }
+    let passoDias = 1;
+    if (tipo === "diaria") passoDias = 1;
+    else if (tipo === "semanal") passoDias = 7;
+    else if (tipo === "quinzenal") passoDias = 15;
+    else if (tipo === "personalizada") passoDias = Math.max(1, Number(afazer.rotina?.intervaloDias) || 1);
 
-  if (tipo === "mensal") {
-    const diaFixo = inicioBase.getDate();
-    let cursor = new Date(inicioBase);
-    // avança até chegar perto do início do intervalo, mês a mês
-    while (cursor < inicioRange) {
-      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, diaFixo);
-    }
-    while (cursor <= fimRange) {
-      if (cursor >= inicioRange) ocorrencias.push(toISO(cursor));
-      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, diaFixo);
-    }
-    return ocorrencias;
-  }
+    return new Date(date.getTime() + passoDias * 86400000);
+  };
 
   let cursor = new Date(inicioBase);
-  // avança em passos até entrar no intervalo, evitando laços gigantes
-  if (cursor < inicioRange) {
-    const diffDias = Math.floor((inicioRange - cursor) / 86400000);
-    const passos = Math.floor(diffDias / passoDias);
-    cursor = new Date(cursor.getTime() + passos * passoDias * 86400000);
-  }
+  let contador = 0;
   let guarda = 0;
-  while (cursor <= fimRange && guarda < 400) {
-    if (cursor >= inicioRange) ocorrencias.push(toISO(cursor));
-    cursor = new Date(cursor.getTime() + passoDias * 86400000);
+
+  // Se não houver limite de repetições, avança rapidamente até o início da janela visualizada
+  if (!limiteRepeticoes && tipo !== "mensal") {
+    let passoDias = 1;
+    if (tipo === "diaria") passoDias = 1;
+    else if (tipo === "semanal") passoDias = 7;
+    else if (tipo === "quinzenal") passoDias = 15;
+    else if (tipo === "personalizada") passoDias = Math.max(1, Number(afazer.rotina?.intervaloDias) || 1);
+
+    if (cursor < inicioRange) {
+      const diffDias = Math.floor((inicioRange - cursor) / 86400000);
+      const passos = Math.floor(diffDias / passoDias);
+      cursor = new Date(cursor.getTime() + passos * passoDias * 86400000);
+    }
+  }
+
+  while (cursor <= fimRange && guarda < 1000) {
+    contador++;
+    if (limiteRepeticoes && contador > limiteRepeticoes) break;
+
+    if (cursor >= inicioRange) {
+      ocorrencias.push(toISO(cursor));
+    }
+    cursor = avancarData(cursor);
     guarda++;
   }
+
   return ocorrencias;
 }
 

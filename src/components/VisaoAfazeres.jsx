@@ -1,4 +1,3 @@
-// src/components/VisaoAfazeres.jsx
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
 import { ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
@@ -8,13 +7,19 @@ import SeletorCor from "./ui/SeletorCor.jsx";
 
 const COR_PADRAO_AFAZER = "#221e1e";
 
-
 function rotinaLabel(rotina) {
   if (!rotina || rotina.tipo === "nenhuma") return null;
+  let labelBase = "";
   if (rotina.tipo === "personalizada") {
-    return `a cada ${rotina.intervaloDias || 1} dia${(rotina.intervaloDias || 1) !== 1 ? "s" : ""}`;
+    labelBase = `a cada ${rotina.intervaloDias || 1} dia${(rotina.intervaloDias || 1) !== 1 ? "s" : ""}`;
+  } else {
+    labelBase = ROTINA_OPCOES.find((o) => o.valor === rotina.tipo)?.label.toLowerCase() || "";
   }
-  return ROTINA_OPCOES.find((o) => o.valor === rotina.tipo)?.label.toLowerCase();
+
+  if (rotina.totalRepeticoes) {
+    labelBase += ` (${rotina.totalRepeticoes}x)`;
+  }
+  return labelBase;
 }
 
 function BarraUrgencia({ nivel }) {
@@ -42,6 +47,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
   const [hora, setHora] = useState("");
   const [rotinaTipo, setRotinaTipo] = useState("nenhuma");
   const [intervaloDias, setIntervaloDias] = useState(3);
+  const [totalRepeticoes, setTotalRepeticoes] = useState("");
   const [urgencia, setUrgencia] = useState(1);
   const [cor, setCor] = useState(COR_PADRAO_AFAZER);
 
@@ -53,6 +59,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
       setHora(itemEmEdicao.hora || "");
       setRotinaTipo(itemEmEdicao.rotina?.tipo || "nenhuma");
       setIntervaloDias(itemEmEdicao.rotina?.intervaloDias || 3);
+      setTotalRepeticoes(itemEmEdicao.rotina?.totalRepeticoes || "");
       setUrgencia(itemEmEdicao.urgencia || 1);
       setCor(itemEmEdicao.cor || COR_PADRAO_AFAZER);
     } else {
@@ -67,6 +74,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
     setHora("");
     setRotinaTipo("nenhuma");
     setIntervaloDias(3);
+    setTotalRepeticoes("");
     setUrgencia(1);
     setCor(COR_PADRAO_AFAZER);
     if (onCancelarEdicao) onCancelarEdicao();
@@ -84,6 +92,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
       rotina: {
         tipo: rotinaTipo,
         intervaloDias: rotinaTipo === "personalizada" ? Number(intervaloDias) || 1 : undefined,
+        totalRepeticoes: rotinaTipo !== "nenhuma" && totalRepeticoes ? Number(totalRepeticoes) : undefined,
       },
       urgencia,
       cor,
@@ -101,7 +110,6 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
         onKeyDown={(e) => e.key === "Enter" && submit()}
       />
 
-      {/* SELETOR DE COR (HEXADECIMAL LIVRE) */}
       <div style={{ marginTop: 12, marginBottom: 12 }}>
         <SeletorCor valor={cor} onChange={setCor} label="Cor de identificação:" />
       </div>
@@ -118,36 +126,59 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
         </div>
       )}
 
+      {/* SELETOR DE ROTINA E REPETIÇÕES */}
       <div className="form-grid duas-colunas" style={{ marginTop: 8 }}>
         <select className="input" value={rotinaTipo} onChange={(e) => setRotinaTipo(e.target.value)}>
           {ROTINA_OPCOES.map((o) => (
             <option key={o.valor} value={o.valor}>{o.label}</option>
           ))}
         </select>
-        {rotinaTipo === "personalizada" ? (
-          <input
-            className="input"
-            type="number"
-            min={1}
-            placeholder="a cada quantos dias?"
-            value={intervaloDias}
-            onChange={(e) => setIntervaloDias(e.target.value)}
-          />
-        ) : (
-          <div className="urgencia-picker">
-            {[1, 2, 3].map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={`urgencia-opcao${urgencia === n ? " ativa" : ""}`}
-                onClick={() => setUrgencia(n)}
-                style={{ borderColor: URGENCIA_CORES[n] }}
-              >
-                <BarraUrgencia nivel={n} />
-              </button>
-            ))}
+
+        {rotinaTipo !== "nenhuma" && (
+          <div style={{ display: "flex", gap: 6 }}>
+            {rotinaTipo === "personalizada" && (
+              <input
+                className="input"
+                type="number"
+                min={1}
+                placeholder="Dias"
+                title="A cada quantos dias"
+                value={intervaloDias}
+                onChange={(e) => setIntervaloDias(e.target.value)}
+                style={{ flex: 1 }}
+              />
+            )}
+            <input
+              className="input"
+              type="number"
+              min={1}
+              placeholder="Qtd. vezes (vazio = eterno)"
+              title="Número de repetições (deixe em branco para repetir indefinidamente)"
+              value={totalRepeticoes}
+              onChange={(e) => setTotalRepeticoes(e.target.value)}
+              style={{ flex: 1 }}
+            />
           </div>
         )}
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <label style={{ fontSize: "0.8rem", color: "#a1a1aa", marginBottom: 4, display: "block" }}>
+          Nível de urgência:
+        </label>
+        <div className="urgencia-picker">
+          {[1, 2, 3].map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`urgencia-opcao${urgencia === n ? " ativa" : ""}`}
+              onClick={() => setUrgencia(n)}
+              style={{ borderColor: URGENCIA_CORES[n] }}
+            >
+              <BarraUrgencia nivel={n} />
+            </button>
+          ))}
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
@@ -164,7 +195,6 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
     </div>
   );
 }
-
 
 export default function VisaoAfazeres({
   afazeres,

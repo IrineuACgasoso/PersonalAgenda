@@ -63,9 +63,27 @@ export default function VisaoGeral({
     setDiaSelecionado(null);
   };
 
-  const eventoEstaConcluido = (ev) =>
-    ev.tipo === "afazeres" ? !!ev.feito : eventosConcluidos.includes(ev.chave);
+  const eventoEstaConcluido = (ev) => {
+    if (ev.tipo === "afazeres") {
+      // Se for um afazer rotineiro, checa se a data desta ocorrência específica está marcada
+      if (ev.rotina && ev.rotina.tipo !== "nenhuma") {
+        return Array.isArray(ev.datasConcluidas) && ev.datasConcluidas.includes(ev.data);
+      }
+      return !!ev.feito;
+    }
+    return eventosConcluidos.includes(ev.chave);
+  };
 
+  const alternarConcluido = (ev) => {
+    if (ev.tipo === "afazeres") {
+      if (onAlternarFeitoAfazer) {
+        // Passa a data específica da ocorrência para alterar apenas aquele dia
+        onAlternarFeitoAfazer(ev.id, ev.data);
+      }
+    } else if (onAlternarEventoConcluido) {
+      onAlternarEventoConcluido(ev.chave);
+    }
+  };
   // pendentes primeiro (por horário), concluídos vão para o final da lista —
   // sort é estável, então a ordem por horário dentro de cada grupo é preservada
   const eventosDoDiaSelecionado = useMemo(() => {
@@ -76,14 +94,6 @@ export default function VisaoGeral({
       return ca - cb;
     });
   }, [diaSelecionado, eventosPorDia, eventosConcluidos]);
-
-  const alternarConcluido = (ev) => {
-    if (ev.tipo === "afazeres") {
-      if (onAlternarFeitoAfazer) onAlternarFeitoAfazer(ev.id);
-    } else if (onAlternarEventoConcluido) {
-      onAlternarEventoConcluido(ev.chave);
-    }
-  };
 
   // ---- handlers de drag (só afazeres podem ser arrastados) ----
   // No mouse o arrasto começa assim que o ponteiro se move além do limiar.

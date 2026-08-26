@@ -56,7 +56,6 @@ export default function App() {
     });
   };
 
-  // Atualiza nome ou datas do período diretamente no estado unificado
   const atualizarPeriodo = (id, patch) => {
     persist({
       ...data,
@@ -116,7 +115,7 @@ export default function App() {
 
   /* ---- ações compromissos ---- */
   const criarCompromisso = (nome) => {
-    if (!periodoAtivo) return; // a tela só permite criar com um período selecionado
+    if (!periodoAtivo) return;
     const novo = {
       id: uid(),
       nome,
@@ -147,7 +146,7 @@ export default function App() {
   const afazeres = data.afazeres || [];
 
   const criarAfazer = (afazer) => {
-    const novo = { id: uid(), feito: false, ...afazer };
+    const novo = { id: uid(), feito: false, datasConcluidas: [], ...afazer };
     persist({ ...data, afazeres: [...afazeres, novo] });
   };
 
@@ -158,12 +157,25 @@ export default function App() {
     });
   };
 
-  const alternarFeitoAfazer = (id) => {
+  const alternarFeitoAfazer = (id, dataOcorrencia) => {
     persist({
       ...data,
-      afazeres: afazeres.map((a) =>
-        a.id === id ? { ...a, feito: !a.feito } : a
-      ),
+      afazeres: afazeres.map((a) => {
+        if (a.id !== id) return a;
+
+        const ehRotina = a.rotina && a.rotina.tipo !== "nenhuma";
+        if (ehRotina && dataOcorrencia) {
+          const datasConcluidas = a.datasConcluidas || [];
+          const jaConcluido = datasConcluidas.includes(dataOcorrencia);
+          const novasDatas = jaConcluido
+            ? datasConcluidas.filter((d) => d !== dataOcorrencia)
+            : [...datasConcluidas, dataOcorrencia];
+
+          return { ...a, datasConcluidas: novasDatas };
+        }
+
+        return { ...a, feito: !a.feito };
+      }),
     });
   };
 
@@ -171,7 +183,7 @@ export default function App() {
     persist({ ...data, afazeres: afazeres.filter((a) => a.id !== id) });
   };
 
-  /* ---- ações eventos recorrentes (aulas/avaliações/compromissos) marcados como feitos na Visão Geral ---- */
+  /* ---- ações eventos concluidos ---- */
   const eventosConcluidos = data.eventosConcluidos || [];
 
   const alternarEventoConcluido = (chave) => {
