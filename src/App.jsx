@@ -17,7 +17,7 @@ import ModalTexto from "./components/ui/ModalTexto";
 export default function App() {
   const { data, persist, status, user, loginWithGoogle, logout } = usePersistedData();
   
-  const [aba, setAba] = useState("cadeiras");
+  const [aba, setAba] = useState("visaogeral");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);

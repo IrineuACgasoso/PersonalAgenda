@@ -444,8 +444,15 @@ h2.titulo-secao {
 
 .data-item.arrastavel {
   cursor: grab;
-  touch-action: none;
+  /* pan-y libera o scroll vertical nativo por padrão; o próprio componente
+     alterna para "none" via style inline somente depois que o toque fica
+     parado tempo suficiente para armar o arrasto (ver VisaoGeral.jsx) */
+  touch-action: pan-y;
   user-select: none;
+}
+
+.data-item.arrastavel.pronto-arrasto {
+  box-shadow: 0 0 0 1.5px #6366f1, 0 4px 14px rgba(99, 102, 241, 0.35);
 }
 
 .data-item.arrastavel:active {

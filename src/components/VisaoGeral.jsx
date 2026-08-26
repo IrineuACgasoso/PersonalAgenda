@@ -18,6 +18,9 @@ const TIPOS = [
 
 // distância mínima (px) do ponteiro para considerar que o usuário começou a arrastar
 const LIMIAR_ARRASTO = 8;
+// no toque, quanto tempo (ms) precisa ficar parado segurando o item antes do
+// arrasto "armar" — antes disso, qualquer movimento é tratado como scroll
+const ATRASO_ARRASTO_TOQUE = 350;
 
 export default function VisaoGeral({
   cadeiras = [],
@@ -41,9 +44,10 @@ export default function VisaoGeral({
   const celulas = useMemo(() => gerarCelulasMes(ano, mes), [ano, mes]);
 
   // ---- estado de drag (ponteiro, funciona em mouse e touch) ----
-  const dragRef = useRef({ ativo: false, ponteiroId: null, evento: null, startX: 0, startY: 0 });
+  const dragRef = useRef({ ativo: false, armado: false, ponteiroId: null, evento: null, startX: 0, startY: 0, elemento: null, timer: null });
   const [itemArrastando, setItemArrastando] = useState(null); // { id, titulo, cor, x, y }
   const [diaAlvo, setDiaAlvo] = useState(null);
+  const [itemPronto, setItemPronto] = useState(null); // id do item "armado" para arrastar (feedback visual no toque)
 
   const irMesAnterior = () => {
     const novo = new Date(ano, mes - 1, 1);
@@ -59,10 +63,19 @@ export default function VisaoGeral({
     setDiaSelecionado(null);
   };
 
-  const eventosDoDiaSelecionado = diaSelecionado ? eventosPorDia[diaSelecionado] || [] : [];
-
   const eventoEstaConcluido = (ev) =>
     ev.tipo === "afazeres" ? !!ev.feito : eventosConcluidos.includes(ev.chave);
+
+  // pendentes primeiro (por horário), concluídos vão para o final da lista —
+  // sort é estável, então a ordem por horário dentro de cada grupo é preservada
+  const eventosDoDiaSelecionado = useMemo(() => {
+    const lista = diaSelecionado ? eventosPorDia[diaSelecionado] || [] : [];
+    return [...lista].sort((a, b) => {
+      const ca = eventoEstaConcluido(a) ? 1 : 0;
+      const cb = eventoEstaConcluido(b) ? 1 : 0;
+      return ca - cb;
+    });
+  }, [diaSelecionado, eventosPorDia, eventosConcluidos]);
 
   const alternarConcluido = (ev) => {
     if (ev.tipo === "afazeres") {
@@ -73,16 +86,50 @@ export default function VisaoGeral({
   };
 
   // ---- handlers de drag (só afazeres podem ser arrastados) ----
+  // No mouse o arrasto começa assim que o ponteiro se move além do limiar.
+  // No toque, para não brigar com o scroll da lista, o arrasto só "arma"
+  // depois que o dedo fica parado em cima do item por ATRASO_ARRASTO_TOQUE ms;
+  // qualquer movimento antes disso é interpretado como intenção de rolar a
+  // lista, e devolvemos o controle para o navegador (scroll nativo).
+  const limparTimerArrasto = () => {
+    if (dragRef.current.timer) {
+      clearTimeout(dragRef.current.timer);
+      dragRef.current.timer = null;
+    }
+  };
+
   const iniciarPossivelArrasto = (e, ev) => {
     if (ev.tipo !== "afazeres" || !onAtualizarAfazer) return;
+    const elemento = e.currentTarget;
+    const ehToque = e.pointerType === "touch";
+
     dragRef.current = {
       ativo: false,
+      armado: !ehToque, // mouse/caneta: já pode arrastar de cara
       ponteiroId: e.pointerId,
       evento: ev,
       startX: e.clientX,
       startY: e.clientY,
+      elemento,
+      timer: null,
     };
-    e.currentTarget.setPointerCapture(e.pointerId);
+
+    if (ehToque) {
+      dragRef.current.timer = setTimeout(() => {
+        const st = dragRef.current;
+        if (!st.evento || st.ponteiroId !== e.pointerId) return;
+        st.armado = true;
+        // só a partir daqui bloqueamos o scroll nativo, já que o dedo ficou
+        // parado tempo suficiente pra confirmar que é arrasto e não rolagem
+        if (st.elemento) st.elemento.style.touchAction = "none";
+        setItemPronto(ev.id);
+        if (navigator.vibrate) navigator.vibrate(12);
+      }, ATRASO_ARRASTO_TOQUE);
+    } else {
+      try {
+        elemento.setPointerCapture(e.pointerId);
+      } catch {}
+    }
   };
 
   const moverArrasto = (e) => {
@@ -90,12 +137,30 @@ export default function VisaoGeral({
     if (!st.evento) return;
     const dx = e.clientX - st.startX;
     const dy = e.clientY - st.startY;
+    const dist = Math.hypot(dx, dy);
+
+    if (!st.armado) {
+      // ainda esperando o "segurar": se o dedo já se moveu, é scroll —
+      // cancela nossa tentativa de arrasto e deixa o navegador rolar
+      if (dist > LIMIAR_ARRASTO) {
+        limparTimerArrasto();
+        dragRef.current = { ativo: false, evento: null };
+      }
+      return;
+    }
 
     if (!st.ativo) {
-      if (Math.hypot(dx, dy) < LIMIAR_ARRASTO) return;
+      if (dist < LIMIAR_ARRASTO) return;
       st.ativo = true;
+      e.preventDefault();
+      if (st.elemento) {
+        try {
+          st.elemento.setPointerCapture(e.pointerId);
+        } catch {}
+      }
       setItemArrastando({ id: st.evento.id, titulo: st.evento.titulo, cor: st.evento.cor, x: e.clientX, y: e.clientY });
     } else {
+      e.preventDefault();
       setItemArrastando((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
     }
 
@@ -106,12 +171,15 @@ export default function VisaoGeral({
 
   const finalizarArrasto = () => {
     const st = dragRef.current;
+    limparTimerArrasto();
+    if (st.elemento) st.elemento.style.touchAction = "";
     if (st.ativo && st.evento && diaAlvo && diaAlvo !== st.evento.data && onAtualizarAfazer) {
       onAtualizarAfazer(st.evento.id, { data: diaAlvo });
       setDiaSelecionado(diaAlvo);
     }
-    dragRef.current = { ativo: false, evento: null };
+    dragRef.current = { ativo: false, armado: false, evento: null };
     setItemArrastando(null);
+    setItemPronto(null);
     setDiaAlvo(null);
   };
 
@@ -148,10 +216,11 @@ export default function VisaoGeral({
                 const concluido = eventoEstaConcluido(ev);
                 const arrastavel = ev.tipo === "afazeres" && !!onAtualizarAfazer;
                 const sendoArrastado = itemArrastando && itemArrastando.id === ev.id && ev.tipo === "afazeres";
+                const pronto = itemPronto === ev.id && ev.tipo === "afazeres" && !sendoArrastado;
                 return (
                   <div
                     key={ev.chave || i}
-                    className={`data-item${concluido ? " passada" : ""}${arrastavel ? " arrastavel" : ""}`}
+                    className={`data-item${concluido ? " passada" : ""}${arrastavel ? " arrastavel" : ""}${pronto ? " pronto-arrasto" : ""}`}
                     style={sendoArrastado ? { opacity: 0.35 } : undefined}
                     onPointerDown={arrastavel ? (e) => iniciarPossivelArrasto(e, ev) : undefined}
                     onPointerMove={arrastavel ? moverArrasto : undefined}
