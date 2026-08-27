@@ -252,7 +252,7 @@ export default function VisaoAfazeres({
       {ordenados.length === 0 ? (
         <EstadoVazio texto="Nenhum afazer cadastrado ainda" />
       ) : (
-        <div className="lista-itens" style={{ marginTop: 20 }}>
+        <div className="lista-itens lista-afazeres" style={{ marginTop: 20 }}>
           {ordenados.map((a) => {
             const corAfazer = a.cor || "#8b5cf6";
             return (

@@ -9,6 +9,7 @@ import {
   Menu,
   Download,
   Upload,
+  CloudDownload,
   LogIn,
   LogOut,
 } from "lucide-react";
@@ -19,6 +20,7 @@ export default function Sidebar({
   status,
   onExportarBackup,
   onImportarBackup,
+  onRestaurarBackupNuvem,
   user,
   loginWithGoogle,
   logout,
@@ -88,6 +90,15 @@ export default function Sidebar({
           <button className="nav-btn" onClick={() => inputImportRef.current?.click()} title="Restaura dados a partir de um backup .json">
             <Upload size={15} /> Importar dados
           </button>
+          {user && (
+            <button
+              className="nav-btn"
+              onClick={onRestaurarBackupNuvem}
+              title="Restaura a partir de um snapshot salvo automaticamente na nuvem"
+            >
+              <CloudDownload size={15} /> Restaurar da nuvem
+            </button>
+          )}
           <input
             ref={inputImportRef}
             type="file"

@@ -10,7 +10,8 @@ body {
 /* ---------- layout raiz ---------- */
 .app {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #0f1115;
   color: #e8e8ea;
 }
@@ -32,6 +33,8 @@ body {
 .sidebar {
   width: 240px;
   flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
   background: #15171c;
   border-right: 1px solid #23252b;
   display: flex;
@@ -1024,8 +1027,10 @@ h2.titulo-secao {
 
   .app {
     flex-direction: column;
+    height: auto;
     min-height: 100vh;
     min-height: 100dvh;
+    overflow: visible;
   }
 
   .mobile-menu-btn {
@@ -1060,6 +1065,12 @@ h2.titulo-secao {
     display: flex;
     flex-direction: column;
     overflow-y: auto; /* Permite rolar até a área do login */
+  }
+
+  /* Libera espaço no topo para o botão hambúrguer (que fica por cima,
+     z-index maior) não cobrir o título "Minha agenda" nem o primeiro item */
+  .sidebar-header {
+    padding-top: 52px;
   }
 
   .status-footer {
@@ -1102,6 +1113,21 @@ h2.titulo-secao {
 
   .painel-lateral {
     width: 100%;
+  }
+
+  /* Empurra o conteúdo do painel para baixo do botão hambúrguer fixo,
+     que cobria o título/nome do item sendo editado */
+  .painel-header {
+    margin-top: 52px;
+  }
+
+  /* Lista de afazeres: em vez de esticar a página inteira, rola por
+     dentro de uma área com altura limitada (só no mobile) */
+  .lista-afazeres {
+    max-height: 55vh;
+    max-height: 55dvh;
+    overflow-y: auto;
+    padding-right: 4px;
   }
 
   .agenda-wrap {

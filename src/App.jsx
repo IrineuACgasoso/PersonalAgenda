@@ -13,10 +13,14 @@ import PainelCadeira from "./components/PainelCadeira";
 import PainelCompromisso from "./components/PainelCompromisso";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
+import { useAutoBackup } from "./hooks/useAutoBackup";
+import { useCloudBackup, listarBackupsCloud } from "./hooks/useCloudBackup";
 
 export default function App() {
   const { data, persist, status, user, loginWithGoogle, logout } = usePersistedData();
-  
+
+  useAutoBackup(data);
+  useCloudBackup(user, data, status !== "loading");
   const [aba, setAba] = useState("visaogeral");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
@@ -253,6 +257,46 @@ export default function App() {
     leitor.readAsText(arquivo);
   };
 
+  /* ---- backup: restaurar a partir da nuvem (Firestore) ---- */
+  const restaurarBackupNuvem = async () => {
+    if (!user) {
+      window.alert("Você precisa estar logado para restaurar um backup da nuvem.");
+      return;
+    }
+    let backups = [];
+    try {
+      backups = await listarBackupsCloud(user.uid);
+    } catch (err) {
+      console.error(err);
+      window.alert("Não foi possível buscar os backups na nuvem. Verifique sua conexão.");
+      return;
+    }
+    if (backups.length === 0) {
+      window.alert("Ainda não existe nenhum backup salvo na nuvem (o primeiro é criado até 3h após o login).");
+      return;
+    }
+
+    const lista = backups
+      .map((b, i) => `${i + 1}) ${b.dataHora}`)
+      .join("\n");
+    const escolha = window.prompt(
+      `Backups disponíveis (mais recente primeiro):\n${lista}\n\nDigite o número do backup que deseja restaurar:`
+    );
+    const indice = parseInt(escolha, 10) - 1;
+    if (Number.isNaN(indice) || indice < 0 || indice >= backups.length) return;
+
+    const escolhido = backups[indice];
+    if (
+      !window.confirm(
+        `Restaurar o backup de ${escolhido.dataHora}? Isso substitui TODOS os dados atuais (locais e na nuvem).`
+      )
+    )
+      return;
+
+    persist(escolhido.payload);
+    window.alert("Backup restaurado com sucesso.");
+  };
+
   return (
     <div className="app">
       <Sidebar
@@ -260,6 +304,7 @@ export default function App() {
         setAba={setAba}
         status={status}
         onExportarBackup={exportarBackup}
+        onRestaurarBackupNuvem={restaurarBackupNuvem}
         onImportarBackup={importarBackup}
         user={user}
         loginWithGoogle={loginWithGoogle}
