@@ -1,0 +1,162 @@
+/* painel.css
+   Drawer lateral de edição (PainelCadeira.jsx / PainelCompromisso.jsx) e
+   os elementos internos que ele usa: abas, listas de itens (horários,
+   links, datas), seletor de cor. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 50;
+}
+
+.painel-lateral {
+  width: 420px;
+  max-width: 100%;
+  background: #15171c;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px 22px;
+}
+
+.painel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cor-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.painel-title-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  outline: none;
+}
+
+.painel-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 18px;
+  border-bottom: 1px solid #23252b;
+}
+
+.painel-tab {
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  color: #8a8a92;
+  font-size: 12.5px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-right: 14px;
+}
+
+.painel-tab.ativa {
+  color: #fff;
+  border-bottom: 2px solid #6366f1;
+}
+
+.painel-conteudo {
+  padding-top: 18px;
+}
+
+/* ---------- listas de itens (horários, links, datas) ---------- */
+.lista-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.item-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1c22;
+  border: 1px solid #23252b;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.item-linha-titulo {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1c22;
+  border: 1px solid #23252b;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-decoration: none;
+  color: #e8e8ea;
+}
+
+.link-item-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drop-zone {
+  border: 1px dashed #2a2c33;
+  border-radius: 10px;
+  padding: 12px;
+  transition: border-color 0.15s;
+}
+
+.drop-zone.ativa {
+  border-color: #6366f1;
+}
+
+/* ---------- seletor de cor (hexadecimal livre) ---------- */
+.seletor-cor-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seletor-cor-swatch {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid #2a2c33;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.seletor-cor-swatch::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+
+.seletor-cor-swatch::-webkit-color-swatch {
+  border-radius: 6px;
+  border: none;
+}
+
+.seletor-cor-swatch::-moz-color-swatch {
+  border-radius: 6px;
+  border: none;
+}
+
+.seletor-cor-hex {
+  max-width: 130px;
+  font-family: monospace;
+  text-transform: lowercase;
+}

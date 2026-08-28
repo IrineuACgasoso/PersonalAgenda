@@ -1,0 +1,157 @@
+/* sidebar.css
+   Tudo referente a Sidebar.jsx: navegação, seções, status de sincronização,
+   conta/login. Ajustes específicos de mobile (posição fixa, largura etc.)
+   ficam em mobile.css, não aqui — para manter este arquivo só com o
+   visual "base" e não misturar responsividade com estrutura. */
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  background: #15171c;
+  border-right: 1px solid #23252b;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 12px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 18px;
+}
+
+.logo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+}
+
+.logo-text {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.sidebar-secao {
+  margin-bottom: 20px;
+}
+
+.sidebar-secao-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #6b6b74;
+  padding: 0 6px 8px;
+  cursor: default;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #a9a9b2;
+  font-size: 13.5px;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.nav-btn.ativo {
+  background: #23252b;
+  color: #fff;
+}
+
+.backup-secao {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #23252b;
+}
+
+.status-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #6b6b74;
+  padding: 6px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.status-dot.saved { background: #10b981; }
+.status-dot.saving { background: #f59e0b; }
+.status-dot.error { background: #ef4444; }
+
+/* ---------- legado: dropdown de período dentro da sidebar ----------
+   Estas classes não parecem mais usadas por nenhum componente — a seleção
+   de período hoje é feita por SeletorPeriodo.jsx (ver periodo-seletor.css).
+   Deixei aqui só para não apagar nada sem confirmar contigo; se você
+   confirmar que não usa mais, dá pra remover num próximo ajuste. */
+.periodo-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.periodo-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  cursor: pointer;
+  color: #c4c4cc;
+}
+
+.periodo-item.ativo {
+  background: #23252b;
+  color: #fff;
+}
+
+.periodo-nome {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.periodo-acoes {
+  display: flex;
+  gap: 2px;
+}
+
+.chevron-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: #8a8a92;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sidebar-secao-titulo {
+  flex: 1;
+  cursor: pointer;
+  user-select: none;
+}

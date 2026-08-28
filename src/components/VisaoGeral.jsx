@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, Calenda
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
-import { NOME_MESES, gerarCelulasMes } from "../utils/calendario.js";
+import { NOME_MESES, gerarCelulasMes, hexParaRgb } from "../utils/calendario.js";
 import { useFiltrosCalendario } from "../hooks/useFiltrosCalendario.js";
 import { useEventosCalendario } from "../hooks/useEventosCalendario.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
@@ -292,24 +292,38 @@ export default function VisaoGeral({
           const selecionada = dataISO === diaSelecionado;
           const ehHoje = dataISO === hojeISO;
           const ehAlvoDrag = itemArrastando && diaAlvo === dataISO;
+          const temAvaliacao = eventos.some((ev) => ev.tipo === "avaliacoes");
+          const eventoImportante = eventos.find((ev) => ev.tipo === "avaliacoes");
 
           let celulaStyle = { transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)" };
           if (ehHoje && !selecionada) {
-            celulaStyle = { ...celulaStyle, border: "1px solid #10b981", backgroundColor: "rgba(16, 185, 129, 0.08)" };
+            celulaStyle = { ...celulaStyle, border: "1px solid rgba(255, 255, 255, 0.55)", backgroundColor: "rgba(255, 255, 255, 0.06)" };
           } else if (selecionada && !ehHoje) {
             celulaStyle = { ...celulaStyle, borderColor: "#818cf8", backgroundColor: "rgba(129, 140, 248, 0.18)", boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(129, 140, 248, 0.3)", transform: "scale(1.05)", zIndex: 2 };
           } else if (selecionada && ehHoje) {
-            celulaStyle = { ...celulaStyle, border: "2px solid #10b981", backgroundColor: "rgba(129, 140, 248, 0.22)", boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(16, 185, 129, 0.35)", transform: "scale(1.05)", zIndex: 2 };
+            celulaStyle = { ...celulaStyle, border: "2px solid rgba(255, 255, 255, 0.7)", backgroundColor: "rgba(129, 140, 248, 0.22)", boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(255, 255, 255, 0.3)", transform: "scale(1.05)", zIndex: 2 };
           }
           if (ehAlvoDrag) {
             celulaStyle = { ...celulaStyle, borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.22)", boxShadow: "0 0 0 2px #f59e0b, 0 4px 14px rgba(245, 158, 11, 0.4)", transform: "scale(1.08)", zIndex: 3 };
+          }
+          // Data com prova/trabalho/avaliação de alguma cadeira: preenchimento com
+          // opacidade média + glow na cor DA PRÓPRIA CADEIRA, somado (não
+          // substituindo) a qualquer destaque já aplicado acima.
+          if (temAvaliacao) {
+            const rgb = hexParaRgb(eventoImportante.cor);
+            const glowAvaliacao = `0 0 11px rgba(${rgb}, 0.6)`;
+            celulaStyle = {
+              ...celulaStyle,
+              backgroundColor: celulaStyle.backgroundColor || `rgba(${rgb}, 0.16)`,
+              boxShadow: celulaStyle.boxShadow ? `${celulaStyle.boxShadow}, ${glowAvaliacao}` : `0 0 0 1px rgba(${rgb}, 0.55), ${glowAvaliacao}`,
+            };
           }
 
           return (
             <div
               key={idx}
               data-dia-iso={dataISO}
-              className={`calendario-celula${ehHoje ? " hoje" : ""}${selecionada ? " selecionada" : ""}${ehAlvoDrag ? " destino-drag" : ""}`}
+              className={`calendario-celula${ehHoje ? " hoje" : ""}${selecionada ? " selecionada" : ""}${ehAlvoDrag ? " destino-drag" : ""}${temAvaliacao ? " tem-avaliacao" : ""}`}
               onClick={() => setDiaSelecionado(selecionada ? null : dataISO)}
               style={celulaStyle}
             >
@@ -317,7 +331,7 @@ export default function VisaoGeral({
                 className="calendario-numero"
                 style={
                   ehHoje
-                    ? { background: "#10b981", color: "#09090b", fontWeight: "700", borderRadius: "12px", padding: "1px 7px", display: "inline-block", fontSize: "0.82rem", boxShadow: "0 2px 4px rgba(16, 185, 129, 0.3)" }
+                    ? { background: "#f4f4f5", color: "#09090b", fontWeight: "700", borderRadius: "12px", padding: "1px 7px", display: "inline-block", fontSize: "0.82rem", boxShadow: "0 2px 4px rgba(255, 255, 255, 0.25)" }
                     : selecionada
                     ? { fontWeight: 800, color: "#ffffff", textShadow: "0 0 6px rgba(129, 140, 248, 0.8)" }
                     : {}

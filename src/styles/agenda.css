@@ -1,0 +1,168 @@
+/* agenda.css
+   VisaoAgenda.jsx (grade semanal) e a lista de "próximas datas" usada
+   tanto na Agenda quanto na Visão Geral, incluindo o drag-and-drop de
+   datas importantes entre dias do calendário. */
+
+.agenda-wrap {
+  border: 1px solid #23252b;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.agenda-grid-head {
+  display: grid;
+  grid-template-columns: 48px repeat(7, 1fr);
+  border-bottom: 1px solid #23252b;
+  background: #171920;
+}
+
+.agenda-hora-col {
+  border-right: 1px solid #23252b;
+}
+
+.agenda-dia-head {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a9a9b2;
+  border-right: 1px solid #23252b;
+}
+
+.agenda-body {
+  display: grid;
+  grid-template-columns: 48px repeat(7, 1fr);
+}
+
+.agenda-hora-label {
+  height: 44px;
+  font-size: 10.5px;
+  color: #6b6b74;
+  text-align: right;
+  padding-right: 6px;
+  border-bottom: 1px solid #1c1e24;
+}
+
+.agenda-coluna {
+  position: relative;
+  border-right: 1px solid #23252b;
+}
+
+.agenda-linha {
+  height: 44px;
+  border-bottom: 1px solid #1c1e24;
+}
+
+.agenda-bloco {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 5px;
+  padding: 3px 6px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.agenda-bloco-titulo {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.agenda-bloco-hora {
+  display: block;
+  font-size: 10px;
+  color: #c4c4cc;
+}
+
+/* ---------- próximas datas ---------- */
+.proximas-datas {
+  margin-top: 32px;
+}
+
+.lista-proximas-datas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.data-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #171920;
+  border: 1px solid #23252b;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.data-item.passada {
+  opacity: 0.45;
+}
+
+.data-item.arrastavel {
+  cursor: grab;
+  /* pan-y libera o scroll vertical nativo por padrão; o próprio componente
+     alterna para "none" via style inline somente depois que o toque fica
+     parado tempo suficiente para armar o arrasto (ver VisaoGeral.jsx) */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.data-item.arrastavel.pronto-arrasto {
+  box-shadow: 0 0 0 1.5px #6366f1, 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.data-item.arrastavel:active {
+  cursor: grabbing;
+}
+
+.calendario-celula.destino-drag {
+  transition: all 0.1s ease-out;
+}
+
+.drag-ghost {
+  position: fixed;
+  transform: translate(-50%, -130%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1c1e26;
+  border: 1.5px solid #6366f1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
+.drag-ghost-ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.data-item-faixa {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+}
+
+.data-item-titulo {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.data-item-data {
+  font-size: 12px;
+  color: #a9a9b2;
+  flex-shrink: 0;
+}

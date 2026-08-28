@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 const CHAVE_BACKUPS_AUTO = "agenda_backups_automaticos";
-const INTERVALO_3_HORAS = 6 * 60 * 60 * 1000;
+const INTERVALO_3_HORAS = 3 * 60 * 60 * 1000;
 
 /**
  * Hook que verifica e executa o backup a cada 3 horas.
@@ -54,8 +54,8 @@ export function useAutoBackup(data) {
     // Avalia assim que o app é aberto
     verificarEGerarBackup();
 
-    // Checa a cada 1h se a janela de 6 horas foi atingida
-    const timer = setInterval(verificarEGerarBackup, 60 * 60 * 1000);
+    // Checa a cada 15 minutos se a janela de 3 horas foi atingida
+    const timer = setInterval(verificarEGerarBackup, 15 * 60 * 1000);
     return () => clearInterval(timer);
   }, [data]);
 }

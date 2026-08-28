@@ -1,0 +1,119 @@
+/* calendario.css
+   VisaoGeral.jsx: chips de filtro e o calendário mensal em grid. */
+
+.filtros-linha {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.filtro-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #171920;
+  border: 1px solid #2a2c33;
+  color: #8a8a92;
+  border-radius: 20px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.filtro-chip.ativo {
+  background: #23252b;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.calendario-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.calendario-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 150px;
+  text-align: center;
+}
+
+.calendario-grid-head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.calendario-dia-head {
+  text-align: center;
+  font-size: 11px;
+  color: #6b6b74;
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendario-celula {
+  min-height: 64px;
+  border: 1px solid #23252b;
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  background: #171920;
+}
+
+.calendario-celula.vazia {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.calendario-celula.hoje {
+  border-color: #6366f1;
+}
+
+/* Dia com prova/trabalho/avaliação cadastrada em alguma cadeira. O
+   preenchimento e o glow em si são aplicados via inline style em
+   VisaoGeral.jsx (para poder somar com os estilos de "hoje"/"selecionada"
+   sem um sobrescrever o outro) — aqui só um leve reforço no hover. */
+.calendario-celula.tem-avaliacao:hover {
+  filter: brightness(1.12);
+}
+
+.calendario-celula.selecionada {
+  background: #23252b;
+}
+
+.calendario-numero {
+  font-size: 12px;
+  color: #c4c4cc;
+}
+
+.calendario-pontos {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.calendario-ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.calendario-mais {
+  font-size: 9.5px;
+  color: #8a8a92;
+}

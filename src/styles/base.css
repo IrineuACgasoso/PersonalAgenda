@@ -1,0 +1,181 @@
+/* base.css
+   Reset global, layout raiz (.app/.main) e componentes GENÉRICOS
+   reutilizados em várias telas: botões, inputs, grids de formulário,
+   estado vazio. Se uma classe é usada por 2+ telas diferentes, ela mora
+   aqui — não em um CSS de tela específica. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ---------- layout raiz ---------- */
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #0f1115;
+  color: #e8e8ea;
+}
+
+.loading-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f1115;
+  color: #8a8a92;
+}
+
+.loading-text {
+  font-size: 14px;
+}
+
+/* ---------- área principal ---------- */
+.main {
+  flex: 1;
+  padding: 28px 36px;
+  overflow-y: auto;
+  max-width: 1100px;
+}
+
+.header-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.titulo-pagina {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+
+h2.titulo-secao {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.subtle {
+  font-size: 12.5px;
+  color: #8a8a92;
+}
+
+.add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.form-grid.duas-colunas {
+  grid-template-columns: 1fr 1fr;
+}
+
+.form-grid.campo-mais-botao {
+  grid-template-columns: 1fr auto;
+  margin-top: 8px;
+}
+
+/* ---------- botões e inputs genéricos ---------- */
+.icon-btn-sm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: none;
+  background: #23252b;
+  color: #a9a9b2;
+  cursor: pointer;
+}
+
+.icon-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: #8a8a92;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  background: #1a1c22;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  color: #e8e8ea;
+  padding: 9px 11px;
+  font-size: 13.5px;
+  outline: none;
+  width: 100%;
+}
+
+.btn-primario {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primario.full {
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.btn-secundario {
+  background: transparent;
+  color: #c4c4cc;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.btn-secundario:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- estado vazio (componente EstadoVazio.jsx) ---------- */
+.vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px dashed #2a2c33;
+  border-radius: 10px;
+  padding: 48px 20px;
+}
+
+.vazio.pequeno {
+  padding: 20px 12px;
+}

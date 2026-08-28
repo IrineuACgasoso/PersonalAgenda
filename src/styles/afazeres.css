@@ -1,0 +1,105 @@
+/* afazeres.css
+   VisaoAfazeres.jsx: formulário de criação/edição, seletor de urgência
+   e lista de itens. */
+
+.afazer-form {
+  background: #171920;
+  border: 1px solid #23252b;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.checkbox-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #c4c4cc;
+  margin: 10px 0;
+  cursor: pointer;
+}
+
+.checkbox-linha input {
+  width: 15px;
+  height: 15px;
+  accent-color: #6366f1;
+}
+
+.urgencia-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.urgencia-opcao {
+  background: #1a1c22;
+  border: 1px solid #2a2c33;
+  border-radius: 8px;
+  padding: 6px 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.urgencia-opcao.ativa {
+  background: #23252b;
+}
+
+.urgencia-bateria {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.urgencia-segmento {
+  width: 6px;
+  height: 14px;
+  border: 1.5px solid;
+  border-radius: 2px;
+}
+
+.item-afazer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #171920;
+  border: 1px solid #23252b;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.item-afazer.feito {
+  opacity: 0.5;
+}
+
+.item-afazer.feito .item-linha-titulo {
+  text-decoration: line-through;
+}
+
+.check-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1.5px solid #3a3c44;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.check-btn.marcado {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.afazer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}

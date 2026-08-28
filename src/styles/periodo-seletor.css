@@ -1,0 +1,85 @@
+/* periodo-seletor.css
+   SeletorPeriodo.jsx: título grande clicável + dropdown de períodos. */
+
+.click-fora-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 40;
+}
+
+.periodo-seletor-wrap {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.periodo-seletor-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: #1a1c22;
+  border: 1px solid #23252b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #fff;
+  text-align: left;
+}
+
+.periodo-seletor-btn:hover {
+  border-color: #2a2c33;
+}
+
+.periodo-seletor-nome {
+  font-size: 16px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.periodo-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #1a1c22;
+  border: 1px solid #2a2c33;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 45;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Variante usada como título de página (ao invés de bloco fixo na sidebar) */
+.periodo-seletor-titulo {
+  margin-bottom: 0;
+  display: inline-block;
+}
+
+.periodo-seletor-titulo .periodo-seletor-btn {
+  width: auto;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  margin-left: -8px;
+}
+
+.periodo-seletor-titulo .periodo-seletor-btn:hover {
+  background: #1a1c22;
+  border-color: #23252b;
+}
+
+.periodo-seletor-titulo .periodo-seletor-nome {
+  white-space: nowrap;
+}
+
+.periodo-seletor-titulo .periodo-dropdown {
+  left: -8px;
+  right: auto;
+  width: 260px;
+}
