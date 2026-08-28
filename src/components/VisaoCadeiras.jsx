@@ -1,8 +1,9 @@
 // src/components/VisaoCadeiras.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Clock, Link as LinkIcon, Calendar, Check } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorPeriodo from "./ui/SeletorPeriodo.jsx";
+import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 export default function VisaoCadeiras({
   periodos,
@@ -22,6 +23,10 @@ export default function VisaoCadeiras({
   const [dataInicio, setDataInicio] = useState(periodoAtivo?.dataInicio || "");
   const [dataFim, setDataFim] = useState(periodoAtivo?.dataFim || "");
   const [salvo, setSalvo] = useState(false);
+  const formRef = useRef(null);
+  useNavegacaoEnter(formRef);
+  const addRowRef = useRef(null);
+  useNavegacaoEnter(addRowRef);
 
   // Sincroniza o estado local quando troca de período
   useEffect(() => {
@@ -63,7 +68,7 @@ export default function VisaoCadeiras({
         </div>
 
         {/* Seleção de Datas com Botão de Salvar */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+        <div ref={formRef} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
           <span className="subtle">Duração do período:</span>
           
           <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -100,13 +105,12 @@ export default function VisaoCadeiras({
         </div>
       </div>
 
-      <div className="add-row" style={{ marginTop: 16 }}>
+      <div className="add-row" ref={addRowRef} style={{ marginTop: 16 }}>
         <input
           className="input"
           placeholder="Nome da cadeira, ex: Cálculo II"
           value={novoNome}
           onChange={(e) => setNovoNome(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && adicionar()}
         />
         <button className="btn-primario" onClick={adicionar}>
           <Plus size={16} /> Adicionar

@@ -40,7 +40,7 @@ export default defineConfig({
       workbox: {
         // app é 100% client-side (localStorage), então cachear o app shell
         // garante que ele abre offline; os dados continuam vindo do localStorage.
-        globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
+        globPatterns: ["**/*.{js,css,html,png,svg,ico,mp4}"],
         navigateFallback: "/index.html",
       },
     }),

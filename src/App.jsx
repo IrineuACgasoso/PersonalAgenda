@@ -13,6 +13,7 @@ import PainelCadeira from "./components/PainelCadeira";
 import PainelCompromisso from "./components/PainelCompromisso";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
+import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
 import { useAutoBackup } from "./hooks/useAutoBackup";
 import { useCloudBackup, listarBackupsCloud } from "./hooks/useCloudBackup";
 
@@ -27,11 +28,7 @@ export default function App() {
   const [modalPeriodo, setModalPeriodo] = useState(false);
 
   if (!data) {
-    return (
-      <div className="loading-wrap">
-        <div className="loading-text">Carregando seu painel...</div>
-      </div>
-    );
+    return <CarregandoPainel texto="Carregando seu painel..." />;
   }
 
   const periodoAtivo =

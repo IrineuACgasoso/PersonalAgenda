@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
 import { uid } from "../utils/id";
 import AbaHorarios from "./abas/AbaHorarios";
 import AbaLinks from "./abas/AbaLinks";
 import AbaDatas from "./abas/AbaDatas";
 import SeletorCor from "./ui/SeletorCor.jsx";
+import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 export default function PainelCadeira({
   cadeira,
@@ -14,6 +15,8 @@ export default function PainelCadeira({
 }) {
   const [subaba, setSubaba] = useState("horarios");
   const [nomeEdit, setNomeEdit] = useState(cadeira.nome);
+  const painelRef = useRef(null);
+  useNavegacaoEnter(painelRef);
 
   useEffect(() => setNomeEdit(cadeira.nome), [cadeira.id]);
 
@@ -56,7 +59,7 @@ export default function PainelCadeira({
 
   return (
     <div className="overlay" onClick={onFechar}>
-      <div className="painel-lateral" onClick={(e) => e.stopPropagation()}>
+      <div className="painel-lateral" ref={painelRef} onClick={(e) => e.stopPropagation()}>
         <div className="painel-header">
           <span className="cor-dot" style={{ background: cadeira.cor }} />
           <input
@@ -64,7 +67,6 @@ export default function PainelCadeira({
             value={nomeEdit}
             onChange={(e) => setNomeEdit(e.target.value)}
             onBlur={salvarNome}
-            onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
           />
           <button
             className="icon-btn-ghost"

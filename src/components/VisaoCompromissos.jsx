@@ -1,10 +1,13 @@
 // src/components/VisaoCompromissos.jsx
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Plus, Trash2, Clock } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 export default function VisaoCompromissos({ periodoAtivo, compromissos, onCriar, onAbrir, onExcluir }) {
   const [novoNome, setNovoNome] = useState("");
+  const addRowRef = useRef(null);
+  useNavegacaoEnter(addRowRef);
 
   const adicionar = () => {
     const nome = novoNome.trim();
@@ -22,13 +25,12 @@ export default function VisaoCompromissos({ periodoAtivo, compromissos, onCriar,
         </span>
       </div>
 
-      <div className="add-row" style={{ marginTop: 16 }}>
+      <div className="add-row" ref={addRowRef} style={{ marginTop: 16 }}>
         <input
           className="input"
           placeholder="Nome do compromisso, ex: Academia, Reunião de equipe..."
           value={novoNome}
           onChange={(e) => setNovoNome(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && adicionar()}
         />
         <button className="btn-primario" onClick={adicionar}>
           <Plus size={16} /> Adicionar

@@ -160,3 +160,102 @@
   font-family: monospace;
   text-transform: lowercase;
 }
+
+/* Animação de carregamento: capacete parado + fluxo de dados orbitando */
+.painel-carregando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+}
+
+.fluxo-dados {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.fluxo-capacete {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 162px;
+  height: auto;
+  filter: drop-shadow(0 0 14px rgb(0, 0, 0));
+  animation: fluxo-flutuar 3.2s ease-in-out infinite;
+}
+
+@keyframes fluxo-flutuar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* anéis orbitais tracejados */
+.fluxo-anel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+}
+
+.fluxo-anel circle {
+  fill: none;
+  stroke-width: 1.4;
+}
+
+.fluxo-anel-1 circle {
+  stroke: rgba(99, 102, 241, 0.35);
+  stroke-dasharray: 3 9;
+  animation: fluxo-girar 9s linear infinite;
+}
+
+.fluxo-anel-2 circle {
+  stroke: rgba(56, 189, 248, 0.3);
+  stroke-dasharray: 2 7;
+  animation: fluxo-girar 6.5s linear infinite reverse;
+}
+
+.fluxo-anel-3 circle {
+  stroke: rgba(250, 204, 21, 0.28);
+  stroke-dasharray: 1 6;
+  animation: fluxo-girar 4.5s linear infinite;
+}
+
+@keyframes fluxo-girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* partículas viajando pelas órbitas, via motion path circular */
+.fluxo-particula {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #818cf8;
+  box-shadow: 0 0 6px 1px rgba(129, 140, 248, 0.9);
+  offset-rotate: 0deg;
+  animation: fluxo-orbitar linear infinite;
+}
+
+@keyframes fluxo-orbitar {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+
+.fluxo-p1 { offset-path: circle(94px at 100px 100px); animation-duration: 5.5s; }
+.fluxo-p2 { offset-path: circle(94px at 100px 100px); animation-duration: 5.5s; animation-delay: -2.75s; background: #a5b4fc; box-shadow: 0 0 6px 1px rgba(165, 180, 252, 0.9); }
+.fluxo-p3 { offset-path: circle(78px at 100px 100px); animation-duration: 4s; animation-direction: reverse; background: #38bdf8; box-shadow: 0 0 6px 1px rgba(56, 189, 248, 0.9); }
+.fluxo-p4 { offset-path: circle(78px at 100px 100px); animation-duration: 4s; animation-direction: reverse; animation-delay: -2s; background: #7dd3fc; box-shadow: 0 0 6px 1px rgba(125, 211, 252, 0.9); }
+.fluxo-p5 { offset-path: circle(62px at 100px 100px); animation-duration: 3s; background: #facc15; box-shadow: 0 0 6px 1px rgba(250, 204, 21, 0.9); }
+.fluxo-p6 { offset-path: circle(62px at 100px 100px); animation-duration: 3s; animation-delay: -1.5s; background: #fde68a; box-shadow: 0 0 6px 1px rgba(253, 230, 138, 0.9); }
+
+.painel-carregando-texto {
+  color: #a1a1aa;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}

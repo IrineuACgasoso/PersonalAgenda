@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
 import { ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorCor from "./ui/SeletorCor.jsx";
+import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const COR_PADRAO_AFAZER = "#221e1e";
 
@@ -50,6 +51,8 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
   const [totalRepeticoes, setTotalRepeticoes] = useState("");
   const [urgencia, setUrgencia] = useState(1);
   const [cor, setCor] = useState(COR_PADRAO_AFAZER);
+  const formRef = useRef(null);
+  useNavegacaoEnter(formRef);
 
   useEffect(() => {
     if (itemEmEdicao) {
@@ -101,13 +104,12 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
   };
 
   return (
-    <div className="afazer-form">
+    <div className="afazer-form" ref={formRef}>
       <input
         className="input"
         placeholder="Nome do afazer, ex: Estudar para a prova"
         value={nome}
         onChange={(e) => setNome(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submit()}
       />
 
       <div style={{ marginTop: 12, marginBottom: 12 }}>

@@ -128,6 +128,28 @@ h2.titulo-secao {
   width: 100%;
 }
 
+/* Contorno de navegação por teclado (Enter) — permite ver qual campo/opção
+   está selecionada no momento sem precisar do mouse. Especificidade maior
+   que `.input { outline: none }` de propósito, pra sempre aparecer. */
+.input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+.seletor-cor-swatch:focus-visible,
+.painel-title-input:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Botões redondos/pequenos (ícones, chips) ficam melhor com contorno também
+   redondo em vez de quadrado. */
+.icon-btn-ghost:focus-visible,
+.urgencia-opcao:focus-visible {
+  border-radius: 8px;
+}
+
 .btn-primario {
   display: flex;
   align-items: center;

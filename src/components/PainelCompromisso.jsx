@@ -1,9 +1,10 @@
 // src/components/PainelCompromisso.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
 import { uid } from "../utils/id";
 import AbaHorarios from "./abas/AbaHorarios";
 import SeletorCor from "./ui/SeletorCor.jsx";
+import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 export default function PainelCompromisso({
   compromisso,
@@ -13,6 +14,8 @@ export default function PainelCompromisso({
   onExcluir,
 }) {
   const [nomeEdit, setNomeEdit] = useState(compromisso.nome);
+  const painelRef = useRef(null);
+  useNavegacaoEnter(painelRef);
 
   useEffect(() => setNomeEdit(compromisso.nome), [compromisso.id]);
 
@@ -33,7 +36,7 @@ export default function PainelCompromisso({
 
   return (
     <div className="overlay" onClick={onFechar}>
-      <div className="painel-lateral" onClick={(e) => e.stopPropagation()}>
+      <div className="painel-lateral" ref={painelRef} onClick={(e) => e.stopPropagation()}>
         <div className="painel-header">
           <span className="cor-dot" style={{ background: compromisso.cor }} />
           <input
@@ -41,7 +44,6 @@ export default function PainelCompromisso({
             value={nomeEdit}
             onChange={(e) => setNomeEdit(e.target.value)}
             onBlur={salvarNome}
-            onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
           />
           <button
             className="icon-btn-ghost"
