@@ -1,6 +1,6 @@
 // src/components/VisaoGeral.jsx
 import React, { useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, CalendarClock, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, CalendarClock, Check, Plus } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
@@ -31,6 +31,7 @@ export default function VisaoGeral({
   onAlternarEventoConcluido,
   onAlternarFeitoAfazer,
   onAtualizarAfazer,
+  onNovoAfazer,
 }) {
   const hoje = new Date();
   const hojeISO = toISO(hoje);
@@ -213,9 +214,21 @@ export default function VisaoGeral({
       </div>
 
       <div className="proximas-datas" style={{ marginTop: 0, marginBottom: 20, minHeight: "230px", display: "flex", flexDirection: "column" }}>
-        <h2 className="titulo-secao" style={{ marginBottom: 12 }}>
-          {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
-        </h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <h2 className="titulo-secao" style={{ marginBottom: 0 }}>
+            {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
+          </h2>
+          {diaSelecionado && onNovoAfazer && (
+            <button
+              type="button"
+              className="icon-btn-ghost"
+              onClick={() => onNovoAfazer(diaSelecionado)}
+              title={`Criar afazer em ${formatarData(diaSelecionado)}`}
+            >
+              <Plus size={24} />
+            </button>
+          )}
+        </div>
 
         <div style={{ flex: 1, position: "relative" }}>
           {!diaSelecionado && <EstadoVazio texto="Clique em qualquer dia do calendário para ver a programação detalhada." pequeno />}

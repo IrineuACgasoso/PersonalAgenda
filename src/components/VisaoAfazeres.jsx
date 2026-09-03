@@ -41,7 +41,7 @@ function BarraUrgencia({ nivel }) {
   );
 }
 
-function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
+function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNovaData }) {
   const [nome, setNome] = useState("");
   const [temData, setTemData] = useState(false);
   const [data, setData] = useState("");
@@ -52,6 +52,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
   const [urgencia, setUrgencia] = useState(1);
   const [cor, setCor] = useState(COR_PADRAO_AFAZER);
   const formRef = useRef(null);
+  const nomeRef = useRef(null);
   useNavegacaoEnter(formRef);
 
   useEffect(() => {
@@ -69,6 +70,16 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
       limpar();
     }
   }, [itemEmEdicao]);
+
+  // Veio um pedido de "novo afazer nesta data" (ex: botão + no calendário geral).
+  // Preenche a data e foca o nome, sem mexer em edição em andamento.
+  useEffect(() => {
+    if (!gatilhoNovaData || itemEmEdicao) return;
+    setTemData(true);
+    setData(gatilhoNovaData.data);
+    nomeRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gatilhoNovaData?.ts]);
 
   const limpar = () => {
     setNome("");
@@ -110,6 +121,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao }) {
         placeholder="Nome do afazer, ex: Estudar para a prova"
         value={nome}
         onChange={(e) => setNome(e.target.value)}
+        ref={nomeRef}
       />
 
       <div style={{ marginTop: 12, marginBottom: 12 }}>
@@ -205,8 +217,14 @@ export default function VisaoAfazeres({
   onAlternarFeito,
   onExcluir,
   onLimparConcluidos,
+  gatilhoNovaData,
 }) {
   const [itemEmEdicao, setItemEmEdicao] = useState(null);
+
+  useEffect(() => {
+    if (gatilhoNovaData) setItemEmEdicao(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gatilhoNovaData?.ts]);
 
   const salvarHandler = (dados) => {
     if (itemEmEdicao) {
@@ -249,6 +267,7 @@ export default function VisaoAfazeres({
         onSalvar={salvarHandler}
         itemEmEdicao={itemEmEdicao}
         onCancelarEdicao={() => setItemEmEdicao(null)}
+        gatilhoNovaData={gatilhoNovaData}
       />
 
       {ordenados.length === 0 ? (

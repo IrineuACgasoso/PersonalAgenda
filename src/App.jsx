@@ -26,6 +26,7 @@ export default function App() {
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
+  const [gatilhoNovoAfazer, setGatilhoNovoAfazer] = useState(null);
 
   if (!data) {
     return <CarregandoPainel texto="Carregando seu painel..." />;
@@ -184,6 +185,11 @@ export default function App() {
     persist({ ...data, afazeres: afazeres.filter((a) => a.id !== id) });
   };
 
+  const abrirNovoAfazerNaData = (dataISO) => {
+    setGatilhoNovoAfazer({ data: dataISO, ts: Date.now() });
+    setAba("afazeres");
+  };
+
   /* ---- ações eventos concluidos ---- */
   const eventosConcluidos = data.eventosConcluidos || [];
 
@@ -317,6 +323,7 @@ export default function App() {
             onAlternarFeito={alternarFeitoAfazer}
             onExcluir={excluirAfazer}
             onLimparConcluidos={limparAfazeresConcluidos}
+            gatilhoNovaData={gatilhoNovoAfazer}
           />
         ) : aba === "visaogeral" ? (
             <VisaoGeral
@@ -328,6 +335,7 @@ export default function App() {
               onAlternarEventoConcluido={alternarEventoConcluido}
               onAlternarFeitoAfazer={alternarFeitoAfazer}
               onAtualizarAfazer={atualizarAfazer}
+              onNovoAfazer={abrirNovoAfazerNaData}
             />
         ) : !periodoAtivo ? (
           <EstadoVazio
