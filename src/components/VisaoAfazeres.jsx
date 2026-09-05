@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
-import { ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS } from "../constants.js";
+import { ROTINA_OPCOES, URGENCIA_CORES } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorCor from "./ui/SeletorCor.jsx";
+import BarraUrgencia from "./ui/BarraUrgencia.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const COR_PADRAO_AFAZER = "#221e1e";
@@ -21,24 +22,6 @@ function rotinaLabel(rotina) {
     labelBase += ` (${rotina.totalRepeticoes}x)`;
   }
   return labelBase;
-}
-
-function BarraUrgencia({ nivel }) {
-  const cor = URGENCIA_CORES[nivel] || URGENCIA_CORES[1];
-  return (
-    <div className="urgencia-bateria" title={`Urgência: ${URGENCIA_LABELS[nivel]}`}>
-      {[1, 2, 3].map((i) => (
-        <span
-          key={i}
-          className="urgencia-segmento"
-          style={{
-            background: i <= nivel ? cor : "transparent",
-            borderColor: cor,
-          }}
-        />
-      ))}
-    </div>
-  );
 }
 
 function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNovaData }) {

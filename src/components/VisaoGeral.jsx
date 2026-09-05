@@ -8,6 +8,7 @@ import { NOME_MESES, gerarCelulasMes, hexParaRgb } from "../utils/calendario.js"
 import { useFiltrosCalendario } from "../hooks/useFiltrosCalendario.js";
 import { useEventosCalendario } from "../hooks/useEventosCalendario.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+import BarraUrgencia from "./ui/BarraUrgencia.jsx";
 
 const TIPOS = [
   { chave: "aulas", label: "Aulas", icone: BookOpen },
@@ -85,14 +86,16 @@ export default function VisaoGeral({
       onAlternarEventoConcluido(ev.chave);
     }
   };
-  // pendentes primeiro (por horário), concluídos vão para o final da lista —
-  // sort é estável, então a ordem por horário dentro de cada grupo é preservada
+  // pendentes primeiro (por horário/urgência), concluídos vão para o final —
+  // dentro dos pendentes, afazeres de maior urgência sobem para o topo; sort
+  // é estável, então a ordem por horário dentro de cada grupo é preservada
   const eventosDoDiaSelecionado = useMemo(() => {
     const lista = diaSelecionado ? eventosPorDia[diaSelecionado] || [] : [];
     return [...lista].sort((a, b) => {
       const ca = eventoEstaConcluido(a) ? 1 : 0;
       const cb = eventoEstaConcluido(b) ? 1 : 0;
-      return ca - cb;
+      if (ca !== cb) return ca - cb;
+      return (b.urgencia || 0) - (a.urgencia || 0);
     });
   }, [diaSelecionado, eventosPorDia, eventosConcluidos]);
 
@@ -225,7 +228,7 @@ export default function VisaoGeral({
               onClick={() => onNovoAfazer(diaSelecionado)}
               title={`Criar afazer em ${formatarData(diaSelecionado)}`}
             >
-              <Plus size={24} />
+              <Plus size={16} />
             </button>
           )}
         </div>
@@ -265,6 +268,9 @@ export default function VisaoGeral({
                       <div className="data-item-titulo">{ev.titulo}</div>
                       <div className="subtle">{ev.origem}</div>
                     </div>
+                    {ev.tipo === "afazeres" && (
+                      <BarraUrgencia nivel={ev.urgencia || 1} />
+                    )}
                     <div className="data-item-data" style={{ fontSize: "1.05rem", fontWeight: 600, letterSpacing: "0.5px" }}>
                       {ev.hora || ""}
                     </div>

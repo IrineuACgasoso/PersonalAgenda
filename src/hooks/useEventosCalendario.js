@@ -105,6 +105,7 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
           origem: concluido ? "concluído" : "pendente",
           feito: concluido,
           datasConcluidas: a.datasConcluidas || [],
+          urgencia: a.urgencia || 1,
           id: a.id,
           chave: `afazeres|${a.id}|${data}`,
           rotina: a.rotina,
