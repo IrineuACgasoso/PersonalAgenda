@@ -95,6 +95,10 @@ export default function VisaoGeral({
       const ca = eventoEstaConcluido(a) ? 1 : 0;
       const cb = eventoEstaConcluido(b) ? 1 : 0;
       if (ca !== cb) return ca - cb;
+      // Avaliações têm prioridade máxima de exibição, independente de urgência/horário
+      const aa = a.tipo === "avaliacoes" ? 1 : 0;
+      const ab = b.tipo === "avaliacoes" ? 1 : 0;
+      if (aa !== ab) return ab - aa;
       return (b.urgencia || 0) - (a.urgencia || 0);
     });
   }, [diaSelecionado, eventosPorDia, eventosConcluidos]);
@@ -268,10 +272,13 @@ export default function VisaoGeral({
                       <div className="data-item-titulo">{ev.titulo}</div>
                       <div className="subtle">{ev.origem}</div>
                     </div>
-                    {ev.tipo === "afazeres" && (
-                      <BarraUrgencia nivel={ev.urgencia || 1} />
-                    )}
-                    <div className="data-item-data" style={{ fontSize: "1.05rem", fontWeight: 600, letterSpacing: "0.5px" }}>
+                    <div className="data-item-urgencia" style={{ width: 34, flex: "0 0 34px", display: "flex", justifyContent: "center" }}>
+                      {ev.tipo === "afazeres" && <BarraUrgencia nivel={ev.urgencia || 1} />}
+                    </div>
+                    <div
+                      className="data-item-data"
+                      style={{ width: 56, flex: "0 0 56px", textAlign: "right", fontSize: "1.05rem", fontWeight: 600, letterSpacing: "0.5px" }}
+                    >
                       {ev.hora || ""}
                     </div>
                   </div>
