@@ -19,21 +19,22 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  background: #1a1c22;
-  border: 1px solid #23252b;
-  border-radius: 10px;
-  padding: 10px 12px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)), rgba(20, 22, 27, 0.7);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-md);
+  padding: 11px 13px;
   cursor: pointer;
   color: #fff;
   text-align: left;
+  transition: border-color 0.15s;
 }
 
 .periodo-seletor-btn:hover {
-  border-color: #2a2c33;
+  border-color: var(--vidro-borda-forte);
 }
 
 .periodo-seletor-nome {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -45,11 +46,13 @@
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #1a1c22;
-  border: 1px solid #2a2c33;
-  border-radius: 10px;
+  background: var(--vidro-grad), rgba(22, 24, 30, 0.85);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border: 1px solid var(--vidro-borda-forte);
+  border-radius: var(--raio-md);
   padding: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--vidro-sombra);
   z-index: 45;
   max-height: 300px;
   overflow-y: auto;
@@ -70,8 +73,8 @@
 }
 
 .periodo-seletor-titulo .periodo-seletor-btn:hover {
-  background: #1a1c22;
-  border-color: #23252b;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--vidro-borda);
 }
 
 .periodo-seletor-titulo .periodo-seletor-nome {

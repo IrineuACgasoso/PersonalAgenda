@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
-import { ROTINA_OPCOES, URGENCIA_CORES } from "../constants.js";
+import { ROTINA_OPCOES, URGENCIA_CORES, DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorCor from "./ui/SeletorCor.jsx";
@@ -9,11 +9,21 @@ import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const COR_PADRAO_AFAZER = "#221e1e";
 
+// Tipos de rotina onde a data-base preenchida no cadastro é usada só para
+// calcular as ocorrências, mas não tem por que aparecer na listagem — o
+// usuário não precisa saber "quando começou", só se repete.
+const ROTINAS_SEM_DATA_NA_LISTAGEM = ["diaria", "semanal", "quinzenal", "mensal"];
+
+const LETRA_DIA = DIAS_FULL.map((d) => d[0]);
+
 function rotinaLabel(rotina) {
   if (!rotina || rotina.tipo === "nenhuma") return null;
   let labelBase = "";
   if (rotina.tipo === "personalizada") {
     labelBase = `a cada ${rotina.intervaloDias || 1} dia${(rotina.intervaloDias || 1) !== 1 ? "s" : ""}`;
+  } else if (rotina.tipo === "dias_especificos") {
+    const dias = Array.isArray(rotina.diasSemana) ? [...rotina.diasSemana].sort((a, b) => a - b) : [];
+    labelBase = dias.length ? dias.map((d) => DIAS_FULL[d].slice(0, 3)).join(", ") : "dias específicos";
   } else {
     labelBase = ROTINA_OPCOES.find((o) => o.valor === rotina.tipo)?.label.toLowerCase() || "";
   }
@@ -31,6 +41,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
   const [hora, setHora] = useState("");
   const [rotinaTipo, setRotinaTipo] = useState("nenhuma");
   const [intervaloDias, setIntervaloDias] = useState(3);
+  const [diasSemana, setDiasSemana] = useState([]);
   const [totalRepeticoes, setTotalRepeticoes] = useState("");
   const [urgencia, setUrgencia] = useState(1);
   const [cor, setCor] = useState(COR_PADRAO_AFAZER);
@@ -46,6 +57,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
       setHora(itemEmEdicao.hora || "");
       setRotinaTipo(itemEmEdicao.rotina?.tipo || "nenhuma");
       setIntervaloDias(itemEmEdicao.rotina?.intervaloDias || 3);
+      setDiasSemana(Array.isArray(itemEmEdicao.rotina?.diasSemana) ? itemEmEdicao.rotina.diasSemana : []);
       setTotalRepeticoes(itemEmEdicao.rotina?.totalRepeticoes || "");
       setUrgencia(itemEmEdicao.urgencia || 1);
       setCor(itemEmEdicao.cor || COR_PADRAO_AFAZER);
@@ -71,6 +83,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
     setHora("");
     setRotinaTipo("nenhuma");
     setIntervaloDias(3);
+    setDiasSemana([]);
     setTotalRepeticoes("");
     setUrgencia(1);
     setCor(COR_PADRAO_AFAZER);
@@ -81,6 +94,9 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
     const n = nome.trim();
     if (!n) return window.alert("Dê um nome para o afazer.");
     if (temData && !data) return window.alert("Escolha a data ou desmarque a opção de data/hora.");
+    if (rotinaTipo === "dias_especificos" && diasSemana.length === 0) {
+      return window.alert("Escolha ao menos um dia da semana para a rotina.");
+    }
 
     onSalvar({
       nome: n,
@@ -89,12 +105,17 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
       rotina: {
         tipo: rotinaTipo,
         intervaloDias: rotinaTipo === "personalizada" ? Number(intervaloDias) || 1 : undefined,
+        diasSemana: rotinaTipo === "dias_especificos" ? [...diasSemana].sort((a, b) => a - b) : undefined,
         totalRepeticoes: rotinaTipo !== "nenhuma" && totalRepeticoes ? Number(totalRepeticoes) : undefined,
       },
       urgencia,
       cor,
     });
     limpar();
+  };
+
+  const alternarDiaSemana = (d) => {
+    setDiasSemana((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b)));
   };
 
   return (
@@ -159,6 +180,22 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
         )}
       </div>
 
+      {rotinaTipo === "dias_especificos" && (
+        <div className="dias-semana-picker" style={{ marginTop: 8 }}>
+          {LETRA_DIA.map((letra, d) => (
+            <button
+              key={d}
+              type="button"
+              title={DIAS_FULL[d]}
+              className={`dia-semana-bolinha${diasSemana.includes(d) ? " ativa" : ""}`}
+              onClick={() => alternarDiaSemana(d)}
+            >
+              {letra}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ marginTop: 12 }}>
         <label style={{ fontSize: "0.8rem", color: "#a1a1aa", marginBottom: 4, display: "block" }}>
           Nível de urgência:
@@ -221,13 +258,17 @@ export default function VisaoAfazeres({
   const pendentes = afazeres.filter((a) => !a.feito);
   const concluidos = afazeres.filter((a) => a.feito);
 
-  const ordenados = [...pendentes, ...concluidos].sort((a, b) => {
-    if (a.feito !== b.feito) return a.feito ? 1 : -1;
+  const pendentesOrdenados = [...pendentes].sort((a, b) => {
     if (a.data && b.data) return `${a.data}T${a.hora || "00:00"}`.localeCompare(`${b.data}T${b.hora || "00:00"}`);
     if (a.data) return -1;
     if (b.data) return 1;
     return b.urgencia - a.urgencia;
   });
+
+  // Concluídos: os marcados mais recentemente ficam no topo do grupo.
+  const concluidosOrdenados = [...concluidos].sort((a, b) => (b.concluidoEm || 0) - (a.concluidoEm || 0));
+
+  const ordenados = [...pendentesOrdenados, ...concluidosOrdenados];
 
   return (
     <div>
@@ -278,7 +319,7 @@ export default function VisaoAfazeres({
                     <span>{a.nome}</span>
                   </div>
                   <div className="subtle afazer-meta">
-                    {a.data && (
+                    {a.data && !ROTINAS_SEM_DATA_NA_LISTAGEM.includes(a.rotina?.tipo) && (
                       <span>
                         <Clock size={11} style={{ verticalAlign: "-1px", marginRight: 3 }} />
                         {formatarData(a.data)}{a.hora ? ` · ${a.hora}` : ""}

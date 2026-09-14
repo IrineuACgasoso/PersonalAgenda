@@ -4,76 +4,79 @@
    datas importantes entre dias do calendário. */
 
 .agenda-wrap {
-  border: 1px solid #23252b;
-  border-radius: 10px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-md);
   overflow: hidden;
+  box-shadow: var(--vidro-sombra);
 }
 
 .agenda-grid-head {
   display: grid;
   grid-template-columns: 48px repeat(7, 1fr);
-  border-bottom: 1px solid #23252b;
-  background: #171920;
+  border-bottom: 1px solid var(--vidro-borda);
+  background: var(--vidro-grad), rgba(20, 22, 27, 0.7);
 }
 
 .agenda-hora-col {
-  border-right: 1px solid #23252b;
+  border-right: 1px solid var(--vidro-borda);
 }
 
 .agenda-dia-head {
-  padding: 8px 4px;
+  padding: 9px 4px;
   text-align: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 700;
   color: #a9a9b2;
-  border-right: 1px solid #23252b;
+  border-right: 1px solid var(--vidro-borda);
 }
 
 .agenda-body {
   display: grid;
   grid-template-columns: 48px repeat(7, 1fr);
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .agenda-hora-label {
   height: 44px;
-  font-size: 10.5px;
+  font-size: 11px;
   color: #6b6b74;
   text-align: right;
   padding-right: 6px;
-  border-bottom: 1px solid #1c1e24;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .agenda-coluna {
   position: relative;
-  border-right: 1px solid #23252b;
+  border-right: 1px solid var(--vidro-borda);
 }
 
 .agenda-linha {
   height: 44px;
-  border-bottom: 1px solid #1c1e24;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .agenda-bloco {
   position: absolute;
   left: 2px;
   right: 2px;
-  border-radius: 5px;
+  border-radius: 6px;
   padding: 3px 6px;
   overflow: hidden;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .agenda-bloco-titulo {
   display: block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .agenda-bloco-hora {
   display: block;
-  font-size: 10px;
-  color: #c4c4cc;
+  font-size: 10.5px;
+  color: #d8d8e0;
 }
 
 /* ---------- próximas datas ---------- */
@@ -84,7 +87,7 @@
 .lista-proximas-datas {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   margin-top: 12px;
 }
 
@@ -92,11 +95,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: #171920;
-  border: 1px solid #23252b;
-  border-radius: 8px;
+  padding: 11px 13px;
+  background: var(--vidro-grad), var(--vidro-cor);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
   cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.data-item:hover {
+  border-color: var(--vidro-borda-forte);
 }
 
 .data-item.passada {
@@ -113,7 +123,7 @@
 }
 
 .data-item.arrastavel.pronto-arrasto {
-  box-shadow: 0 0 0 1.5px #6366f1, 0 4px 14px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 0 0 1.5px var(--accent), 0 4px 14px rgba(99, 102, 241, 0.35);
 }
 
 .data-item.arrastavel:active {
@@ -130,12 +140,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #1c1e26;
-  border: 1.5px solid #6366f1;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12.5px;
-  font-weight: 600;
+  background: var(--vidro-grad), rgba(24, 26, 32, 0.88);
+  backdrop-filter: var(--vidro-blur);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--raio-sm);
+  padding: 7px 13px;
+  font-size: 13px;
+  font-weight: 700;
   color: #fff;
   pointer-events: none;
   z-index: 100;
@@ -157,12 +168,12 @@
 }
 
 .data-item-titulo {
-  font-size: 13.5px;
-  font-weight: 500;
+  font-size: 14.5px;
+  font-weight: 600;
 }
 
 .data-item-data {
-  font-size: 12px;
+  font-size: 12.5px;
   color: #a9a9b2;
   flex-shrink: 0;
 }

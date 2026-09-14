@@ -176,7 +176,8 @@ export default function App() {
           return { ...a, datasConcluidas: novasDatas };
         }
 
-        return { ...a, feito: !a.feito };
+        const feito = !a.feito;
+        return { ...a, feito, concluidoEm: feito ? Date.now() : a.concluidoEm };
       }),
     });
   };

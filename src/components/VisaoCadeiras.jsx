@@ -122,7 +122,7 @@ export default function VisaoCadeiras({
       ) : (
         <div className="grid-cadeiras">
           {cadeiras.map((c) => (
-            <div key={c.id} className="card-cadeira" onClick={() => onAbrir(c.id)}>
+            <div key={c.id} className="card-cadeira" style={{ "--cor-card": c.cor }} onClick={() => onAbrir(c.id)}>
               <div className="card-faixa" style={{ background: c.cor }} />
               <div className="card-body">
                 <div className="card-title-row">

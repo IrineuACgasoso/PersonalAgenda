@@ -18,6 +18,7 @@ export const ROTINA_OPCOES = [
   { valor: "semanal", label: "Semanalmente" },
   { valor: "quinzenal", label: "A cada 15 dias" },
   { valor: "mensal", label: "Mensalmente" },
+  { valor: "dias_especificos", label: "Dias específicos" },
   { valor: "personalizada", label: "Intervalo personalizado" },
 ];
 

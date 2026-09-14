@@ -5,12 +5,14 @@
    visual "base" e não misturar responsividade com estrutura. */
 
 .sidebar {
-  width: 240px;
+  width: 234px;
   flex-shrink: 0;
   height: 100%;
   overflow-y: auto;
-  background: #15171c;
-  border-right: 1px solid #23252b;
+  background: var(--vidro-grad), var(--vidro-cor);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border-right: 1px solid var(--vidro-borda);
   display: flex;
   flex-direction: column;
   padding: 18px 12px;
@@ -27,12 +29,13 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.8);
 }
 
 .logo-text {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 700;
   letter-spacing: 0.2px;
 }
 
@@ -44,7 +47,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
+  font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: #6b6b74;
@@ -55,35 +58,42 @@
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
-  padding: 8px;
-  border-radius: 7px;
-  border: none;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
   background: transparent;
   color: #a9a9b2;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
   text-align: left;
   margin-bottom: 2px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
 }
 
 .nav-btn.ativo {
-  background: #23252b;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02)), rgba(99, 102, 241, 0.16);
+  border-color: rgba(129, 140, 248, 0.35);
   color: #fff;
 }
 
 .backup-secao {
   margin-top: auto;
   padding-top: 10px;
-  border-top: 1px solid #23252b;
+  border-top: 1px solid var(--vidro-borda);
 }
 
 .status-footer {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: #6b6b74;
   padding: 6px;
 }
@@ -114,7 +124,7 @@
   gap: 4px;
   padding: 7px 8px;
   border-radius: 7px;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
   color: #c4c4cc;
 }

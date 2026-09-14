@@ -36,6 +36,34 @@ export function ocorrenciasNoIntervalo(afazer, inicioISO, fimISO) {
     return ocorrencias;
   }
 
+  // Dias específicos da semana (ex: toda Seg/Qua/Sex), a partir da data-base.
+  if (tipo === "dias_especificos") {
+    const dias = Array.isArray(afazer.rotina?.diasSemana) ? afazer.rotina.diasSemana : [];
+    if (dias.length === 0) return ocorrencias;
+
+    let cursor = new Date(inicioBase);
+    // sem limite de repetições, adianta o cursor perto do início da janela
+    // visualizada (mesma otimização usada pelos outros tipos de rotina)
+    if (!limiteRepeticoes && cursor < inicioRange) {
+      const diffDias = Math.floor((inicioRange - cursor) / 86400000);
+      cursor = new Date(cursor.getTime() + Math.max(0, diffDias - 7) * 86400000);
+    }
+
+    let contador = 0;
+    let guarda = 0;
+    while (cursor <= fimRange && guarda < 3000) {
+      if (limiteRepeticoes && contador >= limiteRepeticoes) break;
+      const diaSemana = (cursor.getDay() + 6) % 7; // 0 = Segunda ... 6 = Domingo
+      if (dias.includes(diaSemana)) {
+        contador++;
+        if (cursor >= inicioRange) ocorrencias.push(toISO(cursor));
+      }
+      cursor = new Date(cursor.getTime() + 86400000);
+      guarda++;
+    }
+    return ocorrencias;
+  }
+
   const avancarData = (date) => {
     if (tipo === "mensal") {
       const diaFixo = inicioBase.getDate();

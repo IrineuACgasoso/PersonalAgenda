@@ -1,20 +1,23 @@
 /* afazeres.css
-   VisaoAfazeres.jsx: formulário de criação/edição, seletor de urgência
-   e lista de itens. */
+   VisaoAfazeres.jsx: formulário de criação/edição, seletor de urgência,
+   seletor de dias da semana (rotina "Dias específicos") e lista de itens. */
 
 .afazer-form {
-  background: #171920;
-  border: 1px solid #23252b;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 20px;
+  background: var(--vidro-grad), var(--vidro-cor);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-md);
+  padding: 16px;
+  margin-bottom: 22px;
+  box-shadow: var(--vidro-sombra);
 }
 
 .checkbox-linha {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: #c4c4cc;
   margin: 10px 0;
   cursor: pointer;
@@ -23,7 +26,7 @@
 .checkbox-linha input {
   width: 15px;
   height: 15px;
-  accent-color: #6366f1;
+  accent-color: var(--accent);
 }
 
 .urgencia-picker {
@@ -33,17 +36,17 @@
 }
 
 .urgencia-opcao {
-  background: #1a1c22;
-  border: 1px solid #2a2c33;
-  border-radius: 8px;
-  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  padding: 7px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
 }
 
 .urgencia-opcao.ativa {
-  background: #23252b;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .urgencia-bateria {
@@ -59,14 +62,57 @@
   border-radius: 2px;
 }
 
+/* ---------- seletor de "dias específicos" (rotina) ---------- */
+.dias-semana-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dia-semana-bolinha {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--vidro-borda);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--texto-fraco);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+
+.dia-semana-bolinha:hover {
+  border-color: var(--vidro-borda-forte);
+}
+
+.dia-semana-bolinha.ativa {
+  background: linear-gradient(155deg, #7477f5, var(--accent));
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.4);
+  transform: scale(1.04);
+}
+
 .item-afazer {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #171920;
-  border: 1px solid #23252b;
-  border-radius: 8px;
-  padding: 10px 12px;
+  background: var(--vidro-grad), var(--vidro-cor);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  padding: 11px 13px;
+  transition: border-color 0.15s;
+}
+
+.item-afazer:hover {
+  border-color: var(--vidro-borda-forte);
 }
 
 .item-afazer.feito {
@@ -78,9 +124,9 @@
 }
 
 .check-btn {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
+  width: 21px;
+  height: 21px;
+  border-radius: 6px;
   border: 1.5px solid #3a3c44;
   background: transparent;
   color: #fff;

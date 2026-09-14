@@ -2,7 +2,36 @@
    Reset global, layout raiz (.app/.main) e componentes GENÉRICOS
    reutilizados em várias telas: botões, inputs, grids de formulário,
    estado vazio. Se uma classe é usada por 2+ telas diferentes, ela mora
-   aqui — não em um CSS de tela específica. */
+   aqui — não em um CSS de tela específica.
+
+   ---- Sistema de design "metal & vidro" ----
+   Fundo permanece escuro e sólido; toda superfície que fica "acima" dele
+   (sidebar, cards, formulários, painéis, dropdowns, inputs) usa as
+   variáveis --vidro-* abaixo: um gradiente sutil simulando reflexo
+   metálico + leve transparência (backdrop-filter) + borda clara fina. */
+
+:root {
+  --bg: #0a0b0f;
+  --bg-elevado: #101216;
+
+  --vidro-grad: linear-gradient(155deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.015) 55%, rgba(255, 255, 255, 0.03) 100%);
+  --vidro-cor: rgba(26, 28, 34, 0.62);
+  --vidro-borda: rgba(255, 255, 255, 0.09);
+  --vidro-borda-forte: rgba(255, 255, 255, 0.18);
+  --vidro-sombra: 0 10px 30px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --vidro-blur: blur(18px) saturate(150%);
+
+  --raio-lg: 16px;
+  --raio-md: 12px;
+  --raio-sm: 9px;
+
+  --accent: #6366f1;
+  --accent-2: #818cf8;
+  --texto: #f0f1f5;
+  --texto-fraco: #a1a1ac;
+
+  font-size: 16px;
+}
 
 * {
   box-sizing: border-box;
@@ -11,6 +40,19 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
+}
+
+/* mixin "de fato" via classe utilitária — qualquer bloco que precise da
+   superfície metálica/translúcida padrão pode usar `.vidro` diretamente;
+   os componentes existentes recebem o mesmo efeito através das próprias
+   classes (ver arquivos de cada tela), sem precisar remarcar o JSX. */
+.vidro {
+  background: var(--vidro-grad), var(--vidro-cor);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border: 1px solid var(--vidro-borda);
+  box-shadow: var(--vidro-sombra);
 }
 
 /* ---------- layout raiz ---------- */
@@ -18,8 +60,10 @@ body {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: #0f1115;
-  color: #e8e8ea;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse 1200px 700px at 15% -10%, rgba(99, 102, 241, 0.08), transparent 60%),
+    radial-gradient(ellipse 900px 600px at 100% 110%, rgba(56, 189, 248, 0.05), transparent 55%);
+  color: var(--texto);
 }
 
 .loading-wrap {
@@ -27,44 +71,56 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f1115;
+  background: var(--bg);
   color: #8a8a92;
 }
 
 .loading-text {
-  font-size: 14px;
+  font-size: 15px;
 }
 
-/* ---------- área principal ---------- */
+/* ---------- área principal ----------
+   Levemente "espremida" nas laterais em telas grandes, para o conteúdo
+   não ficar espalhado de ponta a ponta (evita o efeito "jogo de tênis"
+   de ter que olhar pros dois cantos da tela). */
 .main {
   flex: 1;
-  padding: 28px 36px;
+  padding: 30px 40px 40px;
   overflow-y: auto;
-  max-width: 1100px;
+  max-width: 840px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 1500px) {
+  .main {
+    max-width: 900px;
+  }
 }
 
 .header-bar {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .titulo-pagina {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 25px;
+  font-weight: 700;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 h2.titulo-secao {
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 600;
   margin: 0;
 }
 
 .subtle {
-  font-size: 12.5px;
-  color: #8a8a92;
+  font-size: 13.5px;
+  color: var(--texto-fraco);
 }
 
 .add-row {
@@ -93,11 +149,11 @@ h2.titulo-secao {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   border: none;
-  background: #23252b;
+  background: rgba(255, 255, 255, 0.06);
   color: #a9a9b2;
   cursor: pointer;
 }
@@ -106,26 +162,41 @@ h2.titulo-secao {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   border: none;
   background: transparent;
-  color: #8a8a92;
+  color: var(--texto-fraco);
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.icon-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--texto);
 }
 
 .input {
   flex: 1;
-  background: #1a1c22;
-  border: 1px solid #2a2c33;
-  border-radius: 8px;
-  color: #e8e8ea;
-  padding: 9px 11px;
-  font-size: 13.5px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)), rgba(20, 22, 27, 0.7);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  color: var(--texto);
+  padding: 10px 12px;
+  font-size: 14.5px;
   outline: none;
   width: 100%;
+  transition: border-color 0.15s;
+}
+
+.input:hover {
+  border-color: var(--vidro-borda-forte);
+}
+
+.input:focus {
+  border-color: var(--accent);
 }
 
 /* Contorno de navegação por teclado (Enter) — permite ver qual campo/opção
@@ -138,7 +209,7 @@ a:focus-visible,
 [tabindex]:focus-visible,
 .seletor-cor-swatch:focus-visible,
 .painel-title-input:focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -154,15 +225,25 @@ a:focus-visible,
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #6366f1;
+  background: linear-gradient(155deg, #7477f5, var(--accent));
   color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 14px;
-  font-size: 13.5px;
-  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--raio-sm);
+  padding: 10px 15px;
+  font-size: 14.5px;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  transition: filter 0.15s, transform 0.1s;
+}
+
+.btn-primario:hover {
+  filter: brightness(1.08);
+}
+
+.btn-primario:active {
+  transform: translateY(1px);
 }
 
 .btn-primario.full {
@@ -172,13 +253,19 @@ a:focus-visible,
 }
 
 .btn-secundario {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
   color: #c4c4cc;
-  border: 1px solid #2a2c33;
-  border-radius: 8px;
-  padding: 9px 14px;
-  font-size: 13.5px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  padding: 10px 15px;
+  font-size: 14.5px;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-secundario:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--vidro-borda-forte);
 }
 
 .btn-secundario:disabled {
@@ -193,11 +280,12 @@ a:focus-visible,
   align-items: center;
   justify-content: center;
   text-align: center;
-  border: 1px dashed #2a2c33;
-  border-radius: 10px;
-  padding: 48px 20px;
+  border: 1px dashed var(--vidro-borda-forte);
+  border-radius: var(--raio-md);
+  padding: 50px 20px;
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .vazio.pequeno {
-  padding: 20px 12px;
+  padding: 22px 12px;
 }

@@ -115,8 +115,35 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
     return lista;
   }, [afazeres, filtros.afazeres, inicioISO, fimISO]);
 
+  // 5. Afazeres SEM data alguma: como não têm validade própria, são sempre
+  // projetados no dia de "hoje" (só quando hoje cai dentro do mês visível),
+  // enquanto ainda estiverem pendentes.
+  const eventosAfazeresSemData = useMemo(() => {
+    if (!filtros.afazeres) return [];
+    const hojeISO = toISO(new Date());
+    if (hojeISO < inicioISO || hojeISO > fimISO) return [];
+
+    return afazeres
+      .filter((a) => !a.data && !a.feito)
+      .map((a) => ({
+        tipo: "afazeres",
+        data: hojeISO,
+        hora: a.hora,
+        titulo: a.nome,
+        cor: a.cor || "#8b5cf6",
+        origem: "pendente",
+        feito: false,
+        datasConcluidas: [],
+        urgencia: a.urgencia || 1,
+        id: a.id,
+        chave: `afazeres-semdata|${a.id}`,
+        rotina: a.rotina,
+        semData: true,
+      }));
+  }, [afazeres, filtros.afazeres, inicioISO, fimISO]);
+
   return useMemo(() => {
-    const todos = [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres];
+    const todos = [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres, ...eventosAfazeresSemData];
     const mapa = {};
 
     todos.forEach((ev) => {
@@ -124,10 +151,27 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
       mapa[ev.data].push(ev);
     });
 
+    // Prioridade dentro do dia: eventos com horário definido vêm primeiro
+    // (ordenados pelo horário); em seguida, afazeres sem horário são
+    // ordenados por urgência — e entre "irmãos" de mesma urgência, os que
+    // têm uma data real (não projetados por falta de data) ficam à frente
+    // dos afazeres sem data que só estão ali por padrão em "hoje".
     Object.values(mapa).forEach((lista) =>
-      lista.sort((a, b) => (a.hora || "").localeCompare(b.hora || ""))
+      lista.sort((a, b) => {
+        const aHora = a.hora || "";
+        const bHora = b.hora || "";
+        if (aHora && bHora) return aHora.localeCompare(bHora);
+        if (!!aHora !== !!bHora) return aHora ? -1 : 1;
+        if (a.tipo === "afazeres" && b.tipo === "afazeres") {
+          const ua = a.urgencia || 1;
+          const ub = b.urgencia || 1;
+          if (ua !== ub) return ub - ua;
+          if (!!a.semData !== !!b.semData) return a.semData ? 1 : -1;
+        }
+        return 0;
+      })
     );
 
     return mapa;
-  }, [aulas, avaliacoes, eventosCompromissos, eventosAfazeres]);
+  }, [aulas, avaliacoes, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData]);
 }

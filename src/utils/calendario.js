@@ -33,16 +33,36 @@ export function getIntervaloMes(ano, mes) {
   };
 }
 
+// Cada célula: { dia, ano, mes, foraDoMes }. Preenche o início/fim da grade
+// com os dias reais dos meses vizinhos (em vez de células vazias/null), para
+// o calendário nunca ter "buracos" — clicar numa célula fora do mês navega
+// automaticamente para o mês correspondente (ver VisaoGeral.jsx).
 export function gerarCelulasMes(ano, mes) {
   const primeiroDia = new Date(ano, mes, 1);
   const ultimoDia = new Date(ano, mes + 1, 0);
   const offset = (primeiroDia.getDay() + 6) % 7;
   const total = ultimoDia.getDate();
 
-  const dias = [];
-  for (let i = 0; i < offset; i++) dias.push(null);
-  for (let dia = 1; dia <= total; dia++) dias.push(dia);
-  return dias;
+  const celulas = [];
+
+  const mesAnteriorUltimoDia = new Date(ano, mes, 0).getDate();
+  for (let i = offset - 1; i >= 0; i--) {
+    const dia = mesAnteriorUltimoDia - i;
+    const data = new Date(ano, mes - 1, dia);
+    celulas.push({ dia, ano: data.getFullYear(), mes: data.getMonth(), foraDoMes: true });
+  }
+
+  for (let dia = 1; dia <= total; dia++) {
+    celulas.push({ dia, ano, mes, foraDoMes: false });
+  }
+
+  const restante = (7 - (celulas.length % 7)) % 7;
+  for (let dia = 1; dia <= restante; dia++) {
+    const data = new Date(ano, mes + 1, dia);
+    celulas.push({ dia, ano: data.getFullYear(), mes: data.getMonth(), foraDoMes: true });
+  }
+
+  return celulas;
 }
 
 export function cadeiraEstaAtivaNaData(cadeira, dataISO, periodos = []) {

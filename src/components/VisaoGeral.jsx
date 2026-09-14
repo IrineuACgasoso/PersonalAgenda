@@ -36,8 +36,12 @@ export default function VisaoGeral({
 }) {
   const hoje = new Date();
   const hojeISO = toISO(hoje);
-  const [ano, setAno] = useState(hoje.getFullYear());
-  const [mes, setMes] = useState(hoje.getMonth());
+  // ano+mes vivem juntos num único estado (em vez de dois setState separados)
+  // para que a navegação de mês feita por closures "antigas" (ex: o loop de
+  // autoscroll do drag, que dispara mesmo sem o ponteiro se mover) sempre
+  // aplique a mudança em cima do mês mais recente, via updater funcional.
+  const [cursor, setCursor] = useState({ ano: hoje.getFullYear(), mes: hoje.getMonth() });
+  const { ano, mes } = cursor;
   const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
 
   const { filtros, alternarFiltro } = useFiltrosCalendario();
@@ -46,23 +50,73 @@ export default function VisaoGeral({
   const celulas = useMemo(() => gerarCelulasMes(ano, mes), [ano, mes]);
 
   // ---- estado de drag (ponteiro, funciona em mouse e touch) ----
-  const dragRef = useRef({ ativo: false, armado: false, ponteiroId: null, evento: null, startX: 0, startY: 0, elemento: null, timer: null });
+  const dragRef = useRef({ ativo: false, armado: false, ponteiroId: null, evento: null, startX: 0, startY: 0, elemento: null, timer: null, lastX: 0, lastY: 0 });
   const [itemArrastando, setItemArrastando] = useState(null); // { id, titulo, cor, x, y }
   const [diaAlvo, setDiaAlvo] = useState(null);
   const [itemPronto, setItemPronto] = useState(null); // id do item "armado" para arrastar (feedback visual no toque)
 
+  const prevBtnRef = useRef(null);
+  const nextBtnRef = useRef(null);
+  const autoScrollTimerRef = useRef(null);
+  const arrowHoverRef = useRef({ dir: null, ultimaTroca: 0 });
+
   const irMesAnterior = () => {
-    const novo = new Date(ano, mes - 1, 1);
-    setAno(novo.getFullYear());
-    setMes(novo.getMonth());
+    setCursor((c) => {
+      const novo = new Date(c.ano, c.mes - 1, 1);
+      return { ano: novo.getFullYear(), mes: novo.getMonth() };
+    });
     setDiaSelecionado(null);
   };
 
   const irProximoMes = () => {
-    const novo = new Date(ano, mes + 1, 1);
-    setAno(novo.getFullYear());
-    setMes(novo.getMonth());
+    setCursor((c) => {
+      const novo = new Date(c.ano, c.mes + 1, 1);
+      return { ano: novo.getFullYear(), mes: novo.getMonth() };
+    });
     setDiaSelecionado(null);
+  };
+
+  const pontoDentroDoElemento = (el, x, y) => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  };
+
+  // Roda em intervalo enquanto o arrasto está ativo (não só em pointermove),
+  // pra funcionar mesmo quando o usuário segura parado bem na borda da tela
+  // ou em cima de uma seta de mês.
+  const rodarAutoScrollETrocaMes = () => {
+    const st = dragRef.current;
+    if (!st.ativo) return;
+    const { lastX: x, lastY: y } = st;
+
+    const scrollEl = document.querySelector(".main");
+    if (scrollEl) {
+      const rect = scrollEl.getBoundingClientRect();
+      const margem = 70;
+      if (y > rect.top && y - rect.top < margem) {
+        scrollEl.scrollTop -= 16;
+      } else if (y < rect.bottom && rect.bottom - y < margem) {
+        scrollEl.scrollTop += 16;
+      }
+    }
+
+    const sobrePrev = pontoDentroDoElemento(prevBtnRef.current, x, y);
+    const sobreNext = pontoDentroDoElemento(nextBtnRef.current, x, y);
+    const dir = sobrePrev ? "prev" : sobreNext ? "next" : null;
+
+    if (dir) {
+      const agora = Date.now();
+      if (arrowHoverRef.current.dir !== dir) {
+        arrowHoverRef.current = { dir, ultimaTroca: agora };
+      } else if (agora - arrowHoverRef.current.ultimaTroca > 650) {
+        if (dir === "prev") irMesAnterior();
+        else irProximoMes();
+        arrowHoverRef.current.ultimaTroca = agora;
+      }
+    } else {
+      arrowHoverRef.current = { dir: null, ultimaTroca: 0 };
+    }
   };
 
   const eventoEstaConcluido = (ev) => {
@@ -153,6 +207,8 @@ export default function VisaoGeral({
   const moverArrasto = (e) => {
     const st = dragRef.current;
     if (!st.evento) return;
+    st.lastX = e.clientX;
+    st.lastY = e.clientY;
     const dx = e.clientX - st.startX;
     const dy = e.clientY - st.startY;
     const dist = Math.hypot(dx, dy);
@@ -177,6 +233,11 @@ export default function VisaoGeral({
         } catch {}
       }
       setItemArrastando({ id: st.evento.id, titulo: st.evento.titulo, cor: st.evento.cor, x: e.clientX, y: e.clientY });
+      // começa a checar (em intervalo) autoscroll de borda + troca de mês
+      // ao segurar sobre as setas, independente de novos eventos de movimento
+      if (!autoScrollTimerRef.current) {
+        autoScrollTimerRef.current = setInterval(rodarAutoScrollETrocaMes, 50);
+      }
     } else {
       e.preventDefault();
       setItemArrastando((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
@@ -190,6 +251,11 @@ export default function VisaoGeral({
   const finalizarArrasto = () => {
     const st = dragRef.current;
     limparTimerArrasto();
+    if (autoScrollTimerRef.current) {
+      clearInterval(autoScrollTimerRef.current);
+      autoScrollTimerRef.current = null;
+    }
+    arrowHoverRef.current = { dir: null, ultimaTroca: 0 };
     if (st.elemento) st.elemento.style.touchAction = "";
     if (st.ativo && st.evento && diaAlvo && diaAlvo !== st.evento.data && onAtualizarAfazer) {
       onAtualizarAfazer(st.evento.id, { data: diaAlvo });
@@ -295,11 +361,11 @@ export default function VisaoGeral({
       </div>
 
       <div className="calendario-header">
-        <button className="icon-btn-ghost" onClick={irMesAnterior}>
+        <button ref={prevBtnRef} className="icon-btn-ghost" onClick={irMesAnterior}>
           <ChevronLeft size={18} />
         </button>
         <span className="calendario-titulo">{NOME_MESES[mes]} {ano}</span>
-        <button className="icon-btn-ghost" onClick={irProximoMes}>
+        <button ref={nextBtnRef} className="icon-btn-ghost" onClick={irProximoMes}>
           <ChevronRight size={18} />
         </button>
       </div>
@@ -311,9 +377,9 @@ export default function VisaoGeral({
       </div>
 
       <div className="calendario-grid">
-        {celulas.map((dia, idx) => {
-          if (dia === null) return <div key={idx} className="calendario-celula vazia" />;
-          const dataISO = toISO(new Date(ano, mes, dia));
+        {celulas.map((cel, idx) => {
+          const dia = cel.dia;
+          const dataISO = toISO(new Date(cel.ano, cel.mes, dia));
           const eventos = eventosPorDia[dataISO] || [];
           const selecionada = dataISO === diaSelecionado;
           const ehHoje = dataISO === hojeISO;
@@ -349,8 +415,15 @@ export default function VisaoGeral({
             <div
               key={idx}
               data-dia-iso={dataISO}
-              className={`calendario-celula${ehHoje ? " hoje" : ""}${selecionada ? " selecionada" : ""}${ehAlvoDrag ? " destino-drag" : ""}${temAvaliacao ? " tem-avaliacao" : ""}`}
-              onClick={() => setDiaSelecionado(selecionada ? null : dataISO)}
+              className={`calendario-celula${ehHoje ? " hoje" : ""}${selecionada ? " selecionada" : ""}${ehAlvoDrag ? " destino-drag" : ""}${temAvaliacao ? " tem-avaliacao" : ""}${cel.foraDoMes ? " fora-do-mes" : ""}`}
+              onClick={() => {
+                if (cel.foraDoMes) {
+                  setCursor({ ano: cel.ano, mes: cel.mes });
+                  setDiaSelecionado(dataISO);
+                } else {
+                  setDiaSelecionado(selecionada ? null : dataISO);
+                }
+              }}
               style={celulaStyle}
             >
               <span

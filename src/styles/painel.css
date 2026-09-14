@@ -6,7 +6,8 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
   display: flex;
   justify-content: flex-end;
   z-index: 50;
@@ -15,10 +16,14 @@
 .painel-lateral {
   width: 420px;
   max-width: 100%;
-  background: #15171c;
+  background: var(--vidro-grad), rgba(18, 20, 25, 0.78);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border-left: 1px solid var(--vidro-borda);
   height: 100%;
   overflow-y: auto;
-  padding: 20px 22px;
+  padding: 22px 24px;
+  box-shadow: -14px 0 40px rgba(0, 0, 0, 0.4);
 }
 
 .painel-header {
@@ -28,10 +33,11 @@
 }
 
 .cor-dot {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
 }
 
 .painel-title-input {
@@ -39,8 +45,8 @@
   background: transparent;
   border: none;
   color: #fff;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   outline: none;
 }
 
@@ -48,15 +54,15 @@
   display: flex;
   gap: 4px;
   margin-top: 18px;
-  border-bottom: 1px solid #23252b;
+  border-bottom: 1px solid var(--vidro-borda);
 }
 
 .painel-tab {
-  padding: 8px 4px;
+  padding: 9px 4px;
   background: transparent;
   border: none;
-  color: #8a8a92;
-  font-size: 12.5px;
+  color: var(--texto-fraco);
+  font-size: 13.5px;
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-right: 14px;
@@ -64,7 +70,7 @@
 
 .painel-tab.ativa {
   color: #fff;
-  border-bottom: 2px solid #6366f1;
+  border-bottom: 2px solid var(--accent);
 }
 
 .painel-conteudo {
@@ -75,7 +81,7 @@
 .lista-itens {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   margin-top: 16px;
 }
 
@@ -83,14 +89,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1a1c22;
-  border: 1px solid #23252b;
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)), rgba(22, 24, 29, 0.6);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  padding: 9px 11px;
 }
 
 .item-linha-titulo {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -98,12 +104,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1a1c22;
-  border: 1px solid #23252b;
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)), rgba(22, 24, 29, 0.6);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  padding: 9px 11px;
   text-decoration: none;
-  color: #e8e8ea;
+  color: var(--texto);
 }
 
 .link-item-url {
@@ -113,14 +119,14 @@
 }
 
 .drop-zone {
-  border: 1px dashed #2a2c33;
-  border-radius: 10px;
+  border: 1px dashed var(--vidro-borda-forte);
+  border-radius: var(--raio-md);
   padding: 12px;
   transition: border-color 0.15s;
 }
 
 .drop-zone.ativa {
-  border-color: #6366f1;
+  border-color: var(--accent);
 }
 
 /* ---------- seletor de cor (hexadecimal livre) ---------- */
@@ -131,11 +137,11 @@
 }
 
 .seletor-cor-swatch {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  border-radius: 8px;
-  border: 1px solid #2a2c33;
+  border-radius: 9px;
+  border: 1px solid var(--vidro-borda);
   background: transparent;
   padding: 0;
   cursor: pointer;
@@ -256,6 +262,6 @@
 
 .painel-carregando-texto {
   color: #a1a1aa;
-  font-size: 13px;
+  font-size: 13.5px;
   letter-spacing: 0.02em;
 }
