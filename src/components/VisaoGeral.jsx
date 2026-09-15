@@ -379,7 +379,7 @@ export default function VisaoGeral({
                       {concluido && <Check size={13} />}
                     </button>
                     <div className="data-item-faixa" style={{ background: ev.cor }} />
-                    <div style={{ flex: "0 1 auto", minWidth: 0, maxWidth: "56%" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="data-item-titulo" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.titulo}</div>
                       <div className="subtle" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.origem}</div>
                     </div>
@@ -392,7 +392,6 @@ export default function VisaoGeral({
                     >
                       {ev.hora || ""}
                     </div>
-                    <div style={{ flex: 1 }} />
                     {onExcluirInstanciaEvento && (
                       <button
                         type="button"
