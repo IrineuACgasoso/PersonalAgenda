@@ -1,5 +1,5 @@
 // src/components/VisaoGeral.jsx
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, CalendarClock, Check, Plus } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
@@ -60,12 +60,14 @@ export default function VisaoGeral({
   const autoScrollTimerRef = useRef(null);
   const arrowHoverRef = useRef({ dir: null, ultimaTroca: 0 });
 
+  const diaAlvoRef = useRef(null);
+
   const irMesAnterior = () => {
     setCursor((c) => {
       const novo = new Date(c.ano, c.mes - 1, 1);
       return { ano: novo.getFullYear(), mes: novo.getMonth() };
     });
-    setDiaSelecionado(null);
+    if (!dragRef.current.ativo) setDiaSelecionado(null);
   };
 
   const irProximoMes = () => {
@@ -73,7 +75,7 @@ export default function VisaoGeral({
       const novo = new Date(c.ano, c.mes + 1, 1);
       return { ano: novo.getFullYear(), mes: novo.getMonth() };
     });
-    setDiaSelecionado(null);
+    if (!dragRef.current.ativo) setDiaSelecionado(null);
   };
 
   const pontoDentroDoElemento = (el, x, y) => {
@@ -245,7 +247,9 @@ export default function VisaoGeral({
 
     const elAlvo = document.elementFromPoint(e.clientX, e.clientY);
     const celula = elAlvo && elAlvo.closest ? elAlvo.closest("[data-dia-iso]") : null;
-    setDiaAlvo(celula ? celula.getAttribute("data-dia-iso") : null);
+    const alvo = celula ? celula.getAttribute("data-dia-iso") : null;
+    diaAlvoRef.current = alvo;
+    setDiaAlvo(alvo);
   };
 
   const finalizarArrasto = () => {
@@ -257,15 +261,39 @@ export default function VisaoGeral({
     }
     arrowHoverRef.current = { dir: null, ultimaTroca: 0 };
     if (st.elemento) st.elemento.style.touchAction = "";
-    if (st.ativo && st.evento && diaAlvo && diaAlvo !== st.evento.data && onAtualizarAfazer) {
-      onAtualizarAfazer(st.evento.id, { data: diaAlvo });
-      setDiaSelecionado(diaAlvo);
+    const alvo = diaAlvoRef.current;
+    if (st.ativo && st.evento && alvo && alvo !== st.evento.data && onAtualizarAfazer) {
+      onAtualizarAfazer(st.evento.id, { data: alvo });
+      setDiaSelecionado(alvo);
     }
     dragRef.current = { ativo: false, armado: false, evento: null };
+    diaAlvoRef.current = null;
     setItemArrastando(null);
     setItemPronto(null);
     setDiaAlvo(null);
   };
+
+  // Rede de segurança: garante que o arrasto SEMPRE termine, mesmo se a
+  // linha de origem (dentro da lista "Eventos em ...") sumir do DOM no meio
+  // do gesto — o que acontecia ao trocar de mês durante o arrasto (a lista
+  // do dia selecionado zera, o elemento que tinha a captura do ponteiro é
+  // desmontado, e o "fantasma" do item ficava preso, sem nenhum evento de
+  // soltar para finalizar). Ouvindo em `window`, essas continuam
+  // funcionando mesmo que o elemento original já não exista mais.
+  useEffect(() => {
+    if (!itemArrastando) return undefined;
+    const aoMover = (e) => moverArrasto(e);
+    const aoSoltar = () => finalizarArrasto();
+    window.addEventListener("pointermove", aoMover);
+    window.addEventListener("pointerup", aoSoltar);
+    window.addEventListener("pointercancel", aoSoltar);
+    return () => {
+      window.removeEventListener("pointermove", aoMover);
+      window.removeEventListener("pointerup", aoSoltar);
+      window.removeEventListener("pointercancel", aoSoltar);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemArrastando]);
 
   return (
     <div>

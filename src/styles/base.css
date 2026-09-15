@@ -80,22 +80,21 @@ body {
 }
 
 /* ---------- área principal ----------
-   Levemente "espremida" nas laterais em telas grandes, para o conteúdo
-   não ficar espalhado de ponta a ponta (evita o efeito "jogo de tênis"
-   de ter que olhar pros dois cantos da tela). */
+   Levemente "espremida" nas laterais em telas grandes (não ocupa a tela
+   toda), mas ancorada logo após a sidebar — sem centralizar sozinha no
+   espaço restante, senão sobra um vão grande entre a sidebar e o
+   conteúdo. Páginas que precisam de mais fôlego horizontal (ex: Visão
+   geral, com o calendário) usam o modificador `.main-larga`. */
 .main {
   flex: 1;
   padding: 30px 40px 40px;
   overflow-y: auto;
-  max-width: 840px;
-  margin: 0 auto;
+  max-width: 900px;
   width: 100%;
 }
 
-@media (min-width: 1500px) {
-  .main {
-    max-width: 900px;
-  }
+.main.main-larga {
+  max-width: 1180px;
 }
 
 .header-bar {

@@ -315,7 +315,7 @@ export default function App() {
         logout={logout}
       />
 
-      <main className="main">
+      <main className={`main${aba === "visaogeral" ? " main-larga" : ""}`}>
         {aba === "afazeres" ? (
           <VisaoAfazeres
             afazeres={afazeres}
