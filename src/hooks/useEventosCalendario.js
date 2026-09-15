@@ -3,7 +3,7 @@ import { DIAS_FULL } from "../constants.js";
 import { toISO, ocorrenciasNoIntervalo } from "../utils/afazeres.js";
 import { getIntervaloMes, cadeiraEstaAtivaNaData } from "../utils/calendario.js";
 
-export function useEventosCalendario({ cadeiras = [], compromissos = [], afazeres = [], periodos = [], ano, mes, filtros }) {
+export function useEventosCalendario({ cadeiras = [], compromissos = [], afazeres = [], periodos = [], ano, mes, filtros, eventosExcluidos = [] }) {
   const { primeiroDia, ultimoDia, inicioISO, fimISO } = useMemo(
     () => getIntervaloMes(ano, mes),
     [ano, mes]
@@ -143,7 +143,10 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
   }, [afazeres, filtros.afazeres, inicioISO, fimISO]);
 
   return useMemo(() => {
-    const todos = [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres, ...eventosAfazeresSemData];
+    const excluidos = new Set(eventosExcluidos);
+    const todos = [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres, ...eventosAfazeresSemData].filter(
+      (ev) => !excluidos.has(ev.chave)
+    );
     const mapa = {};
 
     todos.forEach((ev) => {
@@ -173,5 +176,5 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
     );
 
     return mapa;
-  }, [aulas, avaliacoes, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData]);
+  }, [aulas, avaliacoes, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData, eventosExcluidos]);
 }

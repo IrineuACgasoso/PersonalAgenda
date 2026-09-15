@@ -1,6 +1,6 @@
 // src/components/VisaoGeral.jsx
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, CalendarClock, Check, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, CalendarClock, Check, Plus, Trash2 } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
@@ -29,7 +29,9 @@ export default function VisaoGeral({
   afazeres = [],
   periodos = [],
   eventosConcluidos = [],
+  eventosExcluidos = [],
   onAlternarEventoConcluido,
+  onExcluirInstanciaEvento,
   onAlternarFeitoAfazer,
   onAtualizarAfazer,
   onNovoAfazer,
@@ -45,7 +47,7 @@ export default function VisaoGeral({
   const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
 
   const { filtros, alternarFiltro } = useFiltrosCalendario();
-  const eventosPorDia = useEventosCalendario({ cadeiras, compromissos, afazeres, periodos, ano, mes, filtros });
+  const eventosPorDia = useEventosCalendario({ cadeiras, compromissos, afazeres, periodos, ano, mes, filtros, eventosExcluidos });
 
   const celulas = useMemo(() => gerarCelulasMes(ano, mes), [ano, mes]);
 
@@ -140,6 +142,21 @@ export default function VisaoGeral({
       }
     } else if (onAlternarEventoConcluido) {
       onAlternarEventoConcluido(ev.chave);
+    }
+  };
+
+  // Remove só esta ocorrência do dia (ex: aula cancelada, compromisso que
+  // não vai acontecer) — nunca apaga o horário/afazer recorrente inteiro,
+  // só esconde esse dia específico da agenda.
+  const excluirInstancia = (ev) => {
+    if (!onExcluirInstanciaEvento) return;
+    const ehRotina = ev.tipo === "afazeres" && ev.rotina && ev.rotina.tipo !== "nenhuma";
+    const ehRecorrente = ev.tipo === "aulas" || ev.tipo === "compromissos" || ehRotina;
+    const pergunta = ehRecorrente
+      ? `Remover "${ev.titulo}" só deste dia? As outras ocorrências continuam normalmente.`
+      : `Remover "${ev.titulo}" da agenda?`;
+    if (window.confirm(pergunta)) {
+      onExcluirInstanciaEvento(ev.chave);
     }
   };
   // pendentes primeiro (por horário/urgência), concluídos vão para o final —
@@ -362,9 +379,9 @@ export default function VisaoGeral({
                       {concluido && <Check size={13} />}
                     </button>
                     <div className="data-item-faixa" style={{ background: ev.cor }} />
-                    <div style={{ flex: 1 }}>
-                      <div className="data-item-titulo">{ev.titulo}</div>
-                      <div className="subtle">{ev.origem}</div>
+                    <div style={{ flex: "0 1 auto", minWidth: 0, maxWidth: "56%" }}>
+                      <div className="data-item-titulo" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.titulo}</div>
+                      <div className="subtle" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.origem}</div>
                     </div>
                     <div className="data-item-urgencia" style={{ width: 34, flex: "0 0 34px", display: "flex", justifyContent: "center" }}>
                       {ev.tipo === "afazeres" && <BarraUrgencia nivel={ev.urgencia || 1} />}
@@ -375,6 +392,18 @@ export default function VisaoGeral({
                     >
                       {ev.hora || ""}
                     </div>
+                    <div style={{ flex: 1 }} />
+                    {onExcluirInstanciaEvento && (
+                      <button
+                        type="button"
+                        className="icon-btn-ghost"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => excluirInstancia(ev)}
+                        title="Remover este dia da agenda"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 );
               })}

@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 
 const CHAVE_BACKUPS_AUTO = "agenda_backups_automaticos";
-const INTERVALO_3_HORAS = 3 * 60 * 60 * 1000;
+// Checagem periódica só pra perceber a virada do dia com alguma frequência —
+// a decisão de fato de gerar (ou não) o backup é por CALENDÁRIO (um por dia),
+// não por intervalo de horas.
+const INTERVALO_CHECAGEM = 30 * 60 * 1000;
 
 /**
- * Hook que verifica e executa o backup a cada 3 horas.
- * Salva snapshots locais isolados e realiza o download do arquivo .json.
+ * Hook que gera no máximo 1 backup físico (download .json) por dia.
  */
 export function useAutoBackup(data) {
   useEffect(() => {
@@ -15,13 +17,17 @@ export function useAutoBackup(data) {
     const verificarEGerarBackup = () => {
       try {
         const agora = Date.now();
+        const hojeStr = new Date(agora).toDateString();
         const historicoRaw = localStorage.getItem(CHAVE_BACKUPS_AUTO);
         const historico = historicoRaw ? JSON.parse(historicoRaw) : [];
 
         const ultimoTimestamp = historico[0]?.timestamp || 0;
+        const ultimoDiaStr = ultimoTimestamp ? new Date(ultimoTimestamp).toDateString() : null;
 
-        // Se já passaram 3 horas desde o último backup
-        if (agora - ultimoTimestamp >= INTERVALO_3_HORAS) {
+        // Só gera um novo backup se o último foi num dia (calendário) diferente
+        // de hoje — no máximo 1 por dia, não importa quantas vezes o app seja
+        // aberto/fechado ou quanto tempo fique aberto.
+        if (ultimoDiaStr !== hojeStr) {
           const novoSnapshot = {
             timestamp: agora,
             dataHora: new Date(agora).toLocaleString("pt-BR"),
@@ -54,8 +60,9 @@ export function useAutoBackup(data) {
     // Avalia assim que o app é aberto
     verificarEGerarBackup();
 
-    // Checa a cada 15 minutos se a janela de 3 horas foi atingida
-    const timer = setInterval(verificarEGerarBackup, 15 * 60 * 1000);
+    // Rechecagem periódica, só pra pegar a virada do dia caso o app fique
+    // aberto por muito tempo sem ser recarregado.
+    const timer = setInterval(verificarEGerarBackup, INTERVALO_CHECAGEM);
     return () => clearInterval(timer);
   }, [data]);
 }

@@ -12,6 +12,7 @@ export const DADOS_PADRAO = {
   compromissos: [],
   afazeres: [],
   eventosConcluidos: [],
+  eventosExcluidos: [],
   periodoAtivoId: "p1",
 };
 
@@ -28,6 +29,7 @@ export function sanitizarDados(raw) {
     cadeiras: Array.isArray(raw.cadeiras) ? raw.cadeiras : [],
     compromissos: Array.isArray(raw.compromissos) ? raw.compromissos : [],
     eventosConcluidos: Array.isArray(raw.eventosConcluidos) ? raw.eventosConcluidos : [],
+    eventosExcluidos: Array.isArray(raw.eventosExcluidos) ? raw.eventosExcluidos : [],
     afazeres: Array.isArray(raw.afazeres)
       ? raw.afazeres.map((a) => ({
           ...a,
@@ -37,6 +39,12 @@ export function sanitizarDados(raw) {
             tipo: a.rotina?.tipo || "nenhuma",
             intervaloDias: a.rotina?.intervaloDias || 1,
             totalRepeticoes: a.rotina?.totalRepeticoes || "",
+            // ATENÇÃO: qualquer campo novo de rotina precisa ser listado aqui
+            // manualmente, senão ele é apagado silenciosamente a cada save
+            // (foi exatamente isso que quebrou a rotina "Dias específicos" —
+            // o array `diasSemana` não estava nesta lista e sumia no primeiro
+            // persist() depois de criar o afazer).
+            diasSemana: Array.isArray(a.rotina?.diasSemana) ? a.rotina.diasSemana : [],
           },
         }))
       : [],

@@ -12,7 +12,7 @@ const COR_PADRAO_AFAZER = "#221e1e";
 // Tipos de rotina onde a data-base preenchida no cadastro é usada só para
 // calcular as ocorrências, mas não tem por que aparecer na listagem — o
 // usuário não precisa saber "quando começou", só se repete.
-const ROTINAS_SEM_DATA_NA_LISTAGEM = ["diaria", "semanal", "quinzenal", "mensal"];
+const ROTINAS_SEM_DATA_NA_LISTAGEM = ["diaria", "semanal", "quinzenal", "mensal", "personalizada", "dias_especificos"];
 
 const LETRA_DIA = DIAS_FULL.map((d) => d[0]);
 

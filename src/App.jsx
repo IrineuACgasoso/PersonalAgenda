@@ -191,8 +191,9 @@ export default function App() {
     setAba("afazeres");
   };
 
-  /* ---- ações eventos concluidos ---- */
+  /* ---- ações eventos concluidos / excluídos por instância ---- */
   const eventosConcluidos = data.eventosConcluidos || [];
+  const eventosExcluidos = data.eventosExcluidos || [];
 
   const alternarEventoConcluido = (chave) => {
     const jaConcluido = eventosConcluidos.includes(chave);
@@ -202,6 +203,17 @@ export default function App() {
         ? eventosConcluidos.filter((c) => c !== chave)
         : [...eventosConcluidos, chave],
     });
+  };
+
+  // Remove só esta ocorrência (dia) de um evento da agenda — usado quando
+  // algo foi cancelado e não faz sentido continuar aparecendo naquele dia.
+  // Para itens recorrentes (aula, compromisso, afazer com rotina), a chave
+  // já carrega a data específica dessa ocorrência, então isso NÃO apaga o
+  // horário/afazer em si — só esconde esse dia; as outras ocorrências
+  // continuam normalmente.
+  const excluirInstanciaEvento = (chave) => {
+    if (eventosExcluidos.includes(chave)) return;
+    persist({ ...data, eventosExcluidos: [...eventosExcluidos, chave] });
   };
 
   const limparAfazeresConcluidos = () => {
@@ -252,6 +264,7 @@ export default function App() {
           compromissos: importado.compromissos ?? [],
           afazeres: importado.afazeres ?? [],
           eventosConcluidos: importado.eventosConcluidos ?? [],
+          eventosExcluidos: importado.eventosExcluidos ?? [],
           periodoAtivoId: importado.periodoAtivoId ?? null,
         });
       } catch {
@@ -333,7 +346,9 @@ export default function App() {
               afazeres={afazeres}
               periodos={data.periodos}
               eventosConcluidos={eventosConcluidos}
+              eventosExcluidos={eventosExcluidos}
               onAlternarEventoConcluido={alternarEventoConcluido}
+              onExcluirInstanciaEvento={excluirInstanciaEvento}
               onAlternarFeitoAfazer={alternarFeitoAfazer}
               onAtualizarAfazer={atualizarAfazer}
               onNovoAfazer={abrirNovoAfazerNaData}
