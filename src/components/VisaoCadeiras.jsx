@@ -1,6 +1,6 @@
 // src/components/VisaoCadeiras.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Trash2, Clock, Link as LinkIcon, Calendar, Check } from "lucide-react";
+import { Plus, Trash2, Clock, Link as LinkIcon, Calendar, Check, Edit2, X } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorPeriodo from "./ui/SeletorPeriodo.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
@@ -23,6 +23,10 @@ export default function VisaoCadeiras({
   const [dataInicio, setDataInicio] = useState(periodoAtivo?.dataInicio || "");
   const [dataFim, setDataFim] = useState(periodoAtivo?.dataFim || "");
   const [salvo, setSalvo] = useState(false);
+  // As datas só ficam editáveis quando o usuário clica no lápis — evita
+  // alterações acidentais direto no campo. Enquanto `false`, os inputs
+  // ficam desabilitados (não clicáveis, não abrem o seletor de data).
+  const [editandoDatas, setEditandoDatas] = useState(false);
   const formRef = useRef(null);
   useNavegacaoEnter(formRef);
   const addRowRef = useRef(null);
@@ -33,6 +37,7 @@ export default function VisaoCadeiras({
     setDataInicio(periodoAtivo?.dataInicio || "");
     setDataFim(periodoAtivo?.dataFim || "");
     setSalvo(false);
+    setEditandoDatas(false);
   }, [periodoAtivo?.id]);
 
   const adicionar = () => {
@@ -46,8 +51,15 @@ export default function VisaoCadeiras({
     if (onAtualizarPeriodo && periodoAtivo) {
       onAtualizarPeriodo(periodoAtivo.id, { dataInicio, dataFim });
       setSalvo(true);
+      setEditandoDatas(false);
       setTimeout(() => setSalvo(false), 2000);
     }
+  };
+
+  const cancelarEdicaoDatas = () => {
+    setDataInicio(periodoAtivo?.dataInicio || "");
+    setDataFim(periodoAtivo?.dataFim || "");
+    setEditandoDatas(false);
   };
 
   return (
@@ -67,41 +79,66 @@ export default function VisaoCadeiras({
           </span>
         </div>
 
-        {/* Seleção de Datas com Botão de Salvar */}
-        <div ref={formRef} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
-          <span className="subtle">Duração do período:</span>
-          
-          <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span className="subtle">De:</span>
-            <input
-              type="date"
-              className="input"
-              style={{ padding: "4px 8px", fontSize: 12, width: "auto" }}
-              value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
-            />
-          </label>
+        {/* Duração do período: só editável depois de clicar no lápis */}
+        <div ref={formRef} className="periodo-duracao-bar">
+          <span className="subtle periodo-duracao-label">Duração do período:</span>
 
-          <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span className="subtle">Até:</span>
-            <input
-              type="date"
-              className="input"
-              style={{ padding: "4px 8px", fontSize: 12, width: "auto" }}
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-            />
-          </label>
+          <div className="periodo-duracao-campos">
+            <label className="periodo-data-campo">
+              <span className="subtle">De:</span>
+              <input
+                type="date"
+                className="input"
+                disabled={!editandoDatas}
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+              />
+            </label>
 
-          <button
-            type="button"
-            className="btn-secundario"
-            style={{ padding: "4px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
-            onClick={salvarDatas}
-          >
-            <Check size={13} color={salvo ? "#10b981" : "currentColor"} />
-            {salvo ? "Salvo!" : "Salvar datas"}
-          </button>
+            <label className="periodo-data-campo">
+              <span className="subtle">Até:</span>
+              <input
+                type="date"
+                className="input"
+                disabled={!editandoDatas}
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="periodo-duracao-acoes">
+            {editandoDatas ? (
+              <>
+                <button
+                  type="button"
+                  className="icon-btn-ghost"
+                  title="Salvar datas"
+                  onClick={salvarDatas}
+                >
+                  <Check size={15} color="#10b981" />
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn-ghost"
+                  title="Cancelar"
+                  onClick={cancelarEdicaoDatas}
+                >
+                  <X size={15} />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="icon-btn-ghost"
+                title="Editar datas"
+                onClick={() => setEditandoDatas(true)}
+              >
+                <Edit2 size={14} />
+              </button>
+            )}
+            {salvo && <span className="periodo-duracao-salvo">Salvo!</span>}
+          </div>
         </div>
       </div>
 

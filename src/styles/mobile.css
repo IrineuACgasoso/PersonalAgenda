@@ -148,4 +148,37 @@
   .titulo-pagina {
     font-size: 21px;
   }
+
+  .periodo-seletor-nome {
+    font-size: 19px;
+  }
+
+  /* ---------- duração do período ---------- */
+  .periodo-duracao-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .periodo-duracao-campos {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .periodo-data-campo {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .periodo-data-campo .input {
+    flex: 1;
+    width: auto;
+  }
+
+  .periodo-duracao-acoes {
+    align-self: flex-end;
+  }
 }

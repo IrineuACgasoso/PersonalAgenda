@@ -34,7 +34,7 @@
 }
 
 .periodo-seletor-nome {
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -85,4 +85,71 @@
   left: -8px;
   right: auto;
   width: 260px;
+}
+
+/* ---------- Duração do período ---------- */
+.periodo-duracao-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  row-gap: 8px;
+}
+
+.periodo-duracao-label {
+  flex-shrink: 0;
+}
+
+.periodo-duracao-campos {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.periodo-data-campo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.periodo-data-campo .subtle {
+  flex-shrink: 0;
+}
+
+.periodo-data-campo .input {
+  padding: 5px 9px;
+  font-size: 12.5px;
+  width: auto;
+  flex: none;
+}
+
+.periodo-data-campo .input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--texto-fraco);
+}
+
+/* Some navegadores mostram o ícone de calendário mesmo com o input
+   desabilitado; escurecê-lo reforça visualmente que não é clicável. */
+.periodo-data-campo .input:disabled::-webkit-calendar-picker-indicator {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.periodo-duracao-acoes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.periodo-duracao-salvo {
+  font-size: 12.5px;
+  color: #10b981;
+  font-weight: 600;
+  margin-left: 4px;
+  white-space: nowrap;
 }
