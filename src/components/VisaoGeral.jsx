@@ -34,6 +34,7 @@ export default function VisaoGeral({
   onExcluirInstanciaEvento,
   onAlternarFeitoAfazer,
   onAtualizarAfazer,
+  onMoverInstanciaAfazer,
   onNovoAfazer,
 }) {
   const hoje = new Date();
@@ -190,7 +191,7 @@ export default function VisaoGeral({
   };
 
   const iniciarPossivelArrasto = (e, ev) => {
-    if (ev.tipo !== "afazeres" || !onAtualizarAfazer) return;
+    if (ev.tipo !== "afazeres" || (!onAtualizarAfazer && !onMoverInstanciaAfazer)) return;
     const elemento = e.currentTarget;
     const ehToque = e.pointerType === "touch";
 
@@ -279,9 +280,20 @@ export default function VisaoGeral({
     arrowHoverRef.current = { dir: null, ultimaTroca: 0 };
     if (st.elemento) st.elemento.style.touchAction = "";
     const alvo = diaAlvoRef.current;
-    if (st.ativo && st.evento && alvo && alvo !== st.evento.data && onAtualizarAfazer) {
-      onAtualizarAfazer(st.evento.id, { data: alvo });
-      setDiaSelecionado(alvo);
+    if (st.ativo && st.evento && alvo && alvo !== st.evento.data) {
+      const ev = st.evento;
+      const ehRotina = ev.rotina && ev.rotina.tipo !== "nenhuma";
+      if (ehRotina && onMoverInstanciaAfazer) {
+        // Afazer com recorrência: move só esta ocorrência (a "quarta que
+        // virou quinta"). A regra continua valendo normalmente para as
+        // outras semanas — nada é sobrescrito na rotina em si.
+        onMoverInstanciaAfazer(ev.id, ev.dataOriginal || ev.data, alvo);
+        setDiaSelecionado(alvo);
+      } else if (!ehRotina && onAtualizarAfazer) {
+        // Afazer avulso (sem rotina): mover é simplesmente trocar a data dele.
+        onAtualizarAfazer(ev.id, { data: alvo });
+        setDiaSelecionado(alvo);
+      }
     }
     dragRef.current = { ativo: false, armado: false, evento: null };
     diaAlvoRef.current = null;
@@ -355,7 +367,7 @@ export default function VisaoGeral({
             <div className="lista-proximas-datas" style={{ maxHeight: "300px", overflowY: "auto", scrollBehavior: "smooth", paddingRight: "4px" }}>
               {eventosDoDiaSelecionado.map((ev, i) => {
                 const concluido = eventoEstaConcluido(ev);
-                const arrastavel = ev.tipo === "afazeres" && !!onAtualizarAfazer;
+                const arrastavel = ev.tipo === "afazeres" && (!!onAtualizarAfazer || !!onMoverInstanciaAfazer);
                 const sendoArrastado = itemArrastando && itemArrastando.id === ev.id && ev.tipo === "afazeres";
                 const pronto = itemPronto === ev.id && ev.tipo === "afazeres" && !sendoArrastado;
                 return (

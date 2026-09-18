@@ -182,6 +182,22 @@ export default function App() {
     });
   };
 
+  // Move só UMA ocorrência de um afazer rotineiro (ex: arrastar no
+  // calendário) para outro dia, sem alterar a regra de recorrência em si —
+  // as demais ocorrências continuam caindo nos dias da semana configurados.
+  // Isso fica guardado em `excecoesData`: { dataOriginalDaOcorrencia: novaData }.
+  const moverInstanciaAfazer = (id, dataOrigem, dataDestino) => {
+    persist({
+      ...data,
+      afazeres: afazeres.map((a) => {
+        if (a.id !== id) return a;
+        const excecoes = { ...(a.excecoesData || {}) };
+        excecoes[dataOrigem] = dataDestino;
+        return { ...a, excecoesData: excecoes };
+      }),
+    });
+  };
+
   const excluirAfazer = (id) => {
     persist({ ...data, afazeres: afazeres.filter((a) => a.id !== id) });
   };
@@ -351,6 +367,7 @@ export default function App() {
               onExcluirInstanciaEvento={excluirInstanciaEvento}
               onAlternarFeitoAfazer={alternarFeitoAfazer}
               onAtualizarAfazer={atualizarAfazer}
+              onMoverInstanciaAfazer={moverInstanciaAfazer}
               onNovoAfazer={abrirNovoAfazerNaData}
             />
         ) : !periodoAtivo ? (

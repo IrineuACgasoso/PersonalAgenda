@@ -35,6 +35,13 @@ export function sanitizarDados(raw) {
           ...a,
           feito: !!a.feito,
           datasConcluidas: Array.isArray(a.datasConcluidas) ? a.datasConcluidas : [],
+          // instâncias movidas individualmente (drag de uma ocorrência de
+          // rotina pra outro dia). Mesma lição do bug do diasSemana: como
+          // não está listado aqui manualmente, sumiria a cada persist().
+          excecoesData:
+            a.excecoesData && typeof a.excecoesData === "object" && !Array.isArray(a.excecoesData)
+              ? a.excecoesData
+              : {},
           rotina: {
             tipo: a.rotina?.tipo || "nenhuma",
             intervaloDias: a.rotina?.intervaloDias || 1,

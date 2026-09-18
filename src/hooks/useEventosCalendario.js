@@ -90,7 +90,7 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
     const lista = [];
     afazeres.forEach((a) => {
       const ocorrencias = ocorrenciasNoIntervalo(a, inicioISO, fimISO);
-      ocorrencias.forEach((data) => {
+      ocorrencias.forEach(({ data, dataOriginal }) => {
         const ehRotina = a.rotina && a.rotina.tipo !== "nenhuma";
         const concluido = ehRotina
           ? Array.isArray(a.datasConcluidas) && a.datasConcluidas.includes(data)
@@ -99,6 +99,10 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
         lista.push({
           tipo: "afazeres",
           data,
+          // data "natural" da ocorrência (antes de qualquer drag): é essa
+          // que identifica a instância de forma estável para mover/excluir
+          // só ela, sem afetar as outras ocorrências da rotina.
+          dataOriginal,
           hora: a.hora,
           titulo: a.nome,
           cor: a.cor || "#8b5cf6",
@@ -124,10 +128,15 @@ export function useEventosCalendario({ cadeiras = [], compromissos = [], afazere
     if (hojeISO < inicioISO || hojeISO > fimISO) return [];
 
     return afazeres
-      .filter((a) => !a.data && !a.feito)
+      // Só entra aqui quem realmente não tem regra de recorrência nenhuma.
+      // Rotinas sem data-base (ex: "dias específicos" sem data inicial)
+      // já geram suas próprias ocorrências em ocorrenciasNoIntervalo, então
+      // não devem também cair aqui — senão apareceriam duplicados.
+      .filter((a) => !a.data && !a.feito && (!a.rotina || a.rotina.tipo === "nenhuma"))
       .map((a) => ({
         tipo: "afazeres",
         data: hojeISO,
+        dataOriginal: hojeISO,
         hora: a.hora,
         titulo: a.nome,
         cor: a.cor || "#8b5cf6",
