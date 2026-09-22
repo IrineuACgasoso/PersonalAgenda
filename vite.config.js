@@ -38,8 +38,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // app é 100% client-side (localStorage), então cachear o app shell
-        // garante que ele abre offline; os dados continuam vindo do localStorage.
+        // Cacheia o app shell inteiro: garante que o app abre offline mesmo
+        // sem rede nenhuma. Os dados em si vêm do Firestore (com cache
+        // persistente habilitado em src/firebase.js) quando logado, ou do
+        // localStorage quando não logado — ver usePersistedData.js.
         globPatterns: ["**/*.{js,css,html,png,svg,ico,mp4}"],
         navigateFallback: "/index.html",
       },

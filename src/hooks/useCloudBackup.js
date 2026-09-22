@@ -1,12 +1,9 @@
 // src/hooks/useCloudBackup.js
 //
-// O backup automático local (useAutoBackup.js) só protege contra perda de
-// dados do NAVEGADOR/DISPOSITIVO (ex: limpar localStorage). Ele NÃO protege
-// contra o próprio documento do Firestore sendo sobrescrito por engano —
-// que foi o problema relatado. Este hook cobre esse caso: grava uma cópia
-// datada em users/{uid}/backups/{timestamp} a cada 3h enquanto o usuário
-// está logado, mantendo os últimos N. Se o documento principal for
-// corrompido/sobrescrito, ainda é possível restaurar a partir daqui.
+// Grava uma cópia datada em users/{uid}/backups/{timestamp} a cada 3h
+// enquanto o usuário está logado, mantendo os últimos N. Se o documento
+// principal for corrompido/sobrescrito, ainda é possível restaurar a
+// partir daqui.
 //
 // IMPORTANTE: para isso funcionar com segurança, as Firestore Security
 // Rules precisam liberar leitura/escrita de users/{uid}/backups/{id} para

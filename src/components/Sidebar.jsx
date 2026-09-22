@@ -14,10 +14,28 @@ import {
   LogOut,
 } from "lucide-react";
 
+// Formata o timestamp da última sincronização real com o servidor: só hora
+// se foi hoje, com data se foi antes (evita "14:32" enganoso se já faz dias).
+function formatarUltimaSincronizacao(timestamp) {
+  if (!timestamp) return null;
+  const data = new Date(timestamp);
+  const hoje = new Date();
+  const mesmoDia =
+    data.getDate() === hoje.getDate() &&
+    data.getMonth() === hoje.getMonth() &&
+    data.getFullYear() === hoje.getFullYear();
+  const hora = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (mesmoDia) return `hoje às ${hora}`;
+  const dataCurta = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  return `${dataCurta} às ${hora}`;
+}
+
 export default function Sidebar({
   aba,
   setAba,
   status,
+  online,
+  ultimaSincronizacao,
   onExportarBackup,
   onImportarBackup,
   onRestaurarBackupNuvem,
@@ -137,9 +155,19 @@ export default function Sidebar({
           )}
 
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span className={`status-dot ${status}`} />
+            <span className={`status-dot ${online === false ? "offline" : status}`} />
             <span style={{ fontSize: 11 }}>
-              {status === "saved" ? (user ? "Nuvem sincronizada" : "Salvo localmente") : status === "saving" ? "Salvando..." : status === "loading" ? "Carregando..." : "Erro ao salvar"}
+              {online === false || status === "offline"
+                ? (ultimaSincronizacao
+                    ? `Offline — dados de ${formatarUltimaSincronizacao(ultimaSincronizacao)}`
+                    : "Offline — sincroniza ao reconectar")
+                : status === "saved"
+                ? (user ? "Nuvem sincronizada" : "Salvo localmente")
+                : status === "saving"
+                ? "Salvando..."
+                : status === "loading"
+                ? "Carregando..."
+                : "Erro ao salvar"}
             </span>
           </div>
         </div>

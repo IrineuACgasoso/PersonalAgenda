@@ -11,6 +11,7 @@ export const HORA_INICIO = 6; // grade das 6h às 23h
 export const HORA_FIM = 23;
 export const STORAGE_KEY = "painel-academico-data";
 export const SIDEBAR_STATE_KEY = "painel-academico-sidebar";
+export const ULTIMA_SINCRONIZACAO_KEY = "painel-academico-ultima-sincronizacao";
 
 export const ROTINA_OPCOES = [
   { valor: "nenhuma", label: "Não é rotineiro" },

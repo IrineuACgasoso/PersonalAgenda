@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CORES } from "./constants";
 import { uid } from "./utils/id";
 import usePersistedData from "./hooks/usePersistedData";
@@ -14,19 +14,31 @@ import PainelCompromisso from "./components/PainelCompromisso";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
-import { useAutoBackup } from "./hooks/useAutoBackup";
 import { useCloudBackup, listarBackupsCloud } from "./hooks/useCloudBackup";
 
-export default function App() {
-  const { data, persist, status, user, loginWithGoogle, logout } = usePersistedData();
+// Se a tela de carregamento inicial ficar travada por mais tempo que isso,
+// assumimos que algo no boot (rede, auth, etc.) não vai se resolver sozinho
+// e recarregamos a página automaticamente.
+const TEMPO_LIMITE_CARREGAMENTO_MS = 12000;
 
-  useAutoBackup(data);
+export default function App() {
+  const { data, persist, status, online, ultimaSincronizacao, user, loginWithGoogle, logout } = usePersistedData();
+
   useCloudBackup(user, data, status !== "loading");
   const [aba, setAba] = useState("visaogeral");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
   const [gatilhoNovoAfazer, setGatilhoNovoAfazer] = useState(null);
+
+  // Watchdog: se a tela de carregamento ficar travada (ex: a rede caiu ou
+  // mudou bem no meio da checagem inicial e nada nunca resolve), força um
+  // reload em vez de deixar o usuário preso ali precisando atualizar na mão.
+  useEffect(() => {
+    if (data) return;
+    const timer = setTimeout(() => window.location.reload(), TEMPO_LIMITE_CARREGAMENTO_MS);
+    return () => clearTimeout(timer);
+  }, [data]);
 
   if (!data) {
     return <CarregandoPainel texto="Carregando seu painel..." />;
@@ -336,6 +348,8 @@ export default function App() {
         aba={aba}
         setAba={setAba}
         status={status}
+        online={online}
+        ultimaSincronizacao={ultimaSincronizacao}
         onExportarBackup={exportarBackup}
         onRestaurarBackupNuvem={restaurarBackupNuvem}
         onImportarBackup={importarBackup}

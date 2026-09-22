@@ -1,6 +1,6 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from "firebase/firestore";
 import { 
   getAuth, 
   GoogleAuthProvider, 
@@ -20,7 +20,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Cache local persistente (IndexedDB): permite ler/escrever offline. Escritas
+// feitas sem rede ficam na fila do próprio SDK do Firestore e sobem para o
+// servidor sozinhas assim que a conexão volta — não precisamos reimplementar
+// essa sincronização na mão. `persistentSingleTabManager` evita conflito
+// entre abas: só a aba ativa usa o cache (mais simples que coordenar múltiplas).
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }),
+});
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 

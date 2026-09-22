@@ -1,15 +1,58 @@
 // src/hooks/usePersistedData.js
 import { useState, useEffect, useRef } from "react";
-import { doc, onSnapshot, setDoc, getDocFromServer } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, getDocFromServer, getDocFromCache } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth, loginComGoogle, fazerLogout, EMAIL_PERMITIDO } from "../firebase";
-import { STORAGE_KEY } from "../constants";
+import { STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY } from "../constants";
 import { DADOS_PADRAO, sanitizarDados, pareceVazio } from "../utils/sanitizarDados";
+
+// Tempo máximo de espera pela confirmação do servidor na checagem inicial.
+// Numa rede instável (ex: wifi caindo bem nessa hora) a chamada pode nunca
+// rejeitar sozinha — sem esse teto, o app fica preso em "loading" para sempre.
+const TIMEOUT_CHECAGEM_SERVIDOR_MS = 8000;
+
+function comTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+  ]);
+}
 
 export default function usePersistedData() {
   const [user, setUser] = useState(null);
   const [data, setData] = useState(null);
   const [status, setStatus] = useState("loading");
+  // Conectividade real do navegador. Não bloqueia edição nem persist() — só
+  // avisa na UI que as mudanças estão sendo enfileiradas localmente e serão
+  // sincronizadas quando a rede voltar (o Firestore, com cache persistente
+  // habilitado em firebase.js, já cuida dessa fila/sincronização sozinho).
+  const [online, setOnline] = useState(navigator.onLine);
+  // Timestamp (ms) da última vez que os dados foram confirmados com o
+  // servidor de verdade (não do cache local). Persistido em localStorage
+  // pra sobreviver a um reload feito enquanto ainda está offline — assim,
+  // mesmo depois de recarregar sem rede, a UI ainda sabe "de quando" são
+  // os dados que está mostrando.
+  const [ultimaSincronizacao, setUltimaSincronizacao] = useState(() => {
+    const salvo = localStorage.getItem(ULTIMA_SINCRONIZACAO_KEY);
+    return salvo ? Number(salvo) : null;
+  });
+
+  const marcarSincronizado = () => {
+    const agora = Date.now();
+    localStorage.setItem(ULTIMA_SINCRONIZACAO_KEY, String(agora));
+    setUltimaSincronizacao(agora);
+  };
+
+  useEffect(() => {
+    const marcarOnline = () => setOnline(true);
+    const marcarOffline = () => setOnline(false);
+    window.addEventListener("online", marcarOnline);
+    window.addEventListener("offline", marcarOffline);
+    return () => {
+      window.removeEventListener("online", marcarOnline);
+      window.removeEventListener("offline", marcarOffline);
+    };
+  }, []);
 
   // Trava dupla contra escrita prematura / sobre dados ainda não confirmados.
   const carregadoRef = useRef(false);
@@ -70,7 +113,7 @@ export default function usePersistedData() {
       // Aqui forçamos uma leitura direta do SERVIDOR antes de qualquer
       // decisão de criar/sobrescrever.
       try {
-        const snapServidor = await getDocFromServer(userDocRef);
+        const snapServidor = await comTimeout(getDocFromServer(userDocRef), TIMEOUT_CHECAGEM_SERVIDOR_MS);
         if (cancelado) return;
 
         if (!snapServidor.exists()) {
@@ -90,25 +133,52 @@ export default function usePersistedData() {
         }
         carregadoRef.current = true;
         setStatus("saved");
+        marcarSincronizado();
       } catch (error) {
-        // Sem acesso ao servidor agora (ex: offline no primeiro login).
-        // Não arriscamos criar/sobrescrever nada — apenas reportamos erro
-        // e deixamos os próximos snapshots (abaixo) tentarem de novo assim
-        // que a conexão voltar.
-        console.error("Erro ao confirmar dados no servidor:", error);
-        setStatus("error");
+        // Sem acesso ao servidor agora (offline, rede instável, ou a
+        // checagem estourou o tempo limite acima). Em vez de travar o app
+        // esperando pra sempre, caímos pro cache local do Firestore (que o
+        // próprio SDK mantém em IndexedDB): dá pra continuar usando o app
+        // normalmente offline, e ele sincroniza sozinho quando a rede volta.
+        console.error("Erro ao confirmar dados no servidor, tentando cache local:", error);
+        try {
+          const snapCache = await getDocFromCache(userDocRef);
+          if (cancelado) return;
+          if (snapCache.exists()) {
+            setData(sanitizarDados(snapCache.data()));
+            carregadoRef.current = true;
+            setStatus("offline");
+          } else {
+            // Nunca sincronizou neste dispositivo e não há como confirmar
+            // com o servidor agora: não existe uma base segura pra criar ou
+            // liberar edição sem risco de perder dados depois.
+            setStatus("error");
+          }
+        } catch (cacheError) {
+          console.error("Sem cache local disponível:", cacheError);
+          setStatus("error");
+        }
       }
     })();
 
     // Depois da checagem inicial segura, o onSnapshot só ATUALIZA a tela
     // em tempo real — nunca decide criar/sobrescrever o documento.
+    // `includeMetadataChanges` deixa a gente distinguir um snapshot que só
+    // veio do cache local de um que já foi confirmado pelo servidor — é
+    // assim que sabemos QUANDO de fato sincronizou (`ultimaSincronizacao`).
     const unsubscribeSnapshot = onSnapshot(
       userDocRef,
+      { includeMetadataChanges: true },
       (docSnap) => {
         if (!carregadoRef.current) return; // ainda na checagem inicial acima
         if (docSnap.exists()) {
           setData(sanitizarDados(docSnap.data()));
-          setStatus("saved");
+          if (docSnap.metadata.fromCache) {
+            setStatus("offline");
+          } else {
+            setStatus("saved");
+            marcarSincronizado();
+          }
         }
       },
       (error) => {
@@ -147,7 +217,7 @@ export default function usePersistedData() {
     }
 
     setData(dataSanitizada);
-    setStatus("saving");
+    setStatus(navigator.onLine ? "saving" : "offline");
 
     const minhaVersao = ++versaoRef.current;
 
@@ -155,6 +225,12 @@ export default function usePersistedData() {
     // que garante ORDEM: a próxima escrita só começa depois que a anterior
     // terminou (com sucesso ou erro), então a resposta de rede não pode
     // chegar fora de ordem e sobrescrever um dado mais novo com um antigo.
+    //
+    // Offline, `setDoc` grava no cache local (IndexedDB) e só resolve de
+    // verdade quando o Firestore consegue confirmar com o servidor — então
+    // esta fila também segura writes offline sem travar a UI (o `await`
+    // aqui dentro é só pra manter a ordem da fila, não trava quem chamou
+    // persist(), que não fica esperando isso).
     filaRef.current = filaRef.current.then(async () => {
       try {
         if (user) {
@@ -164,20 +240,20 @@ export default function usePersistedData() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(dataSanitizada));
         }
         // Só atualiza o status se ninguém mais recente já respondeu.
-        if (minhaVersao === versaoRef.current) setStatus("saved");
+        if (minhaVersao === versaoRef.current) setStatus(navigator.onLine ? "saved" : "offline");
       } catch (err) {
         console.error("Erro ao salvar dados:", err);
-        if (minhaVersao === versaoRef.current) setStatus("error");
+        if (minhaVersao === versaoRef.current) setStatus(navigator.onLine ? "error" : "offline");
       }
     });
-
-    await filaRef.current;
   };
 
   return {
     data,
     persist,
     status,
+    online,
+    ultimaSincronizacao,
     user,
     loginWithGoogle: loginComGoogle,
     logout: fazerLogout,
