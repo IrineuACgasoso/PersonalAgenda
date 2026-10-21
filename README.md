@@ -2,7 +2,9 @@
 
 Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeiras, compromissos semanais, afazeres e um calendário geral** que cruza tudo isso. Funciona como **PWA** (instalável no celular/desktop), **offline-first** e sincroniza entre dispositivos via **Firebase** quando logado.
 
-![Visão geral do calendário](docs/screenshots/visao-geral.png)
+<p align="center">
+  <img src="docs/screenshots/tela-inicial.jpeg" alt="Tela Inicial" width="300" />
+</p>
 <!-- PLACEHOLDER: print da aba "Calendário geral" com um dia selecionado e o painel de eventos aberto -->
 
 **Stack:** React 18 · Vite 5 · Firebase (Auth + Firestore) · vite-plugin-pwa · Lucide React · CSS puro (dark theme)
@@ -31,15 +33,25 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Cada **cadeira** tem cor própria, **horários de aula** (dia, início, fim, local), **links/materiais** e **datas importantes** (provas, trabalhos).
 - Suporte a **códigos de turma do Google Classroom**, sempre listados antes dos links comuns.
 
-![Tela de cadeiras](docs/screenshots/cadeiras.png)
+<p align="center">
+  <img src="docs/screenshots/tela-cadeiras.jpeg" alt="Cadeiras" width="300" />
+</p>
 <!-- PLACEHOLDER: print da aba "Cadeiras" com o grid de cards e o seletor de período aberto -->
 
-![Painel lateral da cadeira](docs/screenshots/painel-cadeira.png)
+<p align="center">
+  <img src="docs/screenshots/cadeira.jpeg" alt="Tela 1" width="250" />
+  <img src="docs/screenshots/cadeira2.jpeg" alt="Tela 2" width="250" />
+  <img src="docs/screenshots/cadeira3.jpeg" alt="Tela 3" width="250" />
+</p>
 <!-- PLACEHOLDER: print do drawer lateral de uma cadeira (abas Horários / Links / Datas) -->
 
 ### 🗓️ Compromissos
 - Compromissos recorrentes semanais (academia, reunião fixa etc.), vinculados a um período.
 - Reaproveitam o mesmo editor de horários das cadeiras.
+
+<p align="center">
+  <img src="docs/screenshots/tela-compromissos.jpeg" alt="Compromissos" width="300" />
+</p>
 
 ### ✅ Afazeres
 - Afazeres avulsos com **data/hora opcionais**, **cor livre** (seletor hexadecimal) e **urgência** em 3 níveis (barra de "bateria").
@@ -47,7 +59,9 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Conclusão **por ocorrência** (concluir só o dia de hoje de um afazer recorrente, sem afetar os outros).
 - Afazeres com data aparecem automaticamente no calendário geral.
 
-![Tela de afazeres](docs/screenshots/afazeres.png)
+<p align="center">
+  <img src="docs/screenshots/tela-afazeres.jpeg" alt="Afazeres" width="300" />
+</p>
 <!-- PLACEHOLDER: print da aba "Afazeres" mostrando o formulário e a lista com urgência/rotina -->
 
 ### 📆 Calendário geral
@@ -57,7 +71,9 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Em afazeres recorrentes, mover uma ocorrência **não altera a regra**: a exceção é guardada só para aquela data.
 - Marcar eventos como concluídos e **excluir apenas uma ocorrência** (ex.: aula cancelada) sem apagar o horário.
 
-![Arrastar afazer no calendário](docs/screenshots/drag-and-drop.png)
+<p align="center">
+  <img src="docs/screenshots/drag-calendar.jpeg" alt="Drag-and-Drop" width="300" />
+</p>
 <!-- PLACEHOLDER: print/GIF do drag-and-drop de um afazer entre dias do calendário -->
 
 ### 🧭 Agenda da semana
@@ -65,7 +81,9 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Clicar num bloco abre o painel de edição correspondente.
 - Lista de próximas datas importantes.
 
-![Agenda da semana](docs/screenshots/agenda-semana.png)
+<p align="center">
+  <img src="docs/screenshots/week-agenda.jpeg" alt="Agenda semanal" width="300" />
+</p>
 <!-- PLACEHOLDER: print da aba "Agenda da semana" com a grade preenchida -->
 
 ### ☁️ Sincronização e backup
@@ -76,16 +94,15 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
   - Backup automático diário (download `.json` + histórico local dos últimos 10).
   - Snapshots na nuvem a cada 3h (últimos 10), com restauração pela Sidebar.
 
-![Sidebar e status de sincronização](docs/screenshots/sidebar-backup.png)
+<p align="center">
+  <img src="docs/screenshots/sidebar.jpeg" alt="Sidebar" width="300" />
+</p>
 <!-- PLACEHOLDER: print da sidebar mostrando seção Backup, conta logada e status "Nuvem sincronizada" -->
 
 ### 📱 PWA e UX
 - Instalável (Android, iOS, desktop) e funciona offline.
 - Layout responsivo: abaixo de 860px a sidebar vira menu deslizante.
 - Navegação por **Enter** em formulários e painéis (avança o foco e aciona botões), útil para cadastro rápido só no teclado.
-
-![Versão mobile](docs/screenshots/mobile.png)
-<!-- PLACEHOLDER: print(s) da versão mobile (calendário + menu lateral aberto) -->
 
 ---
 
@@ -271,10 +288,15 @@ src/
 - **Single-user:** o acesso é restrito a um e-mail fixo no código. Multiusuário exigiria remover essa trava (as Rules já isolam por `uid`).
 - **Cache do Firestore em modo single-tab** (`persistentSingleTabManager`): o uso offline simultâneo em várias abas do mesmo navegador não é coordenado.
 - **Sem testes automatizados.**
-- Backups automáticos diários disparam um download `.json` a cada dia em que o app é aberto.
 
 ---
 
 ## Licença
 
-Projeto pessoal, publicado para fins de portfólio. Defina uma licença (ex.: MIT) antes de aceitar contribuições.
+Projeto pessoal, publicado para fins de portfólio. 
+
+<div align="center">
+
+Feito por **[Caio Amarante Calderaro](https://github.com/IrineuACgasoso)**
+
+</div>
