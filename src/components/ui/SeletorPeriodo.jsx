@@ -1,5 +1,5 @@
 // src/components/ui/SeletorPeriodo.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Edit2, ChevronDown, Check, X } from "lucide-react";
 
 /**
@@ -8,14 +8,7 @@ import { Plus, Trash2, Edit2, ChevronDown, Check, X } from "lucide-react";
  * Pensado para ficar no lugar do <h1 className="titulo-pagina"> da tela
  * de Cadeiras.
  */
-export default function SeletorPeriodo({
-  periodos,
-  periodoAtivo,
-  onSelecionar,
-  onNovo,
-  onAtualizar,
-  onExcluir,
-}) {
+export default function SeletorPeriodo({ periodos, periodoAtivo, onSelecionar, onNovo, onAtualizar, onExcluir }) {
   const [aberto, setAberto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [nomeTemp, setNomeTemp] = useState("");
@@ -35,13 +28,8 @@ export default function SeletorPeriodo({
 
   return (
     <div className="periodo-seletor-wrap periodo-seletor-titulo">
-      <button
-        className="periodo-seletor-btn titulo-pagina-btn"
-        onClick={() => setAberto((v) => !v)}
-      >
-        <span className="periodo-seletor-nome titulo-pagina">
-          {periodoAtivo?.nome || "Nenhum período"}
-        </span>
+      <button className="periodo-seletor-btn titulo-pagina-btn" onClick={() => setAberto((v) => !v)}>
+        <span className="periodo-seletor-nome titulo-pagina">{periodoAtivo?.nome || "Nenhum período"}</span>
         <ChevronDown
           size={20}
           style={{

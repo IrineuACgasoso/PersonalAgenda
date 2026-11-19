@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { BookOpen, CalendarClock } from "lucide-react";
 import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
@@ -71,10 +71,7 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
       </div>
 
       <div className="filtros-linha">
-        <button
-          className={`filtro-chip${filtros.cadeiras ? " ativo" : ""}`}
-          onClick={() => alternarFiltro("cadeiras")}
-        >
+        <button className={`filtro-chip${filtros.cadeiras ? " ativo" : ""}`} onClick={() => alternarFiltro("cadeiras")}>
           <BookOpen size={13} /> Cadeiras
         </button>
         <button
@@ -92,13 +89,17 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
           <div className="agenda-grid-head">
             <div className="agenda-hora-col" />
             {DIAS.map((d) => (
-              <div key={d} className="agenda-dia-head">{d}</div>
+              <div key={d} className="agenda-dia-head">
+                {d}
+              </div>
             ))}
           </div>
           <div className="agenda-body">
             <div className="agenda-hora-col">
               {Array.from({ length: totalHoras }, (_, i) => (
-                <div key={i} className="agenda-hora-label">{HORA_INICIO + i}h</div>
+                <div key={i} className="agenda-hora-label">
+                  {HORA_INICIO + i}h
+                </div>
               ))}
             </div>
             {DIAS_FULL.map((dia, idx) => (
@@ -126,8 +127,13 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
                         }
                         title={`${b.origemNome} · ${b.inicio}–${b.fim}`}
                       >
-                        <span className="agenda-bloco-titulo" style={{ color: b.cor }}>{b.origemNome}</span>
-                        <span className="agenda-bloco-hora">{b.inicio}–{b.fim}{b.local ? ` · ${b.local}` : ""}</span>
+                        <span className="agenda-bloco-titulo" style={{ color: b.cor }}>
+                          {b.origemNome}
+                        </span>
+                        <span className="agenda-bloco-hora">
+                          {b.inicio}–{b.fim}
+                          {b.local ? ` · ${b.local}` : ""}
+                        </span>
                       </div>
                     );
                   })}
@@ -155,7 +161,8 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
                   <div className="subtle">{d.cadeiraNome}</div>
                 </div>
                 <div className="data-item-data">
-                  {formatarData(d.data)}{d.hora ? ` · ${d.hora}` : ""}
+                  {formatarData(d.data)}
+                  {d.hora ? ` · ${d.hora}` : ""}
                 </div>
               </div>
             ))}

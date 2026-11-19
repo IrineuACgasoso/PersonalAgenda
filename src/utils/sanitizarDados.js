@@ -26,9 +26,7 @@ export const DADOS_PADRAO = {
 // numa lista (backup editado à mão, dado corrompido) quebraria qualquer
 // `.map((x) => x.id)` da UI; descartar o lixo é melhor que travar a tela.
 function listaDeObjetos(valor) {
-  return Array.isArray(valor)
-    ? valor.filter((item) => item && typeof item === "object" && !Array.isArray(item))
-    : [];
+  return Array.isArray(valor) ? valor.filter((item) => item && typeof item === "object" && !Array.isArray(item)) : [];
 }
 
 // Cadeiras e compromissos: a UI acessa `c.horarios.length`, `c.links.map`
@@ -83,10 +81,7 @@ function normalizar(raw) {
     // Atual após a migração; se os dados vierem de uma versão FUTURA do
     // app, mantém a versão deles (nunca "rebaixa").
     versao: versaoDos(raw),
-    periodos:
-      Array.isArray(raw.periodos) && raw.periodos.length > 0
-        ? raw.periodos
-        : DADOS_PADRAO.periodos,
+    periodos: Array.isArray(raw.periodos) && raw.periodos.length > 0 ? raw.periodos : DADOS_PADRAO.periodos,
     cadeiras: listaDeObjetos(raw.cadeiras).map(sanitizarCadeira),
     compromissos: listaDeObjetos(raw.compromissos).map(sanitizarCompromisso),
     eventosConcluidos: Array.isArray(raw.eventosConcluidos) ? raw.eventosConcluidos : [],
@@ -128,8 +123,6 @@ export function pareceVazio(dados) {
   const semCompromissos = !dados.compromissos || dados.compromissos.length === 0;
   const semAfazeres = !dados.afazeres || dados.afazeres.length === 0;
   const periodosPadrao =
-    !dados.periodos ||
-    dados.periodos.length === 0 ||
-    (dados.periodos.length === 1 && dados.periodos[0]?.id === "p1");
+    !dados.periodos || dados.periodos.length === 0 || (dados.periodos.length === 1 && dados.periodos[0]?.id === "p1");
   return semCadeiras && semCompromissos && semAfazeres && periodosPadrao;
 }

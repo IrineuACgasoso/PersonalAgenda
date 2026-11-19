@@ -15,7 +15,8 @@
 
 @media (max-width: 860px) {
   /* Evita que a tela esprema ou role para os lados no celular */
-  html, body {
+  html,
+  body {
     overflow-x: hidden;
   }
 
@@ -202,5 +203,17 @@
 
   .periodo-duracao-acoes {
     align-self: flex-end;
+  }
+
+  /* Diálogos (#17) e toast (#18): botões ocupam a largura toda (alvo de
+     toque maior) e o toast fica acima da barra de gestos do iOS. */
+  .modal-acoes > button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .toast {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: calc(100vw - 32px);
   }
 }

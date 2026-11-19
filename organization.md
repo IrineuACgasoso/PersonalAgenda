@@ -6,7 +6,7 @@
 
 | Quero… | Onde |
 |---|---|
-| Criar/editar/excluir período, cadeira, compromisso, afazer | `src/App.jsx` (ações CRUD, linhas 60–257) |
+| Criar/editar/excluir período, cadeira, compromisso, afazer | `src/App.jsx` (ações CRUD; todas gravam via `gravar()`) |
 | Tela de erro da carga inicial / watchdog de reload (#7) | `src/App.jsx` (watchdog, 1 reload por sessão) + `src/components/ui/TelaErroCarga.jsx`; decisões em `src/utils/carregamento.js`; `erroCarga`/`tentarDeNovo` no `usePersistedData` |
 | Mudar como os dados são salvos/carregados, status de sync | `src/hooks/usePersistedData.js` → `persist()` ~228, auth ~86, Firestore ~115; decisões puras em `src/utils/persistencia.js` |
 | Adicionar campo novo ao modelo de dados | `src/utils/sanitizarDados.js` → `sanitizarDados()` (**obrigatório**) |
@@ -31,7 +31,11 @@
 | Menu lateral, backup, login, indicador de status | `src/components/Sidebar.jsx` + `src/styles/sidebar.css` |
 | Backup na nuvem (snapshots a cada 3h) | `src/hooks/useCloudBackup.js`; decisões puras (quando fazer, rotação) em `src/utils/backupNuvem.js` |
 | Seletor de cor (prévia local, grava ao soltar/fechar) | `src/components/ui/SeletorCor.jsx` + `src/utils/confirmacaoAdiada.js` |
-| Exportar/importar `.json`, restaurar da nuvem | `src/App.jsx` → `exportarBackup` ~260, `importarBackup` ~275, `restaurarBackupNuvem` ~306 |
+| Exportar/importar `.json`, restaurar da nuvem | `src/App.jsx` → `exportarBackup`, `importarBackup`, `abrirRestaurarNuvem`/`restaurarBackupNuvem`; lista em `src/components/ui/ModalRestaurarNuvem.jsx` |
+| Aviso/confirmação/toast (nada de `alert/confirm/prompt`) | `useDialogos()` (`src/hooks/useDialogos.js`) → `avisar`, `confirmar`, `notificar`; provider + casca `Modal` em `src/components/ui/Dialogos.jsx`; fila/dedupe e textos em `src/utils/dialogos.js`; CSS em `src/styles/modal.css` |
+| Aviso quando o `persist()` recusa (#44) | `src/App.jsx` → `gravar()` + `mensagemDeRecusa` (`utils/dialogos.js`) |
+| Desfazer exclusão (#18) | `src/App.jsx` → `excluirComDesfazer`, `excluirPeriodo`, `excluirInstanciaEvento`, `limparAfazeresConcluidos`; listas internas dos drawers em `src/hooks/useListaInterna.js`; puro em `src/utils/desfazer.js` |
+| Lint / formatação | `eslint.config.js`, `.prettierrc.json`, `.prettierignore`; `npm run lint` / `npm run format` |
 | Navegação por Enter em formulários | `src/hooks/useNavegacaoEnter.js` |
 | Constantes (cores, dias, rotinas, urgência, chaves de storage) | `src/constants.js` |
 | Qualquer coisa de layout mobile | `src/styles/mobile.css` (único `@media (max-width: 860px)`) |
@@ -78,7 +82,10 @@ UFPE/
 ├── README.md            Doc pública (portfólio) com screenshots — atualizar quando features mudarem
 ├── index.html           Shell HTML, metas iOS/PWA, favicons; título "Painel acadêmico"
 ├── vite.config.js       Vite + React + VitePWA (manifest, workbox precache, navigateFallback)
-├── package.json         scripts: dev, build, preview, test (vitest run), test:watch, check (test + build). Sem lint ainda.
+├── package.json         scripts: dev, build, preview, test (vitest run), test:watch, lint (eslint + prettier --check, `src`
+│                        explícito: OneDrive faz o Node ver a pasta como symlink), format, check (lint + test + build)
+├── eslint.config.js     ESLint 10 flat: recommended + react-hooks + react-refresh + prettier; catch vazio e `_` liberados
+├── .prettierrc.json     printWidth 120, aspas duplas, trailing comma, endOfLine auto · .prettierignore
 │                        overrides: @grpc/grpc-js ^1.14.7 (o firebase fixa ~1.9 vulnerável; só usado no Node)
 ├── firestore.rules      Security Rules: uid + e-mail permitido + email_verified, formato mínimo do AppData,
 │                        doc principal não pode ser apagado, backups só create/delete, resto negado
@@ -101,20 +108,24 @@ UFPE/
 │       ├── confirmacaoAdiada.test.js  Seletor de cor: 1 gravação por arrasto, dedupe, confirmar/cancelar (#41)
 │       ├── migracoes.test.js      Registro de migrações completo, v0→atual, v1→v2 (#10), v2→v3 (#14), não muta, versão futura intocada
 │       ├── links.test.js          normalizarUrl / hrefSeguro (#50)
+│       ├── dialogos.test.js       Fila/dedupe de diálogos (#17), mensagemDeRecusa (#44), resumoDoBackup
+│       ├── desfazer.test.js       reinserirPorId / reinserirVarios / separarRemovidos (#18)
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação
 │       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
-│                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO)
+│                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO),
+│                                  sem alert/confirm/prompt nativos (#17), check roda o lint (#16)
 ├── public/
 │   ├── capacete-carregando.png   Imagem da tela de loading
 │   └── icon-192/512.png, web-app-manifest-192/512.png (maskable; o 512 é o do manifest), favicon.*, apple-touch-icon.png
 └── src/
-    ├── main.jsx         Monta <App/> em StrictMode e importa styles/app.css
+    ├── main.jsx         Monta <DialogosProvider><App/></DialogosProvider> em StrictMode e importa styles/app.css
     ├── App.jsx          Raiz: estado de UI (aba, drawer aberto, modal período, gatilho novo afazer),
     │                    watchdog de 12s no loading (reload no máx. 1×/sessão, depois TelaErroCarga), TODAS as ações CRUD, alternar concluído,
     │                    mover instância, excluir instância, limpar concluídos, export/import/restore,
+    │                    gravar() (persist + aviso de recusa, #44), excluir com Desfazer (#18), entrar() (aviso de login),
     │                    roteamento por `aba` ("visaogeral" | "afazeres" | "compromissos" | "cadeiras" | "agenda")
     ├── firebase.js      initializeApp, Firestore com persistentLocalCache(singleTab) + ignoreUndefinedProperties, auth,
-    │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail), fazerLogout()
+    │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail; devolve { ok, user | mensagem }), fazerLogout()
     ├── constants.js     DIAS, DIAS_FULL, CORES (paleta p/ novas cadeiras), HORA_INICIO/FIM (6–23),
     │                    STORAGE_KEY, SIDEBAR_STATE_KEY (sem uso), ULTIMA_SINCRONIZACAO_KEY,
     │                    ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS
@@ -135,7 +146,10 @@ UFPE/
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h contadas do backup mais
     │   │                         recente NO SERVIDOR (checa a cada 15min; timer não depende de `data`; 1 por vez;
     │   │                         offline não tenta — #8), mantém 10. listarBackupsCloud(uid)
-    │   └── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
+    │   ├── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
+    │   ├── useDialogos.js        Contexto + hook: { avisar, confirmar, notificar } (provider em ui/Dialogos.jsx, #17/#18)
+    │   └── useListaInterna.js    adicionar/editar/remover (com Desfazer) nas listas internas de cadeira/compromisso;
+    │                             usa onAtualizar(fn) → lê o item mais recente
     ├── utils/
     │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1", versao atual), sanitizarDados() (1º migra, depois
     │   │                         normaliza; whitelist de afazeres/rotina; listas internas de cadeira
@@ -160,6 +174,8 @@ UFPE/
     │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto)
     │   ├── formatarData.js       "YYYY-MM-DD" → "DD/MM/YYYY"
     │   ├── links.js              normalizarUrl, hrefSeguro (só http(s) vira href, #50)
+    │   ├── dialogos.js           enfileirarDialogo (dedupe por chave), removerDialogo, mensagemDeRecusa (#44), resumoDoBackup
+    │   ├── desfazer.js           reinserirPorId, reinserirVarios, separarRemovidos (#18)
     │   ├── id.js                 uid() — 8 chars aleatórios
     │   └── data.js               ⚠ dadosVazios() + doc de schema DESATUALIZADO, sem uso
     ├── components/
@@ -184,7 +200,9 @@ UFPE/
     │       ├── BarraUrgencia.jsx   "Bateria" de 3 segmentos
     │       ├── CarregandoPainel.jsx Tela de loading (capacete + órbitas CSS)
     │       ├── EstadoVazio.jsx     Mensagem de vazio + botão opcional
-    │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período)
+    │       ├── Dialogos.jsx        DialogosProvider (fila de diálogos + toast com ação) e a casca `Modal` (Esc, foco preso)
+    │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período), sobre a casca `Modal`
+    │       ├── ModalRestaurarNuvem.jsx  Lista de backups da nuvem (data + resumo); confirmação/gravação no App
 │       ├── TelaErroCarga.jsx   Erro da carga inicial (#7): "Tentar de novo" + "Usar sem login" (estilos no fim de painel.css)
     │       ├── SeletorCor.jsx      Color picker nativo + campo hex; arrastar só muda a prévia, onChange no `change`/blur/400ms
     │       │                       (`adiarMs={0}` p/ estado local; drawers passam `key` = id do item)
@@ -200,5 +218,6 @@ UFPE/
         │                       -urgencia/-hora da lista do calendário geral), drag-ghost
         ├── afazeres.css        Formulário, urgência, dias da semana, item-afazer, check-btn
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células, pontos
+        ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90)
         └── mobile.css          Todas as regras ≤860px
 ```

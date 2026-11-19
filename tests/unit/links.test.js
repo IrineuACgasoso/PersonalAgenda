@@ -15,7 +15,19 @@ describe("hrefSeguro (#50)", () => {
     expect(hrefSeguro("HTTP://x.com")).toBe("HTTP://x.com");
   });
   it("recusa javascript:, data: e variações (backup adulterado)", () => {
-    for (const url of ["javascript:alert(1)", "JaVaScRiPt:alert(1)", " javascript:alert(1)", "\tjavascript:alert(1)", "data:text/html,<script>", "vbscript:x", "//evil.com", "", null, undefined, 42]) {
+    for (const url of [
+      "javascript:alert(1)",
+      "JaVaScRiPt:alert(1)",
+      " javascript:alert(1)",
+      "\tjavascript:alert(1)",
+      "data:text/html,<script>",
+      "vbscript:x",
+      "//evil.com",
+      "",
+      null,
+      undefined,
+      42,
+    ]) {
       expect(hrefSeguro(url)).toBeUndefined();
     }
   });

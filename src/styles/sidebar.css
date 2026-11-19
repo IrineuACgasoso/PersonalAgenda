@@ -69,7 +69,10 @@
   cursor: pointer;
   text-align: left;
   margin-bottom: 2px;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .nav-btn:hover {
@@ -103,11 +106,21 @@
   height: 6px;
   border-radius: 50%;
 }
-.status-dot.saved { background: #10b981; }
-.status-dot.saving { background: #f59e0b; }
-.status-dot.error { background: #ef4444; }
-.status-dot.offline { background: #6b7280; }
-.status-dot.desatualizado { background: #ef4444; }
+.status-dot.saved {
+  background: #10b981;
+}
+.status-dot.saving {
+  background: #f59e0b;
+}
+.status-dot.error {
+  background: #ef4444;
+}
+.status-dot.offline {
+  background: #6b7280;
+}
+.status-dot.desatualizado {
+  background: #ef4444;
+}
 
 /* ---------- legado: dropdown de período dentro da sidebar ----------
    Estas classes não parecem mais usadas por nenhum componente — a seleção

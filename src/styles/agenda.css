@@ -123,7 +123,9 @@
 }
 
 .data-item.arrastavel.pronto-arrasto {
-  box-shadow: 0 0 0 1.5px var(--accent), 0 4px 14px rgba(99, 102, 241, 0.35);
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    0 4px 14px rgba(99, 102, 241, 0.35);
 }
 
 .data-item.arrastavel:active {

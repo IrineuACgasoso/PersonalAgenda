@@ -9,14 +9,19 @@
 // nunca editados; id = timestamp).
 
 import { useEffect, useRef } from "react";
-import { collection, doc, setDoc, getDocs, getDocsFromServer, deleteDoc, query, orderBy, limit } from "firebase/firestore";
-import { db } from "../firebase";
 import {
-  INTERVALO_CHECAGEM_BACKUP_MS,
-  MAX_BACKUPS,
-  deveFazerBackup,
-  backupsParaApagar,
-} from "../utils/backupNuvem";
+  collection,
+  doc,
+  setDoc,
+  getDocs,
+  getDocsFromServer,
+  deleteDoc,
+  query,
+  orderBy,
+  limit,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { INTERVALO_CHECAGEM_BACKUP_MS, MAX_BACKUPS, deveFazerBackup, backupsParaApagar } from "../utils/backupNuvem";
 
 // Lista os backups salvos na nuvem para o usuário logado, do mais recente
 // para o mais antigo. Retorna [{ id, timestamp, dataHora, payload }].

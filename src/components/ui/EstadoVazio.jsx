@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function EstadoVazio({ texto, onAcao, acaoTexto, pequeno }) {
   return (
     <div className={`vazio ${pequeno ? "pequeno" : ""}`}>

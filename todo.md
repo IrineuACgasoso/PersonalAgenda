@@ -42,10 +42,10 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ## 🟡 MÉDIO
 
 ### Fase 3 — Infra de qualidade (antes das reformulações)
-- [ ] **#16 ESLint + Prettier** (com `react-hooks`). Já existem `eslint-disable` no código sem lint configurado. Adicionar `npm run lint` ao `check`.
-- [ ] **#17 Modais próprios no lugar de `alert/confirm/prompt`** (ruins no PWA/iOS). Inclui a tela de "Restaurar da nuvem" com a lista de backups (hoje é um `window.prompt`).
-- [ ] **#44 Gravações recusadas falham em silêncio:** quando `persist()` bloqueia (trava `pareceVazio`, versão futura), só a bolinha de status muda. Ex.: com só o período padrão `p1`, excluir a última cadeira/afazer é recusado sem aviso; importar um backup "vazio" idem; e "Restaurar da nuvem" mostra **"Backup restaurado com sucesso"** mesmo quando o `persist()` recusou. Correção: `persist()` devolve `{ ok, motivo }` e a UI avisa (modal do #17). _Logo após #17; combina com #6 (a assinatura do `persist` muda nos dois)._
-- [ ] **#18 Desfazer (undo)** com toast após excluir/concluir, para reduzir os `confirm()`. _Depende de #6 e #17._
+- [x] **#16 ESLint + Prettier** (2026-11-19). ESLint 10 (flat, `eslint.config.js`) + `react-hooks` (`rules-of-hooks`, `exhaustive-deps`) + `react-refresh` + `eslint-config-prettier`; Prettier (`printWidth` 120, `endOfLine: auto`). `npm run lint` (`--max-warnings 0`) entra no `check`; `npm run format` corrige. `src` vai explícito nos scripts (OneDrive: o Node vê a pasta como symlink e `eslint .` a pulava). As regras do React Compiler (`set-state-in-effect`, `refs`… ~27 achados) ficaram de fora — avaliar junto com o #24.
+- [x] **#17 Modais próprios no lugar de `alert/confirm/prompt`** (2026-11-19). `useDialogos()` (`avisar`/`confirmar` com promise, fila com dedupe em `utils/dialogos.js`), casca `Modal` comum (Esc, foco preso, foco devolvido), `ModalRestaurarNuvem` com a lista de backups (data + resumo), login sem `alert` (o `firebase.js` devolve a mensagem). Teste estático contra os nativos.
+- [x] **#44 Gravações recusadas falham em silêncio** (2026-11-19). Ações do `App` gravam por `gravar()`, que avisa a recusa do `persist()` (`mensagemDeRecusa`: parece-vazio, versão futura, carregando). Import/restaurar só anunciam sucesso quando gravou. **Pendente de decisão:** com só o período padrão, excluir a última cadeira/afazer continua bloqueado (agora com aviso) — relaxar o `pareceVazio` é mexer na trava (crítico).
+- [x] **#18 Desfazer (undo)** (2026-11-19). Toast "… excluído · Desfazer" (6s) ao excluir cadeira, compromisso, afazer, horário, link, data, ocorrência do calendário e "Apagar concluídos" — sem `confirm()` nesses casos. Período, importar e restaurar continuam pedindo confirmação (período também tem desfazer). Desfazer reinsere na posição original sem duplicar (`utils/desfazer.js`). Concluir não ganhou toast (é um toggle).
 
 ### Fase 4 — Cadeiras
 - [ ] **#19 Cadeiras com início/fim próprios** (opcionais), para cadeiras que duram mais ou menos que o período. Campos `cadeira.dataInicio/dataFim` em `sanitizarDados`; `cadeiraEstaAtivaNaData` olha primeiro a cadeira; o calendário geral mostra aulas/avaliações só na vigência dela e marca visualmente o início e o fim. _Depende de #4._
@@ -98,6 +98,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] #16 ESLint + Prettier · #17 diálogos próprios · #44 aviso de gravação recusada · #18 desfazer com toast (2026-11-19).
 - [x] #9 autobackup removido · #10 chaves por id (migração v2) · #11 check de rotina por ocorrência · #12 mensal no fim do mês · #13 hoje local · #14 data natural (migração v3) · #15 ícone maskable · #40 rotina sem data · #42 gatilho preso · #50 href seguro (2026-11-19).
 - [x] #8 backup na nuvem sem snapshot por abertura/edição offline (2026-11-19).
 - [x] #7 tela de erro no lugar do loop de reload offline (2026-11-19).

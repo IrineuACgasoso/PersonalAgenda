@@ -12,8 +12,7 @@ import {
 } from "../../src/utils/afazeres.js";
 import { afazer } from "../fixtures/fabricas.js";
 
-const datas = (af, ini = "2026-11-01", fim = "2026-11-30") =>
-  ocorrenciasNoIntervalo(af, ini, fim).map((o) => o.data);
+const datas = (af, ini = "2026-11-01", fim = "2026-11-30") => ocorrenciasNoIntervalo(af, ini, fim).map((o) => o.data);
 
 describe("toISO / parseISO", () => {
   it("ida e volta sem deslocar fuso", () => {
@@ -80,7 +79,11 @@ describe("ocorrenciasNoIntervalo — rotinas com data-base", () => {
     expect(r).toEqual(["2027-12-29", "2028-01-29", "2028-02-29", "2028-03-29"]);
   });
   it("mensal respeita o limite de repetições mesmo com meses curtos", () => {
-    const r = datas(afazer({ data: "2026-01-31", rotina: { tipo: "mensal", totalRepeticoes: 2 } }), "2026-01-01", "2026-06-30");
+    const r = datas(
+      afazer({ data: "2026-01-31", rotina: { tipo: "mensal", totalRepeticoes: 2 } }),
+      "2026-01-01",
+      "2026-06-30",
+    );
     expect(r).toEqual(["2026-01-31", "2026-02-28"]);
   });
 });
@@ -91,11 +94,17 @@ describe("ocorrenciasNoIntervalo — dias específicos", () => {
     expect(r).toEqual(["2026-11-02", "2026-11-04", "2026-11-09", "2026-11-11"]);
   });
   it("com data-base: só a partir dela", () => {
-    const r = datas(afazer({ data: "2026-11-10", rotina: { tipo: "dias_especificos", diasSemana: [0, 2] } }), "2026-11-01", "2026-11-17");
+    const r = datas(
+      afazer({ data: "2026-11-10", rotina: { tipo: "dias_especificos", diasSemana: [0, 2] } }),
+      "2026-11-01",
+      "2026-11-17",
+    );
     expect(r).toEqual(["2026-11-11", "2026-11-16"]);
   });
   it("com data-base e limite de repetições", () => {
-    const r = datas(afazer({ data: "2026-11-01", rotina: { tipo: "dias_especificos", diasSemana: [4], totalRepeticoes: 2 } }));
+    const r = datas(
+      afazer({ data: "2026-11-01", rotina: { tipo: "dias_especificos", diasSemana: [4], totalRepeticoes: 2 } }),
+    );
     expect(r).toEqual(["2026-11-06", "2026-11-13"]);
   });
   it("lista de dias vazia não gera nada", () => {
@@ -117,7 +126,11 @@ describe("ocorrenciasNoIntervalo — exceções (drag de uma ocorrência)", () =
     expect(datas(af)).toEqual(["2026-11-04", "2026-11-11", "2026-11-18"]);
   });
   it("vale também para rotinas com data-base (semanal)", () => {
-    const af = afazer({ data: "2026-11-02", rotina: { tipo: "semanal" }, excecoesData: { "2026-11-09": "2026-11-10" } });
+    const af = afazer({
+      data: "2026-11-02",
+      rotina: { tipo: "semanal" },
+      excecoesData: { "2026-11-09": "2026-11-10" },
+    });
     expect(datas(af)).toEqual(["2026-11-02", "2026-11-10", "2026-11-16", "2026-11-23", "2026-11-30"]);
   });
   it("afazer avulso não duplica quando há exceção apontando para ele", () => {
@@ -138,7 +151,11 @@ describe("check de rotina na aba Afazeres (#11)", () => {
   });
 
   it("aponta para a ocorrência de hoje quando existe", () => {
-    expect(ocorrenciaAtual(semanalQuarta(), "2026-11-18")).toEqual({ data: "2026-11-18", dataOriginal: "2026-11-18", concluida: false });
+    expect(ocorrenciaAtual(semanalQuarta(), "2026-11-18")).toEqual({
+      data: "2026-11-18",
+      dataOriginal: "2026-11-18",
+      concluida: false,
+    });
   });
 
   it("sem ocorrência hoje, aponta para a próxima", () => {
@@ -147,11 +164,17 @@ describe("check de rotina na aba Afazeres (#11)", () => {
 
   it("ocorrência concluída é reconhecida pela data natural, mesmo arrastada (#14)", () => {
     const af = semanalQuarta({ excecoesData: { "2026-11-18": "2026-11-19" }, datasConcluidas: ["2026-11-18"] });
-    expect(ocorrenciaAtual(af, "2026-11-19")).toEqual({ data: "2026-11-19", dataOriginal: "2026-11-18", concluida: true });
+    expect(ocorrenciaAtual(af, "2026-11-19")).toEqual({
+      data: "2026-11-19",
+      dataOriginal: "2026-11-18",
+      concluida: true,
+    });
   });
 
   it("rotina que já terminou (limite de repetições) não tem ocorrência atual", () => {
-    expect(ocorrenciaAtual(afazer({ data: "2026-11-01", rotina: { tipo: "diaria", totalRepeticoes: 3 } }), "2026-11-18")).toBeNull();
+    expect(
+      ocorrenciaAtual(afazer({ data: "2026-11-01", rotina: { tipo: "diaria", totalRepeticoes: 3 } }), "2026-11-18"),
+    ).toBeNull();
   });
 });
 

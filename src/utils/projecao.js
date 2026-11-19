@@ -21,14 +21,12 @@ const COR_PADRAO_AFAZER_CALENDARIO = "#8b5cf6";
 const idDoHorario = (h) => h.id || `@${h.inicio || ""}`;
 const idDaAvaliacao = (d) => d.id || `@${d.data}|${d.hora || ""}|${d.titulo}`;
 
-export const chaveAula = (dataISO, cadeira, horario) =>
-  `aulas|${dataISO}|${cadeira.id}|${idDoHorario(horario)}`;
+export const chaveAula = (dataISO, cadeira, horario) => `aulas|${dataISO}|${cadeira.id}|${idDoHorario(horario)}`;
 export const chaveCompromisso = (dataISO, compromisso, horario) =>
   `compromissos|${dataISO}|${compromisso.id}|${idDoHorario(horario)}`;
 // Avaliação acontece uma vez só: a chave não leva a data, então mudar a data
 // da prova mantém o "concluído"/"removido da agenda".
-export const chaveAvaliacao = (cadeira, avaliacao) =>
-  `avaliacoes|${cadeira.id}|${idDaAvaliacao(avaliacao)}`;
+export const chaveAvaliacao = (cadeira, avaliacao) => `avaliacoes|${cadeira.id}|${idDaAvaliacao(avaliacao)}`;
 
 // Itera dia a dia (inclusivo) chamando fn(dataISO, diaSemana 0=Seg..6=Dom).
 function paraCadaDia(inicioISO, fimISO, fn) {
@@ -52,7 +50,7 @@ export function projetarAvaliacoes(cadeiras, periodos, inicioISO, fimISO) {
         cor: c.cor,
         origem: c.nome,
         chave: chaveAvaliacao(c, d),
-      }))
+      })),
   );
 }
 

@@ -1,5 +1,5 @@
 // src/components/ui/SeletorCor.jsx
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { criarConfirmacaoAdiada } from "../../utils/confirmacaoAdiada";
 
 const HEX_VALIDO = /^#([0-9a-fA-F]{6})$/;

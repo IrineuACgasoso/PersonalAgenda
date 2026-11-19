@@ -1,10 +1,12 @@
 // src/components/cadeira/AbaLinks.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Edit2, Link as LinkIcon, ExternalLink, Copy, Check, X, KeyRound } from "lucide-react";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
+import useDialogos from "../../hooks/useDialogos";
 import { normalizarUrl, hrefSeguro } from "../../utils/links.js";
 
 export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
+  const { avisar } = useDialogos();
   const [tipo, setTipo] = useState("link"); // "link" | "classroom"
   const [titulo, setTitulo] = useState("");
   const [url, setUrl] = useState("");
@@ -26,26 +28,32 @@ export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
     if (tipo === "classroom") {
       const c = codigoClassroom.trim();
       if (!t || !c) {
-        window.alert("Preencha o título e o código do Classroom.");
+        avisar("Preencha o título e o código do Classroom.", { titulo: "Faltam dados" });
         return;
       }
       const payload = { titulo: t, codigoClassroom: c, isClassroom: true, url: "" };
       if (editandoId) {
         if (onEditar) onEditar(editandoId, payload);
-        else { onRemover(editandoId); onAdd(payload); }
+        else {
+          onRemover(editandoId);
+          onAdd(payload);
+        }
       } else {
         onAdd(payload);
       }
     } else {
       const u = url.trim();
       if (!t || !u) {
-        window.alert("Preencha o título e o link.");
+        avisar("Preencha o título e o link.", { titulo: "Faltam dados" });
         return;
       }
       const payload = { titulo: t, url: normalizarUrl(u), isClassroom: false, codigoClassroom: "" };
       if (editandoId) {
         if (onEditar) onEditar(editandoId, payload);
-        else { onRemover(editandoId); onAdd(payload); }
+        else {
+          onRemover(editandoId);
+          onAdd(payload);
+        }
       } else {
         onAdd(payload);
       }
@@ -162,88 +170,84 @@ export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
             return aClassroom === bClassroom ? 0 : aClassroom ? -1 : 1;
           })
           .map((l) => {
-          const ehClassroom = l.isClassroom || !!l.codigoClassroom;
+            const ehClassroom = l.isClassroom || !!l.codigoClassroom;
 
-          if (ehClassroom) {
+            if (ehClassroom) {
+              return (
+                <div key={l.id} className="link-item" style={{ cursor: "default" }}>
+                  <KeyRound size={14} style={{ opacity: 0.6, flexShrink: 0, color: "#10b981" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="item-linha-titulo">{l.titulo}</div>
+                    <div className="subtle" style={{ fontFamily: "monospace", fontSize: 13, color: "#10b981" }}>
+                      Código: <strong>{l.codigoClassroom}</strong>
+                    </div>
+                  </div>
+                  <button
+                    className="btn-secundario"
+                    style={{ padding: "4px 8px", fontSize: 11 }}
+                    onClick={(e) => copiarCodigo(e, l.id, l.codigoClassroom)}
+                    title="Copiar código"
+                  >
+                    {copiadoId === l.id ? <Check size={12} /> : <Copy size={12} />}
+                    {copiadoId === l.id ? " Copiado!" : " Copiar"}
+                  </button>
+                  <button
+                    className="icon-btn-ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      iniciarEdicao(l);
+                    }}
+                    title="Editar"
+                  >
+                    <Edit2 size={13} />
+                  </button>
+                  <button
+                    className="icon-btn-ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemover(l.id);
+                    }}
+                    title="Excluir"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            }
+
             return (
-              <div key={l.id} className="link-item" style={{ cursor: "default" }}>
-                <KeyRound size={14} style={{ opacity: 0.6, flexShrink: 0, color: "#10b981" }} />
+              <a key={l.id} href={hrefSeguro(l.url)} target="_blank" rel="noopener noreferrer" className="link-item">
+                <LinkIcon size={14} style={{ opacity: 0.6, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="item-linha-titulo">{l.titulo}</div>
-                  <div className="subtle" style={{ fontFamily: "monospace", fontSize: 13, color: "#10b981" }}>
-                    Código: <strong>{l.codigoClassroom}</strong>
-                  </div>
+                  <div className="subtle link-item-url">{l.url}</div>
                 </div>
-                <button
-                  className="btn-secundario"
-                  style={{ padding: "4px 8px", fontSize: 11 }}
-                  onClick={(e) => copiarCodigo(e, l.id, l.codigoClassroom)}
-                  title="Copiar código"
-                >
-                  {copiadoId === l.id ? <Check size={12} /> : <Copy size={12} />}
-                  {copiadoId === l.id ? " Copiado!" : " Copiar"}
-                </button>
+                <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />
                 <button
                   className="icon-btn-ghost"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     iniciarEdicao(l);
                   }}
-                  title="Editar"
+                  title="Editar link"
                 >
                   <Edit2 size={13} />
                 </button>
                 <button
                   className="icon-btn-ghost"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    if (window.confirm(`Excluir o código do Classroom "${l.titulo}"?`)) {
-                      onRemover(l.id);
-                    }
+                    onRemover(l.id);
                   }}
-                  title="Excluir"
+                  title="Excluir link"
                 >
                   <Trash2 size={13} />
                 </button>
-              </div>
+              </a>
             );
-          }
-
-          return (
-            <a key={l.id} href={hrefSeguro(l.url)} target="_blank" rel="noopener noreferrer" className="link-item">
-              <LinkIcon size={14} style={{ opacity: 0.6, flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="item-linha-titulo">{l.titulo}</div>
-                <div className="subtle link-item-url">{l.url}</div>
-              </div>
-              <ExternalLink size={12} style={{ opacity: 0.5, flexShrink: 0 }} />
-              <button
-                className="icon-btn-ghost"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  iniciarEdicao(l);
-                }}
-                title="Editar link"
-              >
-                <Edit2 size={13} />
-              </button>
-              <button
-                className="icon-btn-ghost"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (window.confirm(`Excluir o link "${l.titulo}"?`)) {
-                    onRemover(l.id);
-                  }
-                }}
-                title="Excluir link"
-              >
-                <Trash2 size={13} />
-              </button>
-            </a>
-          );
-        })}
+          })}
       </div>
     </div>
   );

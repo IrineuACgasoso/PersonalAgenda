@@ -1,5 +1,5 @@
 // src/components/VisaoCadeiras.jsx
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Clock, Link as LinkIcon, Calendar, Check, Edit2, X } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorPeriodo from "./ui/SeletorPeriodo.jsx";
@@ -18,7 +18,7 @@ export default function VisaoCadeiras({
   onExcluirPeriodo,
 }) {
   const [novoNome, setNovoNome] = useState("");
-  
+
   // Estado local para controlar as datas sem bug de re-render
   const [dataInicio, setDataInicio] = useState(periodoAtivo?.dataInicio || "");
   const [dataFim, setDataFim] = useState(periodoAtivo?.dataFim || "");
@@ -38,6 +38,8 @@ export default function VisaoCadeiras({
     setDataFim(periodoAtivo?.dataFim || "");
     setSalvo(false);
     setEditandoDatas(false);
+    // Só ao trocar de período: não sobrescrever a edição em andamento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodoAtivo?.id]);
 
   const adicionar = () => {
@@ -110,20 +112,10 @@ export default function VisaoCadeiras({
           <div className="periodo-duracao-acoes">
             {editandoDatas ? (
               <>
-                <button
-                  type="button"
-                  className="icon-btn-ghost"
-                  title="Salvar datas"
-                  onClick={salvarDatas}
-                >
+                <button type="button" className="icon-btn-ghost" title="Salvar datas" onClick={salvarDatas}>
                   <Check size={15} color="#10b981" />
                 </button>
-                <button
-                  type="button"
-                  className="icon-btn-ghost"
-                  title="Cancelar"
-                  onClick={cancelarEdicaoDatas}
-                >
+                <button type="button" className="icon-btn-ghost" title="Cancelar" onClick={cancelarEdicaoDatas}>
                   <X size={15} />
                 </button>
               </>
@@ -176,13 +168,19 @@ export default function VisaoCadeiras({
                 </div>
                 <div className="card-meta">
                   <Clock size={12} />
-                  <span>{c.horarios.length} horário{c.horarios.length !== 1 ? "s" : ""}</span>
+                  <span>
+                    {c.horarios.length} horário{c.horarios.length !== 1 ? "s" : ""}
+                  </span>
                   <span className="separador">·</span>
                   <LinkIcon size={12} />
-                  <span>{c.links.length} link{c.links.length !== 1 ? "s" : ""}</span>
+                  <span>
+                    {c.links.length} link{c.links.length !== 1 ? "s" : ""}
+                  </span>
                   <span className="separador">·</span>
                   <Calendar size={12} />
-                  <span>{c.datas.length} data{c.datas.length !== 1 ? "s" : ""}</span>
+                  <span>
+                    {c.datas.length} data{c.datas.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
               </div>
             </div>

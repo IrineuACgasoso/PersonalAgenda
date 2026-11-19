@@ -1,0 +1,223 @@
+/* modal.css
+   Diálogos próprios (#17: ui/Dialogos.jsx, ModalTexto, ModalRestaurarNuvem)
+   e o toast com "Desfazer" (#18). Ficam acima de tudo: drawer (z 50),
+   sidebar móvel (z 60). Ajustes de mobile em mobile.css. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  animation: modal-surgir 0.12s ease-out;
+}
+
+.modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 18px 18px 16px;
+  border-radius: var(--raio-lg);
+  border: 1px solid var(--vidro-borda-forte);
+  background: var(--bg-elevado);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  color: var(--texto);
+}
+
+.modal-largo {
+  max-width: 520px;
+}
+
+.modal-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-titulo {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.modal-fechar {
+  display: flex;
+  padding: 4px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--texto-fraco);
+  cursor: pointer;
+}
+
+.modal-fechar:hover {
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.modal-corpo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.modal-icone {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent-2);
+}
+
+.modal-icone.perigo {
+  color: #f87171;
+}
+
+.modal-texto {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #d4d4dc;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.modal-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn-perigo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 15px;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: var(--raio-sm);
+  background: rgba(239, 68, 68, 0.85);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-perigo:hover {
+  background: rgb(239, 68, 68);
+}
+
+/* ---------- Restaurar da nuvem (ModalRestaurarNuvem.jsx) ---------- */
+.restaurar-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.restaurar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--texto);
+  font-size: 14.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.restaurar-item:hover:not(:disabled) {
+  border-color: var(--vidro-borda-forte);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.restaurar-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.restaurar-item-resumo {
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+}
+
+.restaurar-estado {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--texto-fraco);
+}
+
+/* ---------- Toast (aviso rápido com "Desfazer") ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 90;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(480px, calc(100vw - 32px));
+  padding: 10px 10px 10px 16px;
+  border-radius: var(--raio-md);
+  border: 1px solid var(--vidro-borda-forte);
+  background: #1b1d24;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: var(--texto);
+  font-size: 14px;
+  animation: modal-surgir 0.15s ease-out;
+}
+
+.toast-texto {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toast-acao {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(129, 140, 248, 0.16);
+  color: var(--accent-2);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toast-acao:hover {
+  background: rgba(129, 140, 248, 0.28);
+}
+
+.toast-fechar {
+  display: flex;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--texto-fraco);
+  cursor: pointer;
+}
+
+@keyframes modal-surgir {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

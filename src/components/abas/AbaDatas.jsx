@@ -1,10 +1,12 @@
 // src/components/cadeira/AbaDatas.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Edit2, Calendar, Check, X } from "lucide-react";
 import { formatarData } from "../../utils/formatarData.js";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
+import useDialogos from "../../hooks/useDialogos";
 
 export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
+  const { avisar } = useDialogos();
   const [titulo, setTitulo] = useState("");
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
@@ -20,7 +22,7 @@ export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
   const salvar = () => {
     const t = titulo.trim();
     if (!t || !data) {
-      window.alert("Preencha o título e a data.");
+      avisar("Preencha o título e a data.", { titulo: "Faltam dados" });
       return;
     }
     if (editandoId) {
@@ -76,20 +78,15 @@ export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
               <Calendar size={14} style={{ opacity: 0.6 }} />
               <div style={{ flex: 1 }}>
                 <div className="item-linha-titulo">{d.titulo}</div>
-                <div className="subtle">{formatarData(d.data)}{d.hora ? ` · ${d.hora}` : ""}</div>
+                <div className="subtle">
+                  {formatarData(d.data)}
+                  {d.hora ? ` · ${d.hora}` : ""}
+                </div>
               </div>
               <button className="icon-btn-ghost" onClick={() => iniciarEdicao(d)} title="Editar data">
                 <Edit2 size={13} />
               </button>
-              <button
-                className="icon-btn-ghost"
-                onClick={() => {
-                  if (window.confirm(`Excluir a data "${d.titulo}"?`)) {
-                    onRemover(d.id);
-                  }
-                }}
-                title="Excluir data"
-              >
+              <button className="icon-btn-ghost" onClick={() => onRemover(d.id)} title="Excluir data">
                 <Trash2 size={13} />
               </button>
             </div>

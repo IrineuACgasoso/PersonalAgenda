@@ -1,5 +1,5 @@
 // src/components/VisaoCompromissos.jsx
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Plus, Trash2, Clock } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
@@ -59,7 +59,9 @@ export default function VisaoCompromissos({ periodoAtivo, compromissos, onCriar,
                 </div>
                 <div className="card-meta">
                   <Clock size={12} />
-                  <span>{c.horarios.length} horário{c.horarios.length !== 1 ? "s" : ""}</span>
+                  <span>
+                    {c.horarios.length} horário{c.horarios.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
               </div>
             </div>

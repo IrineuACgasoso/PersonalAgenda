@@ -44,7 +44,7 @@ describe("resolverGravacao", () => {
     const final = simularPersists(
       inicial,
       atualizarCadeira("c1", { nome: "Novo" }),
-      atualizarCadeira("c1", { horarios: [...c.horarios, horario()] })
+      atualizarCadeira("c1", { horarios: [...c.horarios, horario()] }),
     );
     expect(final.cadeiras[0].nome).toBe("Novo");
     expect(final.cadeiras[0].horarios).toHaveLength(1);
@@ -118,9 +118,18 @@ describe("criarDespachante (#54)", () => {
   it("dispara cada gravação na hora, mesmo com a anterior pendente (offline)", () => {
     const d = criarDespachante();
     const chamadas = [];
-    d.enviar(() => { chamadas.push(1); return new Promise(() => {}); }); // nunca confirma
-    d.enviar(() => { chamadas.push(2); return new Promise(() => {}); });
-    d.enviar(() => { chamadas.push(3); return new Promise(() => {}); });
+    d.enviar(() => {
+      chamadas.push(1);
+      return new Promise(() => {});
+    }); // nunca confirma
+    d.enviar(() => {
+      chamadas.push(2);
+      return new Promise(() => {});
+    });
+    d.enviar(() => {
+      chamadas.push(3);
+      return new Promise(() => {});
+    });
     // Antes do #54, só a 1ª chegava ao Firestore; as outras ficavam na memória.
     expect(chamadas).toEqual([1, 2, 3]);
     expect(d.pendentes).toBe(3);
@@ -152,7 +161,9 @@ describe("criarDespachante (#54)", () => {
   it("nunca rejeita: erro (inclusive síncrono, ex. localStorage cheio) vira ok=false", async () => {
     const d = criarDespachante();
     const erro = new Error("QuotaExceededError");
-    const r1 = await d.enviar(() => { throw erro; });
+    const r1 = await d.enviar(() => {
+      throw erro;
+    });
     expect(r1).toEqual({ ok: false, erro, ultima: true });
     const r2 = await d.enviar(() => Promise.reject(erro));
     expect(r2).toEqual({ ok: false, erro, ultima: true });

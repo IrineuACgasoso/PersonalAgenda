@@ -1,22 +1,21 @@
 // src/components/PainelCompromisso.jsx
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
-import { uid } from "../utils/id";
+import useListaInterna from "../hooks/useListaInterna";
+import { DIAS_FULL } from "../constants";
 import AbaHorarios from "./abas/AbaHorarios";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
-export default function PainelCompromisso({
-  compromisso,
-  periodos = [],
-  onFechar,
-  onAtualizar,
-  onExcluir,
-}) {
+const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
+
+export default function PainelCompromisso({ compromisso, periodos = [], onFechar, onAtualizar, onExcluir }) {
   const [nomeEdit, setNomeEdit] = useState(compromisso.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
 
+  // Só ao trocar de compromisso (mesmo motivo do PainelCadeira).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setNomeEdit(compromisso.nome), [compromisso.id]);
 
   const salvarNome = () => {
@@ -24,15 +23,12 @@ export default function PainelCompromisso({
     if (v && v !== compromisso.nome) onAtualizar({ nome: v });
   };
 
-  /* horários */
-  const addHorario = (h) =>
-    onAtualizar({ horarios: [...compromisso.horarios, { id: uid(), ...h }] });
-  const rmHorario = (id) =>
-    onAtualizar({ horarios: compromisso.horarios.filter((h) => h.id !== id) });
-  const editHorario = (id, patch) =>
-    onAtualizar({
-      horarios: compromisso.horarios.map((h) => (h.id === id ? { ...h, ...patch } : h)),
-    });
+  /* horários: leem o compromisso mais recente; excluir tem "Desfazer" (#18) */
+  const {
+    adicionar: addHorario,
+    remover: rmHorario,
+    editar: editHorario,
+  } = useListaInterna("horarios", onAtualizar, textoHorarioExcluido);
 
   return (
     <div className="overlay" onClick={onFechar}>
@@ -45,11 +41,7 @@ export default function PainelCompromisso({
             onChange={(e) => setNomeEdit(e.target.value)}
             onBlur={salvarNome}
           />
-          <button
-            className="icon-btn-ghost"
-            onClick={onExcluir}
-            title="Excluir compromisso"
-          >
+          <button className="icon-btn-ghost" onClick={onExcluir} title="Excluir compromisso">
             <Trash2 size={15} />
           </button>
           <button className="icon-btn-ghost" onClick={onFechar}>
@@ -73,7 +65,9 @@ export default function PainelCompromisso({
             }}
           >
             {periodos.map((p) => (
-              <option key={p.id} value={p.id}>{p.nome}</option>
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
             ))}
           </select>
           <span className="subtle" style={{ fontSize: 11, display: "block", marginTop: 4 }}>
@@ -82,7 +76,9 @@ export default function PainelCompromisso({
         </div>
 
         <div className="painel-conteudo" style={{ paddingTop: 18 }}>
-          <h2 className="titulo-secao" style={{ marginBottom: 4 }}>Horários</h2>
+          <h2 className="titulo-secao" style={{ marginBottom: 4 }}>
+            Horários
+          </h2>
           <AbaHorarios
             horarios={compromisso.horarios}
             onAdd={addHorario}

@@ -1,13 +1,13 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
 import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from "firebase/firestore";
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -44,21 +44,29 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
   console.error("Erro ao definir persistência de login:", err);
 });
 
+// Devolve { ok: true, user } ou { ok: false, mensagem }. A mensagem é
+// mostrada pelo App num diálogo próprio (#17) — antes era um alert().
+// `mensagem` null = o usuário só fechou o popup; nada a avisar.
 export const loginComGoogle = async () => {
   try {
     const res = await signInWithPopup(auth, googleProvider);
-    
+
     // Trava de e-mail exclusivo
     if (res.user.email !== EMAIL_PERMITIDO) {
       await signOut(auth);
-      alert(`Acesso negado! Apenas o e-mail ${EMAIL_PERMITIDO} tem permissão para acessar este painel.`);
-      return null;
+      return {
+        ok: false,
+        mensagem: `Acesso negado! Apenas o e-mail ${EMAIL_PERMITIDO} tem permissão para acessar este painel.`,
+      };
     }
 
-    return res.user;
+    return { ok: true, user: res.user };
   } catch (error) {
+    if (error?.code === "auth/popup-closed-by-user" || error?.code === "auth/cancelled-popup-request") {
+      return { ok: false, mensagem: null };
+    }
     console.error("Erro ao fazer login:", error);
-    alert(`Não foi possível realizar o login: ${error.message}`);
+    return { ok: false, mensagem: `Não foi possível realizar o login: ${error.message}` };
   }
 };
 

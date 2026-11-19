@@ -225,7 +225,8 @@ firebase deploy --only firestore:rules
 
 ```bash
 npm test          # testes (Vitest)
-npm run check     # testes + build
+npm run check     # lint + testes + build
+npm run format    # formata o código (Prettier)
 npm run build     # gera dist/
 npm run preview   # serve o build localmente
 ```

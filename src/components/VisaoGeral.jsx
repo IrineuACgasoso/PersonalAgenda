@@ -1,6 +1,16 @@
 // src/components/VisaoGeral.jsx
-import React, { useMemo, useRef, useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, BookOpen, GraduationCap, ListChecks, CalendarClock, Check, Plus, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  GraduationCap,
+  ListChecks,
+  CalendarClock,
+  Check,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
@@ -48,12 +58,32 @@ export default function VisaoGeral({
   const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
 
   const { filtros, alternarFiltro } = useFiltrosCalendario();
-  const eventosPorDia = useEventosCalendario({ cadeiras, compromissos, afazeres, periodos, ano, mes, filtros, eventosExcluidos });
+  const eventosPorDia = useEventosCalendario({
+    cadeiras,
+    compromissos,
+    afazeres,
+    periodos,
+    ano,
+    mes,
+    filtros,
+    eventosExcluidos,
+  });
 
   const celulas = useMemo(() => gerarCelulasMes(ano, mes), [ano, mes]);
 
   // ---- estado de drag (ponteiro, funciona em mouse e touch) ----
-  const dragRef = useRef({ ativo: false, armado: false, ponteiroId: null, evento: null, startX: 0, startY: 0, elemento: null, timer: null, lastX: 0, lastY: 0 });
+  const dragRef = useRef({
+    ativo: false,
+    armado: false,
+    ponteiroId: null,
+    evento: null,
+    startX: 0,
+    startY: 0,
+    elemento: null,
+    timer: null,
+    lastX: 0,
+    lastY: 0,
+  });
   const [itemArrastando, setItemArrastando] = useState(null); // { id, titulo, cor, x, y }
   const [diaAlvo, setDiaAlvo] = useState(null);
   const [itemPronto, setItemPronto] = useState(null); // id do item "armado" para arrastar (feedback visual no toque)
@@ -149,17 +179,14 @@ export default function VisaoGeral({
 
   // Remove só esta ocorrência do dia (ex: aula cancelada, compromisso que
   // não vai acontecer) — nunca apaga o horário/afazer recorrente inteiro,
-  // só esconde esse dia específico da agenda.
+  // só esconde esse dia específico da agenda. Sem confirm(): o App mostra um
+  // toast com "Desfazer" (#18).
   const excluirInstancia = (ev) => {
     if (!onExcluirInstanciaEvento) return;
     const ehRotina = ev.tipo === "afazeres" && ev.rotina && ev.rotina.tipo !== "nenhuma";
     const ehRecorrente = ev.tipo === "aulas" || ev.tipo === "compromissos" || ehRotina;
-    const pergunta = ehRecorrente
-      ? `Remover "${ev.titulo}" só deste dia? As outras ocorrências continuam normalmente.`
-      : `Remover "${ev.titulo}" da agenda?`;
-    if (window.confirm(pergunta)) {
-      onExcluirInstanciaEvento(ev.chave);
-    }
+    const texto = ehRecorrente ? `"${ev.titulo}" removido só deste dia` : `"${ev.titulo}" removido da agenda`;
+    onExcluirInstanciaEvento(ev.chave, texto);
   };
   // pendentes primeiro (por horário/urgência), concluídos vão para o final —
   // dentro dos pendentes, afazeres de maior urgência sobem para o topo; sort
@@ -176,6 +203,8 @@ export default function VisaoGeral({
       if (aa !== ab) return ab - aa;
       return (b.urgencia || 0) - (a.urgencia || 0);
     });
+    // eventoEstaConcluido só lê eventosConcluidos (já nas deps).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diaSelecionado, eventosPorDia, eventosConcluidos]);
 
   // ---- handlers de drag (só afazeres podem ser arrastados) ----
@@ -344,7 +373,10 @@ export default function VisaoGeral({
         ))}
       </div>
 
-      <div className="proximas-datas" style={{ marginTop: 0, marginBottom: 20, minHeight: "230px", display: "flex", flexDirection: "column" }}>
+      <div
+        className="proximas-datas"
+        style={{ marginTop: 0, marginBottom: 20, minHeight: "230px", display: "flex", flexDirection: "column" }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <h2 className="titulo-secao" style={{ marginBottom: 0 }}>
             {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
@@ -362,10 +394,17 @@ export default function VisaoGeral({
         </div>
 
         <div style={{ flex: 1, position: "relative" }}>
-          {!diaSelecionado && <EstadoVazio texto="Clique em qualquer dia do calendário para ver a programação detalhada." pequeno />}
-          {diaSelecionado && eventosDoDiaSelecionado.length === 0 && <EstadoVazio texto="Nenhum evento neste dia" pequeno />}
+          {!diaSelecionado && (
+            <EstadoVazio texto="Clique em qualquer dia do calendário para ver a programação detalhada." pequeno />
+          )}
+          {diaSelecionado && eventosDoDiaSelecionado.length === 0 && (
+            <EstadoVazio texto="Nenhum evento neste dia" pequeno />
+          )}
           {diaSelecionado && eventosDoDiaSelecionado.length > 0 && (
-            <div className="lista-proximas-datas" style={{ maxHeight: "300px", overflowY: "auto", scrollBehavior: "smooth", paddingRight: "4px" }}>
+            <div
+              className="lista-proximas-datas"
+              style={{ maxHeight: "300px", overflowY: "auto", scrollBehavior: "smooth", paddingRight: "4px" }}
+            >
               {eventosDoDiaSelecionado.map((ev, i) => {
                 const concluido = eventoEstaConcluido(ev);
                 const arrastavel = ev.tipo === "afazeres" && (!!onAtualizarAfazer || !!onMoverInstanciaAfazer);
@@ -431,7 +470,9 @@ export default function VisaoGeral({
         <button ref={prevBtnRef} className="icon-btn-ghost" onClick={irMesAnterior}>
           <ChevronLeft size={18} />
         </button>
-        <span className="calendario-titulo">{NOME_MESES[mes]} {ano}</span>
+        <span className="calendario-titulo">
+          {NOME_MESES[mes]} {ano}
+        </span>
         <button ref={nextBtnRef} className="icon-btn-ghost" onClick={irProximoMes}>
           <ChevronRight size={18} />
         </button>
@@ -439,7 +480,9 @@ export default function VisaoGeral({
 
       <div className="calendario-grid-head">
         {DIAS_FULL.map((d) => (
-          <div key={d} className="calendario-dia-head">{d.slice(0, 3)}</div>
+          <div key={d} className="calendario-dia-head">
+            {d.slice(0, 3)}
+          </div>
         ))}
       </div>
 
@@ -456,14 +499,39 @@ export default function VisaoGeral({
 
           let celulaStyle = { transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)" };
           if (ehHoje && !selecionada) {
-            celulaStyle = { ...celulaStyle, border: "1px solid rgba(255, 255, 255, 0.55)", backgroundColor: "rgba(255, 255, 255, 0.06)" };
+            celulaStyle = {
+              ...celulaStyle,
+              border: "1px solid rgba(255, 255, 255, 0.55)",
+              backgroundColor: "rgba(255, 255, 255, 0.06)",
+            };
           } else if (selecionada && !ehHoje) {
-            celulaStyle = { ...celulaStyle, borderColor: "#818cf8", backgroundColor: "rgba(129, 140, 248, 0.18)", boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(129, 140, 248, 0.3)", transform: "scale(1.05)", zIndex: 2 };
+            celulaStyle = {
+              ...celulaStyle,
+              borderColor: "#818cf8",
+              backgroundColor: "rgba(129, 140, 248, 0.18)",
+              boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(129, 140, 248, 0.3)",
+              transform: "scale(1.05)",
+              zIndex: 2,
+            };
           } else if (selecionada && ehHoje) {
-            celulaStyle = { ...celulaStyle, border: "2px solid rgba(255, 255, 255, 0.7)", backgroundColor: "rgba(129, 140, 248, 0.22)", boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(255, 255, 255, 0.3)", transform: "scale(1.05)", zIndex: 2 };
+            celulaStyle = {
+              ...celulaStyle,
+              border: "2px solid rgba(255, 255, 255, 0.7)",
+              backgroundColor: "rgba(129, 140, 248, 0.22)",
+              boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(255, 255, 255, 0.3)",
+              transform: "scale(1.05)",
+              zIndex: 2,
+            };
           }
           if (ehAlvoDrag) {
-            celulaStyle = { ...celulaStyle, borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.22)", boxShadow: "0 0 0 2px #f59e0b, 0 4px 14px rgba(245, 158, 11, 0.4)", transform: "scale(1.08)", zIndex: 3 };
+            celulaStyle = {
+              ...celulaStyle,
+              borderColor: "#f59e0b",
+              backgroundColor: "rgba(245, 158, 11, 0.22)",
+              boxShadow: "0 0 0 2px #f59e0b, 0 4px 14px rgba(245, 158, 11, 0.4)",
+              transform: "scale(1.08)",
+              zIndex: 3,
+            };
           }
           // Data com prova/trabalho/avaliação de alguma cadeira: preenchimento com
           // opacidade média + glow na cor DA PRÓPRIA CADEIRA, somado (não
@@ -474,7 +542,9 @@ export default function VisaoGeral({
             celulaStyle = {
               ...celulaStyle,
               backgroundColor: celulaStyle.backgroundColor || `rgba(${rgb}, 0.16)`,
-              boxShadow: celulaStyle.boxShadow ? `${celulaStyle.boxShadow}, ${glowAvaliacao}` : `0 0 0 1px rgba(${rgb}, 0.55), ${glowAvaliacao}`,
+              boxShadow: celulaStyle.boxShadow
+                ? `${celulaStyle.boxShadow}, ${glowAvaliacao}`
+                : `0 0 0 1px rgba(${rgb}, 0.55), ${glowAvaliacao}`,
             };
           }
 
@@ -497,10 +567,19 @@ export default function VisaoGeral({
                 className="calendario-numero"
                 style={
                   ehHoje
-                    ? { background: "#f4f4f5", color: "#09090b", fontWeight: "700", borderRadius: "12px", padding: "1px 7px", display: "inline-block", fontSize: "0.82rem", boxShadow: "0 2px 4px rgba(255, 255, 255, 0.25)" }
+                    ? {
+                        background: "#f4f4f5",
+                        color: "#09090b",
+                        fontWeight: "700",
+                        borderRadius: "12px",
+                        padding: "1px 7px",
+                        display: "inline-block",
+                        fontSize: "0.82rem",
+                        boxShadow: "0 2px 4px rgba(255, 255, 255, 0.25)",
+                      }
                     : selecionada
-                    ? { fontWeight: 800, color: "#ffffff", textShadow: "0 0 6px rgba(129, 140, 248, 0.8)" }
-                    : {}
+                      ? { fontWeight: 800, color: "#ffffff", textShadow: "0 0 6px rgba(129, 140, 248, 0.8)" }
+                      : {}
                 }
               >
                 {dia}

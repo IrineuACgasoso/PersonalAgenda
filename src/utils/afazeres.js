@@ -27,8 +27,7 @@ export function ocorrenciasNoIntervalo(afazer, inicioISO, fimISO) {
   const tipo = afazer.rotina?.tipo || "nenhuma";
   const inicioRange = parseISO(inicioISO);
   const fimRange = parseISO(fimISO);
-  const excecoes =
-    afazer.excecoesData && typeof afazer.excecoesData === "object" ? afazer.excecoesData : {};
+  const excecoes = afazer.excecoesData && typeof afazer.excecoesData === "object" ? afazer.excecoesData : {};
 
   const resultado = [];
   const origensComExcecao = new Set(Object.keys(excecoes));
@@ -60,9 +59,7 @@ export function ocorrenciasNoIntervalo(afazer, inicioISO, fimISO) {
     if (dias.length > 0) {
       const temDataBase = !!afazer.data;
       const limiteRepeticoes =
-        temDataBase && Number(afazer.rotina?.totalRepeticoes) > 0
-          ? Number(afazer.rotina.totalRepeticoes)
-          : null;
+        temDataBase && Number(afazer.rotina?.totalRepeticoes) > 0 ? Number(afazer.rotina.totalRepeticoes) : null;
 
       let cursor = temDataBase ? new Date(parseISO(afazer.data)) : new Date(inicioRange);
 
@@ -113,9 +110,7 @@ export function ocorrenciasNoIntervalo(afazer, inicioISO, fimISO) {
 }
 
 function gerarOcorrenciasComData(afazer, tipo, inicioBase, inicioRange, fimRange, naturais) {
-  const limiteRepeticoes = Number(afazer.rotina?.totalRepeticoes) > 0
-    ? Number(afazer.rotina.totalRepeticoes)
-    : null;
+  const limiteRepeticoes = Number(afazer.rotina?.totalRepeticoes) > 0 ? Number(afazer.rotina.totalRepeticoes) : null;
 
   // Mensal (#12): a n-ésima ocorrência é calculada a partir da data-base, e
   // não do cursor anterior, limitada ao último dia do mês. Antes,

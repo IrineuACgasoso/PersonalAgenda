@@ -1,5 +1,4 @@
 // src/components/ui/TelaErroCarga.jsx
-import React from "react";
 import { WifiOff, RefreshCw, CloudOff } from "lucide-react";
 
 /**
@@ -49,8 +48,8 @@ export default function TelaErroCarga({ motivo, online, tentando, onTentarDeNovo
         </div>
         {onUsarSemLogin && (
           <p className="tela-erro-carga-nota">
-            "Usar sem login" sai da conta e abre só os dados salvos neste aparelho — o que você editar assim
-            não vai para a nuvem.
+            "Usar sem login" sai da conta e abre só os dados salvos neste aparelho — o que você editar assim não vai
+            para a nuvem.
           </p>
         )}
       </div>

@@ -1,4 +1,3 @@
-import React from "react";
 import { URGENCIA_CORES, URGENCIA_LABELS } from "../../constants.js";
 
 export default function BarraUrgencia({ nivel }) {

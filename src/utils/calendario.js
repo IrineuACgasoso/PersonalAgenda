@@ -2,8 +2,18 @@
 import { toISO } from "./afazeres.js";
 
 export const NOME_MESES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 // Converte um hex ("#10b981" ou "#0b9") para "r, g, b", pra poder montar
@@ -13,7 +23,10 @@ export function hexParaRgb(hex) {
   if (!hex || typeof hex !== "string") return "148, 148, 158";
   let h = hex.trim().replace("#", "");
   if (h.length === 3) {
-    h = h.split("").map((c) => c + c).join("");
+    h = h
+      .split("")
+      .map((c) => c + c)
+      .join("");
   }
   if (!/^[0-9a-fA-F]{6}$/.test(h)) return "148, 148, 158";
   const r = parseInt(h.slice(0, 2), 16);

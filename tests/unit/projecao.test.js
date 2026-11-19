@@ -7,7 +7,12 @@ const NOV = { inicioISO: "2026-11-01", fimISO: "2026-11-30", hojeISO: "2026-11-1
 const titulos = (mapa, dia) => (mapa[dia] || []).map((e) => e.titulo);
 
 describe("aulas", () => {
-  const c = cadeira({ id: "c1", periodoId: "p", nome: "IP", horarios: [horario({ id: "h1", dia: 0, inicio: "08:00" })] });
+  const c = cadeira({
+    id: "c1",
+    periodoId: "p",
+    nome: "IP",
+    horarios: [horario({ id: "h1", dia: 0, inicio: "08:00" })],
+  });
 
   it("aparecem só no dia da semana do horário (segundas de novembro)", () => {
     const m = projetarEventos({ ...NOV, cadeiras: [c], periodos: [periodo({ id: "p" })] });
@@ -29,14 +34,22 @@ describe("aulas", () => {
   });
 
   it("filtro desligado remove as aulas", () => {
-    const m = projetarEventos({ ...NOV, cadeiras: [c], filtros: { aulas: false, avaliacoes: true, compromissos: true, afazeres: true } });
+    const m = projetarEventos({
+      ...NOV,
+      cadeiras: [c],
+      filtros: { aulas: false, avaliacoes: true, compromissos: true, afazeres: true },
+    });
     expect(titulos(m, "2026-11-02")).toEqual([]);
   });
 });
 
 describe("avaliações", () => {
   it("aparecem na data, com a cor da cadeira", () => {
-    const c = cadeira({ nome: "IP", cor: "#f00", datas: [{ id: "d", titulo: "Prova 1", data: "2026-11-20", hora: "10:00" }] });
+    const c = cadeira({
+      nome: "IP",
+      cor: "#f00",
+      datas: [{ id: "d", titulo: "Prova 1", data: "2026-11-20", hora: "10:00" }],
+    });
     const [ev] = projetarEventos({ ...NOV, cadeiras: [c] })["2026-11-20"];
     expect(ev).toMatchObject({ tipo: "avaliacoes", titulo: "Prova 1", cor: "#f00", origem: "IP" });
   });
@@ -84,7 +97,11 @@ describe("afazeres", () => {
     expect(ev).toMatchObject({ feito: true, dataOriginal: "2026-11-11", chave: "afazeres|r1|2026-11-11" });
   });
   it("ocorrência excluída não volta ao ser arrastada: a chave usa a data natural (#14)", () => {
-    const af = afazer({ id: "r1", rotina: { tipo: "dias_especificos", diasSemana: [2] }, excecoesData: { "2026-11-11": "2026-11-12" } });
+    const af = afazer({
+      id: "r1",
+      rotina: { tipo: "dias_especificos", diasSemana: [2] },
+      excecoesData: { "2026-11-11": "2026-11-12" },
+    });
     const m = projetarEventos({ ...NOV, afazeres: [af], eventosExcluidos: ["afazeres|r1|2026-11-11"] });
     expect(m["2026-11-12"]).toBeUndefined();
     expect(titulos(m, "2026-11-18")).toHaveLength(1);
@@ -102,7 +119,10 @@ describe("chaves de evento por id (#10)", () => {
   it("renomear a cadeira não muda a chave (concluídos/excluídos continuam valendo)", () => {
     const h = horario({ id: "h1", dia: 0, inicio: "08:00" });
     const antes = projetarEventos({ ...NOV, cadeiras: [cadeira({ id: "c1", nome: "IP", horarios: [h] })] });
-    const depois = projetarEventos({ ...NOV, cadeiras: [cadeira({ id: "c1", nome: "Introdução à Prog.", horarios: [h] })] });
+    const depois = projetarEventos({
+      ...NOV,
+      cadeiras: [cadeira({ id: "c1", nome: "Introdução à Prog.", horarios: [h] })],
+    });
     expect(chavesDoDia(depois, "2026-11-09")).toEqual(chavesDoDia(antes, "2026-11-09"));
   });
 
@@ -114,7 +134,11 @@ describe("chaves de evento por id (#10)", () => {
   });
 
   it("compromissos: chave por id do compromisso e do horário", () => {
-    const comp = compromisso({ id: "k1", nome: "Academia", horarios: [horario({ id: "hk", dia: 4, inicio: "18:00" })] });
+    const comp = compromisso({
+      id: "k1",
+      nome: "Academia",
+      horarios: [horario({ id: "hk", dia: 4, inicio: "18:00" })],
+    });
     const m = projetarEventos({ ...NOV, compromissos: [comp] });
     expect(chavesDoDia(m, "2026-11-06")).toEqual(["compromissos|2026-11-06|k1|hk"]);
   });
@@ -128,7 +152,13 @@ describe("chaves de evento por id (#10)", () => {
   });
 
   it("horários sem id (dado antigo) ainda geram chaves distintas", () => {
-    const c = cadeira({ id: "c1", horarios: [{ dia: 0, inicio: "08:00" }, { dia: 0, inicio: "14:00" }] });
+    const c = cadeira({
+      id: "c1",
+      horarios: [
+        { dia: 0, inicio: "08:00" },
+        { dia: 0, inicio: "14:00" },
+      ],
+    });
     const chaves = chavesDoDia(projetarEventos({ ...NOV, cadeiras: [c] }), "2026-11-09");
     expect(new Set(chaves).size).toBe(2);
   });
@@ -143,6 +173,12 @@ describe("ordenação dentro do dia", () => {
       { tipo: "afazeres", titulo: "alta", urgencia: 3 },
       { tipo: "aulas", titulo: "08h", hora: "08:00" },
     ];
-    expect([...evs].sort(compararEventosDoDia).map((e) => e.titulo)).toEqual(["08h", "10h", "alta", "semdata-alta", "media"]);
+    expect([...evs].sort(compararEventosDoDia).map((e) => e.titulo)).toEqual([
+      "08h",
+      "10h",
+      "alta",
+      "semdata-alta",
+      "media",
+    ]);
   });
 });

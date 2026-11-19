@@ -1,5 +1,4 @@
 // src/components/ui/CarregandoPainel.jsx
-import React from "react";
 
 /**
  * Tela de "boot" exibida enquanto os dados do app ainda não carregaram
@@ -32,12 +31,7 @@ export default function CarregandoPainel({ texto = "Carregando seu painel..." })
           <span className="fluxo-particula fluxo-p5" />
           <span className="fluxo-particula fluxo-p6" />
 
-          <img
-            className="fluxo-capacete"
-            src="/capacete-carregando.png"
-            alt=""
-            draggable="false"
-          />
+          <img className="fluxo-capacete" src="/capacete-carregando.png" alt="" draggable="false" />
         </div>
         <span className="painel-carregando-texto">{texto}</span>
       </div>

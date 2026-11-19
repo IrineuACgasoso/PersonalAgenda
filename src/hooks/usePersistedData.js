@@ -15,10 +15,7 @@ import { INTERVALO_NOVA_TENTATIVA_MS } from "../utils/carregamento";
 const TIMEOUT_CHECAGEM_SERVIDOR_MS = 8000;
 
 function comTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
-  ]);
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))]);
 }
 
 export default function usePersistedData() {
@@ -219,7 +216,7 @@ export default function usePersistedData() {
       (error) => {
         console.error("Erro no Firestore:", error);
         setStatus("error");
-      }
+      },
     );
 
     return () => {
@@ -271,7 +268,7 @@ export default function usePersistedData() {
       console.error(
         "persist() bloqueado: dados novos parecem vazios enquanto os atuais não estão. " +
           "Isso evita uma possível perda acidental de dados. Se isso for intencional " +
-          "(ex: o usuário excluiu tudo de propósito), revise esta trava."
+          "(ex: o usuário excluiu tudo de propósito), revise esta trava.",
       );
       setStatus("error");
     }
@@ -290,7 +287,7 @@ export default function usePersistedData() {
       .enviar(() =>
         user
           ? setDoc(doc(db, "users", user.uid), dataSanitizada)
-          : localStorage.setItem(STORAGE_KEY, JSON.stringify(dataSanitizada))
+          : localStorage.setItem(STORAGE_KEY, JSON.stringify(dataSanitizada)),
       )
       .then(({ ok, erro, ultima }) => {
         if (!ok) console.error("Erro ao salvar dados:", erro);

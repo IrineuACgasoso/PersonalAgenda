@@ -1,8 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
 import { ROTINA_OPCOES, URGENCIA_CORES, DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
-import { toISO, ehRotina, afazerConcluido, ocorrenciaAtual, dataAoSalvarAfazer, rotinaSemDataBase } from "../utils/afazeres.js";
+import useDialogos from "../hooks/useDialogos";
+import {
+  toISO,
+  ehRotina,
+  afazerConcluido,
+  ocorrenciaAtual,
+  dataAoSalvarAfazer,
+  rotinaSemDataBase,
+} from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import BarraUrgencia from "./ui/BarraUrgencia.jsx";
@@ -19,7 +27,7 @@ const LETRA_DIA = DIAS_FULL.map((d) => d[0]);
 
 function rotinaLabel(rotina) {
   if (!rotina || rotina.tipo === "nenhuma") return null;
-  let labelBase = "";
+  let labelBase;
   if (rotina.tipo === "personalizada") {
     labelBase = `a cada ${rotina.intervaloDias || 1} dia${(rotina.intervaloDias || 1) !== 1 ? "s" : ""}`;
   } else if (rotina.tipo === "dias_especificos") {
@@ -36,6 +44,7 @@ function rotinaLabel(rotina) {
 }
 
 function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNovaData, onGatilhoConsumido }) {
+  const { avisar } = useDialogos();
   const [nome, setNome] = useState("");
   const [temData, setTemData] = useState(false);
   const [data, setData] = useState("");
@@ -65,6 +74,8 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
     } else {
       limpar();
     }
+    // `limpar` é recriada a cada render; só a troca do item em edição importa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemEmEdicao]);
 
   // Veio um pedido de "novo afazer nesta data" (ex: botão + no calendário geral).
@@ -97,10 +108,11 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
 
   const submit = () => {
     const n = nome.trim();
-    if (!n) return window.alert("Dê um nome para o afazer.");
-    if (temData && !data) return window.alert("Escolha a data ou desmarque a opção de data/hora.");
+    const faltando = (texto) => avisar(texto, { titulo: "Faltam dados" });
+    if (!n) return faltando("Dê um nome para o afazer.");
+    if (temData && !data) return faltando("Escolha a data ou desmarque a opção de data/hora.");
     if (rotinaTipo === "dias_especificos" && diasSemana.length === 0) {
-      return window.alert("Escolha ao menos um dia da semana para a rotina.");
+      return faltando("Escolha ao menos um dia da semana para a rotina.");
     }
 
     onSalvar({
@@ -154,7 +166,9 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
       <div className="form-grid duas-colunas" style={{ marginTop: 8 }}>
         <select className="input" value={rotinaTipo} onChange={(e) => setRotinaTipo(e.target.value)}>
           {ROTINA_OPCOES.map((o) => (
-            <option key={o.valor} value={o.valor}>{o.label}</option>
+            <option key={o.valor} value={o.valor}>
+              {o.label}
+            </option>
           ))}
         </select>
 
@@ -349,7 +363,8 @@ export default function VisaoAfazeres({
                     {a.data && !ROTINAS_SEM_DATA_NA_LISTAGEM.includes(a.rotina?.tipo) && (
                       <span>
                         <Clock size={11} style={{ verticalAlign: "-1px", marginRight: 3 }} />
-                        {formatarData(a.data)}{a.hora ? ` · ${a.hora}` : ""}
+                        {formatarData(a.data)}
+                        {a.hora ? ` · ${a.hora}` : ""}
                       </span>
                     )}
                     {rotinaLabel(a.rotina) && (
@@ -377,15 +392,7 @@ export default function VisaoAfazeres({
                 <button className="icon-btn-ghost" onClick={() => setItemEmEdicao(a)} title="Editar afazer">
                   <Edit2 size={13} />
                 </button>
-                <button
-                  className="icon-btn-ghost"
-                  onClick={() => {
-                    if (window.confirm(`Excluir o afazer "${a.nome}"?`)) {
-                      onExcluir(a.id);
-                    }
-                  }}
-                  title="Excluir afazer"
-                >
+                <button className="icon-btn-ghost" onClick={() => onExcluir(a.id)} title="Excluir afazer">
                   <Trash2 size={13} />
                 </button>
               </div>

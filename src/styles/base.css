@@ -14,7 +14,12 @@
   --bg: #0a0b0f;
   --bg-elevado: #101216;
 
-  --vidro-grad: linear-gradient(155deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.015) 55%, rgba(255, 255, 255, 0.03) 100%);
+  --vidro-grad: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.085),
+    rgba(255, 255, 255, 0.015) 55%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
   --vidro-cor: rgba(26, 28, 34, 0.62);
   --vidro-borda: rgba(255, 255, 255, 0.09);
   --vidro-borda-forte: rgba(255, 255, 255, 0.18);
@@ -61,7 +66,8 @@ body {
   height: 100vh;
   overflow: hidden;
   background: var(--bg);
-  background-image: radial-gradient(ellipse 1200px 700px at 15% -10%, rgba(99, 102, 241, 0.08), transparent 60%),
+  background-image:
+    radial-gradient(ellipse 1200px 700px at 15% -10%, rgba(99, 102, 241, 0.08), transparent 60%),
     radial-gradient(ellipse 900px 600px at 100% 110%, rgba(56, 189, 248, 0.05), transparent 55%);
   color: var(--texto);
 }
@@ -169,7 +175,9 @@ h2.titulo-secao {
   color: var(--texto-fraco);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .icon-btn-ghost:hover {
@@ -234,7 +242,9 @@ a:focus-visible,
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-  transition: filter 0.15s, transform 0.1s;
+  transition:
+    filter 0.15s,
+    transform 0.1s;
 }
 
 .btn-primario:hover {
@@ -259,7 +269,9 @@ a:focus-visible,
   padding: 10px 15px;
   font-size: 14.5px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .btn-secundario:hover:not(:disabled) {

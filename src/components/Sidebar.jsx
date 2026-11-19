@@ -1,5 +1,5 @@
 // src/components/Sidebar.jsx
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   BookOpen,
   Calendar,
@@ -53,17 +53,11 @@ export default function Sidebar({
 
   return (
     <>
-      <button
-        className="mobile-menu-btn"
-        onClick={() => setMobileAberta((v) => !v)}
-        aria-label="Abrir menu"
-      >
+      <button className="mobile-menu-btn" onClick={() => setMobileAberta((v) => !v)} aria-label="Abrir menu">
         <Menu size={18} />
       </button>
 
-      {mobileAberta && (
-        <div className="sidebar-scrim" onClick={() => setMobileAberta(false)} />
-      )}
+      {mobileAberta && <div className="sidebar-scrim" onClick={() => setMobileAberta(false)} />}
 
       <aside className={`sidebar${mobileAberta ? " mobile-aberta" : ""}`}>
         <div className="sidebar-header">
@@ -105,7 +99,11 @@ export default function Sidebar({
           <button className="nav-btn" onClick={onExportarBackup} title="Baixa um arquivo .json com todos os seus dados">
             <Download size={15} /> Exportar dados
           </button>
-          <button className="nav-btn" onClick={() => inputImportRef.current?.click()} title="Restaura dados a partir de um backup .json">
+          <button
+            className="nav-btn"
+            onClick={() => inputImportRef.current?.click()}
+            title="Restaura dados a partir de um backup .json"
+          >
             <Upload size={15} /> Importar dados
           </button>
           {user && (
@@ -136,11 +134,18 @@ export default function Sidebar({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="Foto do usuário" style={{ width: 22, height: 22, borderRadius: "50%" }} />
+                  <img
+                    src={user.photoURL}
+                    alt="Foto do usuário"
+                    style={{ width: 22, height: 22, borderRadius: "50%" }}
+                  />
                 ) : (
                   <div className="logo-dot" />
                 )}
-                <span className="subtle" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: 12 }}>
+                <span
+                  className="subtle"
+                  style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: 12 }}
+                >
                   {user.displayName || user.email}
                 </span>
               </div>
@@ -149,7 +154,19 @@ export default function Sidebar({
               </button>
             </div>
           ) : (
-            <button className="btn-secundario" onClick={loginWithGoogle} style={{ width: "100%", padding: "6px 8px", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <button
+              className="btn-secundario"
+              onClick={loginWithGoogle}
+              style={{
+                width: "100%",
+                padding: "6px 8px",
+                fontSize: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
               <LogIn size={14} /> Entrar p/ Sincronizar
             </button>
           )}
@@ -160,16 +177,18 @@ export default function Sidebar({
               {status === "desatualizado"
                 ? "App desatualizado — recarregue a página"
                 : online === false || status === "offline"
-                ? (ultimaSincronizacao
+                  ? ultimaSincronizacao
                     ? `Offline — dados de ${formatarUltimaSincronizacao(ultimaSincronizacao)}`
-                    : "Offline — sincroniza ao reconectar")
-                : status === "saved"
-                ? (user ? "Nuvem sincronizada" : "Salvo localmente")
-                : status === "saving"
-                ? "Salvando..."
-                : status === "loading"
-                ? "Carregando..."
-                : "Erro ao salvar"}
+                    : "Offline — sincroniza ao reconectar"
+                  : status === "saved"
+                    ? user
+                      ? "Nuvem sincronizada"
+                      : "Salvo localmente"
+                    : status === "saving"
+                      ? "Salvando..."
+                      : status === "loading"
+                        ? "Carregando..."
+                        : "Erro ao salvar"}
             </span>
           </div>
         </div>

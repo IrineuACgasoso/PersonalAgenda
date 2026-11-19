@@ -1,23 +1,24 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
-import { uid } from "../utils/id";
+import useListaInterna from "../hooks/useListaInterna";
+import { DIAS_FULL } from "../constants";
 import AbaHorarios from "./abas/AbaHorarios";
 import AbaLinks from "./abas/AbaLinks";
 import AbaDatas from "./abas/AbaDatas";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
-export default function PainelCadeira({
-  cadeira,
-  onFechar,
-  onAtualizar,
-  onExcluir,
-}) {
+const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
+
+export default function PainelCadeira({ cadeira, onFechar, onAtualizar, onExcluir }) {
   const [subaba, setSubaba] = useState("horarios");
   const [nomeEdit, setNomeEdit] = useState(cadeira.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
 
+  // Só ao trocar de cadeira: reagir a `cadeira.nome` apagaria o que está
+  // sendo digitado a cada sync vindo de outro aparelho.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setNomeEdit(cadeira.nome), [cadeira.id]);
 
   const salvarNome = () => {
@@ -25,37 +26,13 @@ export default function PainelCadeira({
     if (v && v !== cadeira.nome) onAtualizar({ nome: v });
   };
 
-  /* horários */
-  const addHorario = (h) =>
-    onAtualizar({ horarios: [...cadeira.horarios, { id: uid(), ...h }] });
-  const rmHorario = (id) =>
-    onAtualizar({
-      horarios: cadeira.horarios.filter((h) => h.id !== id),
-    });
-  const editHorario = (id, patch) =>
-    onAtualizar({
-      horarios: cadeira.horarios.map((h) => (h.id === id ? { ...h, ...patch } : h)),
-    });
-
-  /* links */
-  const addLink = (l) =>
-    onAtualizar({ links: [...cadeira.links, { id: uid(), ...l }] });
-  const rmLink = (id) =>
-    onAtualizar({ links: cadeira.links.filter((l) => l.id !== id) });
-  const editLink = (id, patch) =>
-    onAtualizar({
-      links: cadeira.links.map((l) => (l.id === id ? { ...l, ...patch } : l)),
-    });
-
-  /* datas */
-  const addData = (d) =>
-    onAtualizar({ datas: [...cadeira.datas, { id: uid(), ...d }] });
-  const rmData = (id) =>
-    onAtualizar({ datas: cadeira.datas.filter((d) => d.id !== id) });
-  const editData = (id, patch) =>
-    onAtualizar({
-      datas: cadeira.datas.map((d) => (d.id === id ? { ...d, ...patch } : d)),
-    });
+  /* listas internas: leem a cadeira mais recente; excluir tem "Desfazer" (#18) */
+  const horarios = useListaInterna("horarios", onAtualizar, textoHorarioExcluido);
+  const links = useListaInterna("links", onAtualizar, (l) => `Link "${l.titulo}" excluído`);
+  const datas = useListaInterna("datas", onAtualizar, (d) => `Data "${d.titulo}" excluída`);
+  const { adicionar: addHorario, remover: rmHorario, editar: editHorario } = horarios;
+  const { adicionar: addLink, remover: rmLink, editar: editLink } = links;
+  const { adicionar: addData, remover: rmData, editar: editData } = datas;
 
   return (
     <div className="overlay" onClick={onFechar}>
@@ -68,11 +45,7 @@ export default function PainelCadeira({
             onChange={(e) => setNomeEdit(e.target.value)}
             onBlur={salvarNome}
           />
-          <button
-            className="icon-btn-ghost"
-            onClick={onExcluir}
-            title="Excluir cadeira"
-          >
+          <button className="icon-btn-ghost" onClick={onExcluir} title="Excluir cadeira">
             <Trash2 size={15} />
           </button>
           <button className="icon-btn-ghost" onClick={onFechar}>
@@ -92,44 +65,23 @@ export default function PainelCadeira({
           >
             Horários
           </button>
-          <button
-            className={`painel-tab ${subaba === "links" ? "ativa" : ""}`}
-            onClick={() => setSubaba("links")}
-          >
+          <button className={`painel-tab ${subaba === "links" ? "ativa" : ""}`} onClick={() => setSubaba("links")}>
             Links e materiais
           </button>
-          <button
-            className={`painel-tab ${subaba === "datas" ? "ativa" : ""}`}
-            onClick={() => setSubaba("datas")}
-          >
+          <button className={`painel-tab ${subaba === "datas" ? "ativa" : ""}`} onClick={() => setSubaba("datas")}>
             Datas importantes
           </button>
         </div>
 
         <div className="painel-conteudo">
           {subaba === "horarios" && (
-            <AbaHorarios
-              horarios={cadeira.horarios}
-              onAdd={addHorario}
-              onRemover={rmHorario}
-              onEditar={editHorario}
-            />
+            <AbaHorarios horarios={cadeira.horarios} onAdd={addHorario} onRemover={rmHorario} onEditar={editHorario} />
           )}
           {subaba === "links" && (
-            <AbaLinks
-              links={cadeira.links}
-              onAdd={addLink}
-              onRemover={rmLink}
-              onEditar={editLink}
-            />
+            <AbaLinks links={cadeira.links} onAdd={addLink} onRemover={rmLink} onEditar={editLink} />
           )}
           {subaba === "datas" && (
-            <AbaDatas
-              datas={cadeira.datas}
-              onAdd={addData}
-              onRemover={rmData}
-              onEditar={editData}
-            />
+            <AbaDatas datas={cadeira.datas} onAdd={addData} onRemover={rmData} onEditar={editData} />
           )}
         </div>
       </div>

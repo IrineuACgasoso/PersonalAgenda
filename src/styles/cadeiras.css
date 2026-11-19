@@ -24,7 +24,10 @@
   overflow: hidden;
   cursor: pointer;
   box-shadow: var(--vidro-sombra);
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .card-cadeira::before {
@@ -38,7 +41,9 @@
 .card-cadeira:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--cor-card) 45%, var(--vidro-borda-forte));
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px color-mix(in srgb, var(--cor-card) 25%, transparent);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.4),
+    0 0 0 1px color-mix(in srgb, var(--cor-card) 25%, transparent);
 }
 
 .card-faixa {

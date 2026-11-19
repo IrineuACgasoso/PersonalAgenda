@@ -1,10 +1,12 @@
 // src/components/cadeira/AbaHorarios.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Edit2, Clock, MapPin, Check, X } from "lucide-react";
 import { DIAS_FULL } from "../../constants.js";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
+import useDialogos from "../../hooks/useDialogos";
 
 export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
+  const { avisar } = useDialogos();
   const [dia, setDia] = useState(0);
   const [inicio, setInicio] = useState("08:00");
   const [fim, setFim] = useState("10:00");
@@ -21,7 +23,7 @@ export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
 
   const salvar = () => {
     if (!inicio || !fim || inicio >= fim) {
-      window.alert("Verifique o horário: o início precisa ser antes do fim.");
+      avisar("Verifique o horário: o início precisa ser antes do fim.", { titulo: "Horário inválido" });
       return;
     }
     if (editandoId) {
@@ -50,7 +52,9 @@ export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
       <div className="form-grid">
         <select className="input" value={dia} onChange={(e) => setDia(Number(e.target.value))}>
           {DIAS_FULL.map((d, i) => (
-            <option key={d} value={i}>{d}</option>
+            <option key={d} value={i}>
+              {d}
+            </option>
           ))}
         </select>
         <input className="input" type="time" value={inicio} onChange={(e) => setInicio(e.target.value)} />
@@ -82,7 +86,9 @@ export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
             <div key={h.id} className="item-linha">
               <Clock size={14} style={{ opacity: 0.6 }} />
               <div style={{ flex: 1 }}>
-                <div className="item-linha-titulo">{DIAS_FULL[h.dia]} · {h.inicio}–{h.fim}</div>
+                <div className="item-linha-titulo">
+                  {DIAS_FULL[h.dia]} · {h.inicio}–{h.fim}
+                </div>
                 {h.local && (
                   <div className="subtle">
                     <MapPin size={11} style={{ verticalAlign: "-1px", marginRight: 3 }} />
@@ -93,15 +99,7 @@ export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
               <button className="icon-btn-ghost" onClick={() => iniciarEdicao(h)} title="Editar horário">
                 <Edit2 size={13} />
               </button>
-              <button
-                className="icon-btn-ghost"
-                onClick={() => {
-                  if (window.confirm(`Excluir o horário de ${DIAS_FULL[h.dia]} (${h.inicio}–${h.fim})?`)) {
-                    onRemover(h.id);
-                  }
-                }}
-                title="Excluir horário"
-              >
+              <button className="icon-btn-ghost" onClick={() => onRemover(h.id)} title="Excluir horário">
                 <Trash2 size={13} />
               </button>
             </div>

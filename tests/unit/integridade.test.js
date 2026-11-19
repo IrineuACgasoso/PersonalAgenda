@@ -68,10 +68,36 @@ describe("Regressões de UI", () => {
   it("nenhum arquivo de src/ usa toISOString() (usar toISO para datas locais)", () => {
     const arquivos = (dir) =>
       readdirSync(join(RAIZ, dir), { withFileTypes: true }).flatMap((e) =>
-        e.isDirectory() ? arquivos(`${dir}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${dir}/${e.name}`] : []
+        e.isDirectory() ? arquivos(`${dir}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${dir}/${e.name}`] : [],
       );
     const comUTC = arquivos("src").filter((f) => /\.toISOString\(\)/.test(ler(f)));
     expect(comUTC).toEqual([]);
+  });
+
+  // Regressão do #17: alert/confirm/prompt nativos são ruins no PWA (o iOS
+  // mostra o endereço do site, e eles travam a página). Usar useDialogos().
+  it("nenhum arquivo de src/ usa alert/confirm/prompt nativos", () => {
+    const arquivos = (dir) =>
+      readdirSync(join(RAIZ, dir), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? arquivos(`${dir}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${dir}/${e.name}`] : [],
+      );
+    const semComentarios = (codigo) => codigo.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    const nativos = arquivos("src").filter((f) =>
+      /(?<![\w.])(?:window\.)?(?:alert|confirm|prompt)\(/.test(semComentarios(ler(f))),
+    );
+    expect(nativos).toEqual([]);
+  });
+});
+
+describe("Qualidade (#16)", () => {
+  it("npm run check roda o lint antes dos testes e do build", () => {
+    const { scripts } = JSON.parse(ler("package.json"));
+    expect(scripts.check.startsWith("npm run lint")).toBe(true);
+    expect(scripts.lint).toMatch(/prettier --check/);
+    // `src` passado explicitamente: no OneDrive a pasta aparece como link
+    // simbólico para o Node, e `eslint .` / `prettier .` a pulavam em silêncio.
+    expect(scripts.lint).toMatch(/eslint [^&]*\bsrc\b/);
+    expect(scripts.lint).toMatch(/prettier --check [^&]*\bsrc\b/);
   });
 });
 

@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { CORES } from "./constants";
 import { uid } from "./utils/id";
 import usePersistedData from "./hooks/usePersistedData";
@@ -13,11 +13,15 @@ import PainelCadeira from "./components/PainelCadeira";
 import PainelCompromisso from "./components/PainelCompromisso";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
+import ModalRestaurarNuvem from "./components/ui/ModalRestaurarNuvem";
+import useDialogos from "./hooks/useDialogos";
 import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
 import TelaErroCarga from "./components/ui/TelaErroCarga.jsx";
-import { useCloudBackup, listarBackupsCloud } from "./hooks/useCloudBackup";
+import { useCloudBackup } from "./hooks/useCloudBackup";
 import { ehVersaoFutura } from "./utils/migracoes";
 import { toISO, ehRotina, afazerConcluido } from "./utils/afazeres";
+import { mensagemDeRecusa } from "./utils/dialogos";
+import { reinserirPorId, reinserirVarios, separarRemovidos } from "./utils/desfazer";
 import {
   TEMPO_LIMITE_CARREGAMENTO_MS,
   CHAVE_WATCHDOG_RECARREGOU,
@@ -47,18 +51,8 @@ function gravarSessao(chave, valor) {
 }
 
 export default function App() {
-  const {
-    data,
-    persist,
-    status,
-    online,
-    ultimaSincronizacao,
-    user,
-    erroCarga,
-    tentarDeNovo,
-    loginWithGoogle,
-    logout,
-  } = usePersistedData();
+  const { data, persist, status, online, ultimaSincronizacao, user, erroCarga, tentarDeNovo, loginWithGoogle, logout } =
+    usePersistedData();
 
   // Só depois da carga inicial e com dados de verdade (na tela de erro do #7
   // o status alterna loading/error a cada nova tentativa).
@@ -69,6 +63,8 @@ export default function App() {
   const [modalPeriodo, setModalPeriodo] = useState(false);
   const [gatilhoNovoAfazer, setGatilhoNovoAfazer] = useState(null);
   const [cargaTravada, setCargaTravada] = useState(false);
+  const [restaurandoNuvem, setRestaurandoNuvem] = useState(false);
+  const { avisar, confirmar, notificar } = useDialogos();
 
   // Watchdog: se a tela de carregamento ficar travada (ex: a rede caiu ou
   // mudou bem no meio da checagem inicial e nada nunca resolve), recarrega
@@ -110,29 +106,44 @@ export default function App() {
     );
   }
 
-  const periodoAtivo =
-    data.periodos.find((p) => p.id === data.periodoAtivoId) || data.periodos[0];
-  const cadeirasDoPeriodo = data.cadeiras.filter(
-    (c) => c.periodoId === periodoAtivo?.id
-  );
+  const periodoAtivo = data.periodos.find((p) => p.id === data.periodoAtivoId) || data.periodos[0];
+  const cadeirasDoPeriodo = data.cadeiras.filter((c) => c.periodoId === periodoAtivo?.id);
   const cadeiraAberta = data.cadeiras.find((c) => c.id === cadeiraAbertaId);
   const compromissos = data.compromissos || [];
-  const compromissosDoPeriodo = compromissos.filter(
-    (c) => c.periodoId === periodoAtivo?.id
-  );
+  const compromissosDoPeriodo = compromissos.filter((c) => c.periodoId === periodoAtivo?.id);
   const compromissoAberto = compromissos.find((c) => c.id === compromissoAbertoId);
 
-  /* ---- ações períodos ----
-     Toda ação usa persist((d) => ...): o updater recebe o estado MAIS
-     RECENTE, não o `data` deste render — duas ações seguidas (ex: blur do
-     nome no drawer + clique em "Adicionar") não se sobrescrevem (#6). */
+  /* Toda ação grava por aqui. Ela usa persist((d) => ...): o updater recebe
+     o estado MAIS RECENTE, não o `data` deste render — duas ações seguidas
+     (ex: blur do nome no drawer + clique em "Adicionar") não se sobrescrevem
+     (#6). Se o persist() recusar (trava de "parece vazio", dados de versão
+     mais nova, ainda carregando), avisa na tela (#44) — antes a recusa só
+     mudava a bolinha de status e o item excluído "voltava" sem explicação.
+     Devolve o { ok, motivo } do persist(). */
+  const gravar = (entrada) => {
+    const resultado = persist(entrada);
+    const mensagem = resultado.ok ? null : mensagemDeRecusa(resultado.motivo);
+    if (mensagem) avisar(mensagem, { titulo: "Alteração não salva" });
+    return resultado;
+  };
+
+  // Gravou de verdade (não foi recusado nem "sem mudança")? Só aí faz
+  // sentido mostrar o toast de "Desfazer".
+  const gravouAlgo = (r) => r.ok && r.motivo !== "sem-mudanca";
+
+  // Toast "X excluído · Desfazer" (#18). `restaurar` é um updater do persist.
+  const avisarComDesfazer = (texto, restaurar) => {
+    notificar(texto, { acao: { rotulo: "Desfazer", aoClicar: () => gravar(restaurar) } });
+  };
+
+  /* ---- ações períodos ---- */
   const selecionarPeriodo = (id) => {
-    persist((d) => ({ ...d, periodoAtivoId: id }));
+    gravar((d) => ({ ...d, periodoAtivoId: id }));
   };
 
   const criarPeriodo = (nome) => {
     const novo = { id: uid(), nome };
-    persist((d) => ({
+    gravar((d) => ({
       ...d,
       periodos: [...d.periodos, novo],
       periodoAtivoId: novo.id,
@@ -140,32 +151,69 @@ export default function App() {
   };
 
   const atualizarPeriodo = (id, patch) => {
-    persist((d) => ({
+    gravar((d) => ({
       ...d,
-      periodos: d.periodos.map((p) =>
-        p.id === id ? { ...p, ...patch } : p
-      ),
+      periodos: d.periodos.map((p) => (p.id === id ? { ...p, ...patch } : p)),
     }));
   };
 
-  const excluirPeriodo = (id) => {
-    if (
-      !window.confirm(
-        "Excluir este período? As cadeiras e compromissos dele também serão removidos."
-      )
-    )
-      return;
-    persist((d) => {
-      const periodos = d.periodos.filter((p) => p.id !== id);
+  // Período leva junto as cadeiras e os compromissos dele: continua pedindo
+  // confirmação, e ainda dá para desfazer (#18).
+  const excluirPeriodo = async (id) => {
+    const ok = await confirmar("Excluir este período? As cadeiras e compromissos dele também serão removidos.", {
+      titulo: "Excluir período",
+      textoConfirmar: "Excluir",
+      perigo: true,
+    });
+    if (!ok) return;
+    let removido = null;
+    const r = gravar((d) => {
+      const p = separarRemovidos(d.periodos, (x) => x.id === id);
+      if (p.removidos.length === 0) return d;
+      const c = separarRemovidos(d.cadeiras, (x) => x.periodoId === id);
+      const comp = separarRemovidos(d.compromissos || [], (x) => x.periodoId === id);
+      removido = {
+        periodos: p.removidos,
+        cadeiras: c.removidos,
+        compromissos: comp.removidos,
+        eraAtivo: d.periodoAtivoId === id,
+      };
       return {
         ...d,
-        periodos,
-        cadeiras: d.cadeiras.filter((c) => c.periodoId !== id),
-        compromissos: (d.compromissos || []).filter((c) => c.periodoId !== id),
-        periodoAtivoId: d.periodoAtivoId === id ? periodos[0]?.id ?? null : d.periodoAtivoId,
+        periodos: p.restantes,
+        cadeiras: c.restantes,
+        compromissos: comp.restantes,
+        periodoAtivoId: d.periodoAtivoId === id ? (p.restantes[0]?.id ?? null) : d.periodoAtivoId,
       };
     });
     if (compromissoAberto?.periodoId === id) setCompromissoAbertoId(null);
+    if (cadeiraAberta?.periodoId === id) setCadeiraAbertaId(null);
+    if (!gravouAlgo(r) || !removido) return;
+    const { periodos, cadeiras, compromissos: comps, eraAtivo } = removido;
+    avisarComDesfazer(`Período "${periodos[0].item.nome}" excluído`, (d) => ({
+      ...d,
+      periodos: reinserirVarios(d.periodos, periodos),
+      cadeiras: reinserirVarios(d.cadeiras, cadeiras),
+      compromissos: reinserirVarios(d.compromissos || [], comps),
+      periodoAtivoId: eraAtivo ? id : d.periodoAtivoId,
+    }));
+  };
+
+  // Exclui um item de uma lista de primeiro nível (cadeiras, compromissos,
+  // afazeres) com "Desfazer" no lugar do confirm() (#18). O item e a posição
+  // são lidos DENTRO do updater (estado mais recente), e o desfazer o
+  // devolve no mesmo lugar sem duplicar.
+  const excluirComDesfazer = (campo, id, textoExcluido) => {
+    let removido = null;
+    const r = gravar((d) => {
+      const { restantes, removidos } = separarRemovidos(d[campo] || [], (x) => x.id === id);
+      if (removidos.length === 0) return d;
+      removido = removidos[0];
+      return { ...d, [campo]: restantes };
+    });
+    if (!gravouAlgo(r) || !removido) return;
+    const { item, indice } = removido;
+    avisarComDesfazer(textoExcluido(item), (d) => ({ ...d, [campo]: reinserirPorId(d[campo] || [], item, indice) }));
   };
 
   /* ---- ações cadeiras ---- */
@@ -179,22 +227,22 @@ export default function App() {
       links: [],
       datas: [],
     };
-    persist((d) => ({ ...d, cadeiras: [...d.cadeiras, nova] }));
+    gravar((d) => ({ ...d, cadeiras: [...d.cadeiras, nova] }));
     setCadeiraAbertaId(nova.id);
   };
 
-  const atualizarCadeira = (id, patch) => {
-    persist((d) => ({
+  // `patch` pode ser um objeto ou uma função (cadeiraAtual) => patch, que lê
+  // a cadeira do estado mais recente (listas internas: horários/links/datas).
+  const atualizarCadeira = (id, patch) =>
+    gravar((d) => ({
       ...d,
       cadeiras: d.cadeiras.map((c) =>
-        c.id === id ? { ...c, ...patch } : c
+        c.id === id ? { ...c, ...(typeof patch === "function" ? patch(c) : patch) } : c,
       ),
     }));
-  };
 
   const excluirCadeira = (id) => {
-    if (!window.confirm("Excluir esta cadeira e todos os seus dados?")) return;
-    persist((d) => ({ ...d, cadeiras: d.cadeiras.filter((c) => c.id !== id) }));
+    excluirComDesfazer("cadeiras", id, (c) => `Cadeira "${c.nome}" excluída`);
     if (cadeiraAbertaId === id) setCadeiraAbertaId(null);
   };
 
@@ -208,22 +256,21 @@ export default function App() {
       cor: CORES[compromissos.length % CORES.length],
       horarios: [],
     };
-    persist((d) => ({ ...d, compromissos: [...(d.compromissos || []), novo] }));
+    gravar((d) => ({ ...d, compromissos: [...(d.compromissos || []), novo] }));
     setCompromissoAbertoId(novo.id);
   };
 
-  const atualizarCompromisso = (id, patch) => {
-    persist((d) => ({
+  // `patch`: objeto ou função (compromissoAtual) => patch (ver atualizarCadeira).
+  const atualizarCompromisso = (id, patch) =>
+    gravar((d) => ({
       ...d,
       compromissos: (d.compromissos || []).map((c) =>
-        c.id === id ? { ...c, ...patch } : c
+        c.id === id ? { ...c, ...(typeof patch === "function" ? patch(c) : patch) } : c,
       ),
     }));
-  };
 
   const excluirCompromisso = (id) => {
-    if (!window.confirm("Excluir este compromisso e todos os seus horários?")) return;
-    persist((d) => ({ ...d, compromissos: (d.compromissos || []).filter((c) => c.id !== id) }));
+    excluirComDesfazer("compromissos", id, (c) => `Compromisso "${c.nome}" excluído`);
     if (compromissoAbertoId === id) setCompromissoAbertoId(null);
   };
 
@@ -232,18 +279,18 @@ export default function App() {
 
   const criarAfazer = (afazer) => {
     const novo = { id: uid(), feito: false, datasConcluidas: [], ...afazer };
-    persist((d) => ({ ...d, afazeres: [...(d.afazeres || []), novo] }));
+    gravar((d) => ({ ...d, afazeres: [...(d.afazeres || []), novo] }));
   };
 
   const atualizarAfazer = (id, patch) => {
-    persist((d) => ({
+    gravar((d) => ({
       ...d,
       afazeres: (d.afazeres || []).map((a) => (a.id === id ? { ...a, ...patch } : a)),
     }));
   };
 
   const alternarFeitoAfazer = (id, dataOcorrencia) => {
-    persist((d) => ({
+    gravar((d) => ({
       ...d,
       afazeres: (d.afazeres || []).map((a) => {
         if (a.id !== id) return a;
@@ -276,7 +323,7 @@ export default function App() {
   // as demais ocorrências continuam caindo nos dias da semana configurados.
   // Isso fica guardado em `excecoesData`: { dataOriginalDaOcorrencia: novaData }.
   const moverInstanciaAfazer = (id, dataOrigem, dataDestino) => {
-    persist((d) => ({
+    gravar((d) => ({
       ...d,
       afazeres: (d.afazeres || []).map((a) => {
         if (a.id !== id) return a;
@@ -288,7 +335,7 @@ export default function App() {
   };
 
   const excluirAfazer = (id) => {
-    persist((d) => ({ ...d, afazeres: (d.afazeres || []).filter((a) => a.id !== id) }));
+    excluirComDesfazer("afazeres", id, (a) => `Afazer "${a.nome}" excluído`);
   };
 
   const abrirNovoAfazerNaData = (dataISO) => {
@@ -301,13 +348,11 @@ export default function App() {
   const eventosExcluidos = data.eventosExcluidos || [];
 
   const alternarEventoConcluido = (chave) => {
-    persist((d) => {
+    gravar((d) => {
       const concluidos = d.eventosConcluidos || [];
       return {
         ...d,
-        eventosConcluidos: concluidos.includes(chave)
-          ? concluidos.filter((c) => c !== chave)
-          : [...concluidos, chave],
+        eventosConcluidos: concluidos.includes(chave) ? concluidos.filter((c) => c !== chave) : [...concluidos, chave],
       };
     });
   };
@@ -318,26 +363,38 @@ export default function App() {
   // já carrega a data específica dessa ocorrência, então isso NÃO apaga o
   // horário/afazer em si — só esconde esse dia; as outras ocorrências
   // continuam normalmente.
-  const excluirInstanciaEvento = (chave) => {
-    persist((d) => {
+  // Sem confirm(): dá para desfazer pelo toast (#18).
+  const excluirInstanciaEvento = (chave, texto = "Removido da agenda") => {
+    const r = gravar((d) => {
       const excluidos = d.eventosExcluidos || [];
       // Devolver o próprio `d` = nada a gravar (ver resolverGravacao).
       if (excluidos.includes(chave)) return d;
       return { ...d, eventosExcluidos: [...excluidos, chave] };
     });
+    if (!gravouAlgo(r)) return;
+    avisarComDesfazer(texto, (d) => ({
+      ...d,
+      eventosExcluidos: (d.eventosExcluidos || []).filter((c) => c !== chave),
+    }));
   };
 
+  // Sem confirm(): dá para desfazer pelo toast (#18).
   const limparAfazeresConcluidos = () => {
-    // Rotinas nunca entram aqui (#11), mesmo com um `feito` antigo.
-    const concluidos = afazeres.filter(afazerConcluido);
-    if (concluidos.length === 0) return;
-    if (
-      !window.confirm(
-        `Apagar definitivamente ${concluidos.length} afazer${concluidos.length !== 1 ? "es" : ""} concluído${concluidos.length !== 1 ? "s" : ""}?`
-      )
-    )
-      return;
-    persist((d) => ({ ...d, afazeres: (d.afazeres || []).filter((a) => !afazerConcluido(a)) }));
+    let removidos = [];
+    const r = gravar((d) => {
+      // Rotinas nunca entram aqui (#11), mesmo com um `feito` antigo.
+      const sep = separarRemovidos(d.afazeres || [], afazerConcluido);
+      if (sep.removidos.length === 0) return d;
+      removidos = sep.removidos;
+      return { ...d, afazeres: sep.restantes };
+    });
+    if (!gravouAlgo(r) || removidos.length === 0) return;
+    const n = removidos.length;
+    const s = n !== 1 ? "s" : "";
+    avisarComDesfazer(`${n} afazer${n !== 1 ? "es" : ""} concluído${s} apagado${s}`, (d) => ({
+      ...d,
+      afazeres: reinserirVarios(d.afazeres || [], removidos),
+    }));
   };
 
   /* ---- backup: exportar / importar ---- */
@@ -359,89 +416,79 @@ export default function App() {
 
   const importarBackup = (arquivo) => {
     const leitor = new FileReader();
-    leitor.onload = (e) => {
+    leitor.onload = async (e) => {
+      let importado;
       try {
-        const importado = JSON.parse(e.target.result);
+        importado = JSON.parse(e.target.result);
         if (!importado || typeof importado !== "object" || !Array.isArray(importado.periodos)) {
           throw new Error("formato inválido");
         }
-        if (ehVersaoFutura(importado)) {
-          window.alert(MSG_BACKUP_VERSAO_FUTURA);
-          return;
-        }
-        if (
-          !window.confirm(
-            "Importar este backup vai substituir TODOS os dados atuais. Deseja continuar?"
-          )
-        )
-          return;
-        persist({
-          // A versão do schema TEM que vir junto: sem ela o backup seria
-          // tratado como v0 e migrado de novo (ver utils/migracoes.js).
-          versao: importado.versao,
-          periodos: importado.periodos ?? [],
-          cadeiras: importado.cadeiras ?? [],
-          compromissos: importado.compromissos ?? [],
-          afazeres: importado.afazeres ?? [],
-          eventosConcluidos: importado.eventosConcluidos ?? [],
-          eventosExcluidos: importado.eventosExcluidos ?? [],
-          periodoAtivoId: importado.periodoAtivoId ?? null,
-        });
       } catch {
-        window.alert("Não foi possível ler este arquivo. Verifique se é um backup válido (.json).");
+        avisar("Não foi possível ler este arquivo. Verifique se é um backup válido (.json).", {
+          titulo: "Importar backup",
+        });
+        return;
       }
+      if (ehVersaoFutura(importado)) {
+        avisar(MSG_BACKUP_VERSAO_FUTURA, { titulo: "Importar backup" });
+        return;
+      }
+      const ok = await confirmar("Importar este backup vai substituir TODOS os dados atuais. Deseja continuar?", {
+        titulo: "Importar backup",
+        textoConfirmar: "Substituir dados",
+        perigo: true,
+      });
+      if (!ok) return;
+      // gravar() avisa se o persist() recusar (ex.: backup "vazio", #44).
+      const r = gravar({
+        // A versão do schema TEM que vir junto: sem ela o backup seria
+        // tratado como v0 e migrado de novo (ver utils/migracoes.js).
+        versao: importado.versao,
+        periodos: importado.periodos ?? [],
+        cadeiras: importado.cadeiras ?? [],
+        compromissos: importado.compromissos ?? [],
+        afazeres: importado.afazeres ?? [],
+        eventosConcluidos: importado.eventosConcluidos ?? [],
+        eventosExcluidos: importado.eventosExcluidos ?? [],
+        periodoAtivoId: importado.periodoAtivoId ?? null,
+      });
+      if (r.ok) notificar("Backup importado.");
     };
     leitor.readAsText(arquivo);
   };
 
-  /* ---- backup: restaurar a partir da nuvem (Firestore) ---- */
-  const restaurarBackupNuvem = async () => {
+  /* ---- backup: restaurar a partir da nuvem (Firestore) ----
+     A lista de backups é um modal próprio (#17), não mais um prompt(). */
+  const abrirRestaurarNuvem = () => {
     if (!user) {
-      window.alert("Você precisa estar logado para restaurar um backup da nuvem.");
+      avisar("Você precisa estar logado para restaurar um backup da nuvem.", { titulo: "Restaurar da nuvem" });
       return;
     }
-    let backups = [];
-    try {
-      backups = await listarBackupsCloud(user.uid);
-    } catch (err) {
-      console.error(err);
-      window.alert("Não foi possível buscar os backups na nuvem. Verifique sua conexão.");
-      return;
-    }
-    if (backups.length === 0) {
-      window.alert("Ainda não existe nenhum backup salvo na nuvem (eles são criados automaticamente a cada 3h, com o app aberto e online).");
-      return;
-    }
+    setRestaurandoNuvem(true);
+  };
 
-    const lista = backups
-      .map((b, i) => `${i + 1}) ${b.dataHora}`)
-      .join("\n");
-    const escolha = window.prompt(
-      `Backups disponíveis (mais recente primeiro):\n${lista}\n\nDigite o número do backup que deseja restaurar:`
-    );
-    const indice = parseInt(escolha, 10) - 1;
-    if (Number.isNaN(indice) || indice < 0 || indice >= backups.length) return;
-
-    const escolhido = backups[indice];
+  const restaurarBackupNuvem = async (escolhido) => {
     if (ehVersaoFutura(escolhido.payload)) {
-      window.alert(MSG_BACKUP_VERSAO_FUTURA);
+      avisar(MSG_BACKUP_VERSAO_FUTURA, { titulo: "Restaurar da nuvem" });
       return;
     }
-    if (
-      !window.confirm(
-        `Restaurar o backup de ${escolhido.dataHora}? Isso substitui TODOS os dados atuais (locais e na nuvem).`
-      )
-    )
-      return;
-
-    const { ok } = persist(escolhido.payload);
-    // persist() pode recusar (ex: trava de "parece vazio") — não anunciar
-    // sucesso nesse caso. Aviso mais completo de recusas: #44.
-    window.alert(
-      ok
-        ? "Backup restaurado com sucesso."
-        : "O backup NÃO foi restaurado: a gravação foi bloqueada pela proteção contra perda de dados."
+    const ok = await confirmar(
+      `Restaurar o backup de ${escolhido.dataHora}? Isso substitui TODOS os dados atuais (locais e na nuvem).`,
+      { titulo: "Restaurar da nuvem", textoConfirmar: "Restaurar", perigo: true },
     );
+    if (!ok) return;
+    // gravar() já avisa se o persist() recusar (#44) — não anunciar sucesso nesse caso.
+    const r = gravar(escolhido.payload);
+    if (!r.ok) return;
+    setRestaurandoNuvem(false);
+    notificar(`Backup de ${escolhido.dataHora} restaurado.`);
+  };
+
+  // O aviso de login (e-mail não permitido, erro do popup) vem do
+  // firebase.js como texto e aparece num diálogo próprio (#17).
+  const entrar = async () => {
+    const r = await loginWithGoogle();
+    if (!r.ok && r.mensagem) avisar(r.mensagem, { titulo: "Login" });
   };
 
   return (
@@ -453,10 +500,10 @@ export default function App() {
         online={online}
         ultimaSincronizacao={ultimaSincronizacao}
         onExportarBackup={exportarBackup}
-        onRestaurarBackupNuvem={restaurarBackupNuvem}
+        onRestaurarBackupNuvem={abrirRestaurarNuvem}
         onImportarBackup={importarBackup}
         user={user}
-        loginWithGoogle={loginWithGoogle}
+        loginWithGoogle={entrar}
         logout={logout}
       />
 
@@ -473,20 +520,20 @@ export default function App() {
             onGatilhoConsumido={() => setGatilhoNovoAfazer(null)}
           />
         ) : aba === "visaogeral" ? (
-            <VisaoGeral
-              cadeiras={data.cadeiras}
-              compromissos={compromissosDoPeriodo}
-              afazeres={afazeres}
-              periodos={data.periodos}
-              eventosConcluidos={eventosConcluidos}
-              eventosExcluidos={eventosExcluidos}
-              onAlternarEventoConcluido={alternarEventoConcluido}
-              onExcluirInstanciaEvento={excluirInstanciaEvento}
-              onAlternarFeitoAfazer={alternarFeitoAfazer}
-              onAtualizarAfazer={atualizarAfazer}
-              onMoverInstanciaAfazer={moverInstanciaAfazer}
-              onNovoAfazer={abrirNovoAfazerNaData}
-            />
+          <VisaoGeral
+            cadeiras={data.cadeiras}
+            compromissos={compromissosDoPeriodo}
+            afazeres={afazeres}
+            periodos={data.periodos}
+            eventosConcluidos={eventosConcluidos}
+            eventosExcluidos={eventosExcluidos}
+            onAlternarEventoConcluido={alternarEventoConcluido}
+            onExcluirInstanciaEvento={excluirInstanciaEvento}
+            onAlternarFeitoAfazer={alternarFeitoAfazer}
+            onAtualizarAfazer={atualizarAfazer}
+            onMoverInstanciaAfazer={moverInstanciaAfazer}
+            onNovoAfazer={abrirNovoAfazerNaData}
+          />
         ) : !periodoAtivo ? (
           <EstadoVazio
             texto="Crie um período para começar"
@@ -540,6 +587,14 @@ export default function App() {
           onFechar={() => setCompromissoAbertoId(null)}
           onAtualizar={(patch) => atualizarCompromisso(compromissoAberto.id, patch)}
           onExcluir={() => excluirCompromisso(compromissoAberto.id)}
+        />
+      )}
+
+      {restaurandoNuvem && user && (
+        <ModalRestaurarNuvem
+          uid={user.uid}
+          onEscolher={restaurarBackupNuvem}
+          onFechar={() => setRestaurandoNuvem(false)}
         />
       )}
 

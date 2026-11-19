@@ -2,12 +2,7 @@
 // cada abertura do app e, offline, um snapshot enfileirado por edição.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import {
-  deveFazerBackup,
-  backupsParaApagar,
-  INTERVALO_BACKUP_MS,
-  MAX_BACKUPS,
-} from "../../src/utils/backupNuvem.js";
+import { deveFazerBackup, backupsParaApagar, INTERVALO_BACKUP_MS, MAX_BACKUPS } from "../../src/utils/backupNuvem.js";
 import { sanitizarDados, DADOS_PADRAO } from "../../src/utils/sanitizarDados.js";
 import { appData, cadeira } from "../fixtures/fabricas.js";
 

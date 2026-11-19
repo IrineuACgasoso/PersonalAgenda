@@ -60,7 +60,7 @@ export const MIGRACOES = {
                 if (partes[0] !== "afazeres" || partes.length !== 3) return [chave];
                 const [, id, data] = partes;
                 return [chave, ...origensMovidasPara(porId.get(id), data).map((o) => `afazeres|${id}|${o}`)];
-              })
+              }),
             ),
           ]
         : dados.eventosExcluidos,
@@ -84,8 +84,7 @@ function origensMovidasPara(afazer, data) {
  * projecao.js): a migração precisa produzir sempre o formato v2, mesmo que
  * o código da projeção mude no futuro (aí entra uma migração v3). */
 
-const objetos = (lista) =>
-  Array.isArray(lista) ? lista.filter((x) => x && typeof x === "object") : [];
+const objetos = (lista) => (Array.isArray(lista) ? lista.filter((x) => x && typeof x === "object") : []);
 const idHorarioV2 = (h) => h.id || `@${h.inicio || ""}`;
 const idAvaliacaoV2 = (d) => d.id || `@${d.data}|${d.hora || ""}|${d.titulo}`;
 
@@ -116,7 +115,7 @@ function converterChaveV1(chave, dados) {
     return objetos(dados.cadeiras).flatMap((c) =>
       objetos(c.datas)
         .filter((d) => d.data === iso && d.titulo === nome && (d.hora || "") === ultimo)
-        .map((d) => `avaliacoes|${c.id}|${idAvaliacaoV2(d)}`)
+        .map((d) => `avaliacoes|${c.id}|${idAvaliacaoV2(d)}`),
     );
   }
 
@@ -127,7 +126,7 @@ function converterChaveV1(chave, dados) {
     .flatMap((c) =>
       objetos(c.horarios)
         .filter((h) => h.dia === dia && (h.inicio || "") === ultimo)
-        .map((h) => `${tipo}|${iso}|${c.id}|${idHorarioV2(h)}`)
+        .map((h) => `${tipo}|${iso}|${c.id}|${idHorarioV2(h)}`),
     );
 }
 

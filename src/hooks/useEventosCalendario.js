@@ -15,36 +15,49 @@ import {
   agruparPorDia,
 } from "../utils/projecao.js";
 
-export function useEventosCalendario({ cadeiras = [], compromissos = [], afazeres = [], periodos = [], ano, mes, filtros, eventosExcluidos = [] }) {
+export function useEventosCalendario({
+  cadeiras = [],
+  compromissos = [],
+  afazeres = [],
+  periodos = [],
+  ano,
+  mes,
+  filtros,
+  eventosExcluidos = [],
+}) {
   const { inicioISO, fimISO } = useMemo(() => getIntervaloMes(ano, mes), [ano, mes]);
 
   const avaliacoes = useMemo(
     () => (filtros.avaliacoes ? projetarAvaliacoes(cadeiras, periodos, inicioISO, fimISO) : []),
-    [cadeiras, periodos, filtros.avaliacoes, inicioISO, fimISO]
+    [cadeiras, periodos, filtros.avaliacoes, inicioISO, fimISO],
   );
 
   const aulas = useMemo(
     () => (filtros.aulas ? projetarAulas(cadeiras, periodos, inicioISO, fimISO) : []),
-    [cadeiras, periodos, filtros.aulas, inicioISO, fimISO]
+    [cadeiras, periodos, filtros.aulas, inicioISO, fimISO],
   );
 
   const eventosCompromissos = useMemo(
     () => (filtros.compromissos ? projetarCompromissos(compromissos, inicioISO, fimISO) : []),
-    [compromissos, filtros.compromissos, inicioISO, fimISO]
+    [compromissos, filtros.compromissos, inicioISO, fimISO],
   );
 
   const eventosAfazeres = useMemo(
     () => (filtros.afazeres ? projetarAfazeres(afazeres, inicioISO, fimISO) : []),
-    [afazeres, filtros.afazeres, inicioISO, fimISO]
+    [afazeres, filtros.afazeres, inicioISO, fimISO],
   );
 
   const eventosAfazeresSemData = useMemo(
     () => (filtros.afazeres ? projetarAfazeresSemData(afazeres, inicioISO, fimISO, toISO(new Date())) : []),
-    [afazeres, filtros.afazeres, inicioISO, fimISO]
+    [afazeres, filtros.afazeres, inicioISO, fimISO],
   );
 
   return useMemo(
-    () => agruparPorDia([...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres, ...eventosAfazeresSemData], eventosExcluidos),
-    [aulas, avaliacoes, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData, eventosExcluidos]
+    () =>
+      agruparPorDia(
+        [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres, ...eventosAfazeresSemData],
+        eventosExcluidos,
+      ),
+    [aulas, avaliacoes, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData, eventosExcluidos],
   );
 }

@@ -17,7 +17,9 @@ describe("sanitizarDados", () => {
   });
 
   it("preserva campos de rotina que já causaram bug (diasSemana)", () => {
-    const d = sanitizarDados(appData({ afazeres: [afazer({ rotina: { tipo: "dias_especificos", diasSemana: [0, 4] } })] }));
+    const d = sanitizarDados(
+      appData({ afazeres: [afazer({ rotina: { tipo: "dias_especificos", diasSemana: [0, 4] } })] }),
+    );
     expect(d.afazeres[0].rotina.diasSemana).toEqual([0, 4]);
   });
 
@@ -123,12 +125,20 @@ describe("removerUndefined / sanitizarDados sem undefined (#43)", () => {
   });
 
   it("rotina montada pelo formulário com campos undefined sai limpa", () => {
-    const af = { ...afazer(), rotina: { tipo: "diaria", intervaloDias: undefined, diasSemana: undefined, totalRepeticoes: undefined } };
+    const af = {
+      ...afazer(),
+      rotina: { tipo: "diaria", intervaloDias: undefined, diasSemana: undefined, totalRepeticoes: undefined },
+    };
     expect(temUndefined(sanitizarDados(appData({ afazeres: [af] })))).toBe(false);
   });
 
   it("preserva null, false, 0 e string vazia (só undefined sai)", () => {
-    expect(removerUndefined({ a: null, b: false, c: 0, d: "", e: undefined })).toEqual({ a: null, b: false, c: 0, d: "" });
+    expect(removerUndefined({ a: null, b: false, c: 0, d: "", e: undefined })).toEqual({
+      a: null,
+      b: false,
+      c: 0,
+      d: "",
+    });
   });
 
   it("não muta a entrada", () => {

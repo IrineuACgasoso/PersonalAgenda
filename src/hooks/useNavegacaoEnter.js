@@ -6,7 +6,7 @@ const SELETOR_FOCAVEL =
 
 function elementosFocaveis(container) {
   return Array.from(container.querySelectorAll(SELETOR_FOCAVEL)).filter(
-    (el) => el.offsetParent !== null // visível na tela
+    (el) => el.offsetParent !== null, // visível na tela
   );
 }
 

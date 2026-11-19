@@ -91,13 +91,15 @@ export function criarDespachante() {
         // ex: localStorage cheio (deslogado) lança de forma síncrona
         promessa = Promise.reject(erro);
       }
-      return promessa.then(
-        () => ({ ok: true, erro: null }),
-        (erro) => ({ ok: false, erro })
-      ).then((r) => {
-        pendentes -= 1;
-        return { ...r, ultima: minha === versao };
-      });
+      return promessa
+        .then(
+          () => ({ ok: true, erro: null }),
+          (erro) => ({ ok: false, erro }),
+        )
+        .then((r) => {
+          pendentes -= 1;
+          return { ...r, ultima: minha === versao };
+        });
     },
   };
 }
