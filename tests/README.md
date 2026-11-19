@@ -17,6 +17,7 @@ npm run check     # testes + build — rodar SEMPRE antes de dar uma tarefa como
 | `unit/calendario.test.js` | Grade do mês, intervalo do mês, vigência, `hexParaRgb`, `formatarData` |
 | `unit/sanitizarDados.test.js` | Proteção contra perda de dados: campos preservados, retrocompatibilidade, `pareceVazio` |
 | `unit/persistencia.test.js` | Decisões do `persist()`: updater sem race (#6), travas, status do snapshot (#39), despacho imediato sem fila (#54) |
+| `unit/carregamento.test.js` | Tela inicial e watchdog: erro de carga vira tela de erro, no máximo 1 reload por sessão (#7) |
 | `unit/confirmacaoAdiada.test.js` | Seletor de cor: arrastar gera 1 gravação, sem regravar o mesmo valor (#41) |
 | `unit/projecao.test.js` | O que aparece em cada dia do calendário geral (`src/utils/projecao.js`) e a ordenação |
 | `unit/integridade.test.js` | Checagens estáticas: ícones do PWA, ordem do CSS, `@media` só no `mobile.css`, `.env` ignorado, regressões de UI |

@@ -7,6 +7,7 @@ import { STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY } from "../constants";
 import { DADOS_PADRAO, sanitizarDados } from "../utils/sanitizarDados";
 import { ehVersaoFutura } from "../utils/migracoes";
 import { resolverGravacao, statusDoSnapshot, criarDespachante } from "../utils/persistencia";
+import { INTERVALO_NOVA_TENTATIVA_MS } from "../utils/carregamento";
 
 // Tempo máximo de espera pela confirmação do servidor na checagem inicial.
 // Numa rede instável (ex: wifi caindo bem nessa hora) a chamada pode nunca
@@ -32,6 +33,14 @@ export default function usePersistedData() {
     setDataState(novo);
   };
   const [status, setStatus] = useState("loading");
+  // #7: a carga inicial (logado) falhou sem nenhuma base local — sem rede e
+  // sem cache neste aparelho, ou o servidor recusou. O App mostra uma tela
+  // de erro com "Tentar de novo" em vez do loading (que antes virava um loop
+  // de reload). Continua true durante as novas tentativas, para a tela não
+  // piscar entre erro e loading; só volta a false quando os dados chegam.
+  const [erroCarga, setErroCarga] = useState(false);
+  // Incrementar refaz a carga inicial do Firestore (efeito 2) sem reload.
+  const [tentativa, setTentativa] = useState(0);
   // Conectividade real do navegador. Não bloqueia edição nem persist() — só
   // avisa na UI que as mudanças estão sendo enfileiradas localmente e serão
   // sincronizadas quando a rede voltar (o Firestore, com cache persistente
@@ -97,6 +106,7 @@ export default function usePersistedData() {
         setUser(currentUser);
       } else {
         setUser(null);
+        setErroCarga(false);
         carregadoRef.current = false;
         const local = localStorage.getItem(STORAGE_KEY);
         let parsed = DADOS_PADRAO;
@@ -152,6 +162,7 @@ export default function usePersistedData() {
           setData(sanitizarDados(snapServidor.data()));
         }
         carregadoRef.current = true;
+        setErroCarga(false);
         setStatus("saved");
         marcarSincronizado();
       } catch (error) {
@@ -167,16 +178,20 @@ export default function usePersistedData() {
           if (snapCache.exists()) {
             setData(sanitizarDados(snapCache.data()));
             carregadoRef.current = true;
+            setErroCarga(false);
             setStatus("offline");
           } else {
             // Nunca sincronizou neste dispositivo e não há como confirmar
             // com o servidor agora: não existe uma base segura pra criar ou
             // liberar edição sem risco de perder dados depois.
             setStatus("error");
+            setErroCarga(true);
           }
         } catch (cacheError) {
           console.error("Sem cache local disponível:", cacheError);
+          if (cancelado) return;
           setStatus("error");
+          setErroCarga(true);
         }
       }
     })();
@@ -211,7 +226,28 @@ export default function usePersistedData() {
       cancelado = true;
       unsubscribeSnapshot();
     };
-  }, [user]);
+  }, [user, tentativa]);
+
+  // #7: refaz a carga inicial sem recarregar a página. Só faz sentido
+  // enquanto ainda não há dados (com dados, o onSnapshot já mantém tudo em dia).
+  const tentarDeNovo = () => {
+    if (dataRef.current || !user) return;
+    setTentativa((t) => t + 1);
+  };
+
+  // Na tela de erro, tenta de novo sozinho quando a rede volta e a cada
+  // INTERVALO_NOVA_TENTATIVA_MS (o evento `online` nem sempre dispara).
+  // Não é um reload: é só uma nova leitura (getDocFromServer com timeout).
+  useEffect(() => {
+    if (!erroCarga || data || !user) return;
+    const aoVoltarRede = () => setTentativa((t) => t + 1);
+    window.addEventListener("online", aoVoltarRede);
+    const intervalo = setInterval(aoVoltarRede, INTERVALO_NOVA_TENTATIVA_MS);
+    return () => {
+      window.removeEventListener("online", aoVoltarRede);
+      clearInterval(intervalo);
+    };
+  }, [erroCarga, data, user]);
 
   // 3. Persistência segura e sem race conditions (updater + despacho imediato, #6/#54).
   //
@@ -279,6 +315,8 @@ export default function usePersistedData() {
     online,
     ultimaSincronizacao,
     user,
+    erroCarga,
+    tentarDeNovo,
     loginWithGoogle: loginComGoogle,
     logout: fazerLogout,
   };

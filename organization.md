@@ -7,6 +7,7 @@
 | Quero… | Onde |
 |---|---|
 | Criar/editar/excluir período, cadeira, compromisso, afazer | `src/App.jsx` (ações CRUD, linhas 60–257) |
+| Tela de erro da carga inicial / watchdog de reload (#7) | `src/App.jsx` (watchdog, 1 reload por sessão) + `src/components/ui/TelaErroCarga.jsx`; decisões em `src/utils/carregamento.js`; `erroCarga`/`tentarDeNovo` no `usePersistedData` |
 | Mudar como os dados são salvos/carregados, status de sync | `src/hooks/usePersistedData.js` → `persist()` ~228, auth ~86, Firestore ~115; decisões puras em `src/utils/persistencia.js` |
 | Adicionar campo novo ao modelo de dados | `src/utils/sanitizarDados.js` → `sanitizarDados()` (**obrigatório**) |
 | Mudança estrutural no schema (renomear/mover dados) | `src/utils/migracoes.js` → `VERSAO_ATUAL` + `MIGRACOES[n]` + teste em `tests/unit/migracoes.test.js` |
@@ -95,6 +96,7 @@ UFPE/
 │       ├── calendario.test.js     Grade do mês, intervalo, vigência, hexParaRgb, formatarData
 │       ├── sanitizarDados.test.js Preservação de campos, retrocompat, pareceVazio
 │       ├── persistencia.test.js   resolverGravacao (updater sem race #6, travas), statusDoSnapshot (#39), criarDespachante (#54)
+│       ├── carregamento.test.js   Tela inicial (app/erro/travado/carregando) e watchdog sem loop (#7)
 │       ├── confirmacaoAdiada.test.js  Seletor de cor: 1 gravação por arrasto, dedupe, confirmar/cancelar (#41)
 │       ├── migracoes.test.js      Registro de migrações completo, v0→atual, não muta, versão futura intocada
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação
@@ -107,7 +109,7 @@ UFPE/
 └── src/
     ├── main.jsx         Monta <App/> em StrictMode e importa styles/app.css
     ├── App.jsx          Raiz: estado de UI (aba, drawer aberto, modal período, gatilho novo afazer),
-    │                    watchdog de 12s no loading (reload), TODAS as ações CRUD, alternar concluído,
+    │                    watchdog de 12s no loading (reload no máx. 1×/sessão, depois TelaErroCarga), TODAS as ações CRUD, alternar concluído,
     │                    mover instância, excluir instância, limpar concluídos, export/import/restore,
     │                    roteamento por `aba` ("visaogeral" | "afazeres" | "compromissos" | "cadeiras" | "agenda")
     ├── firebase.js      initializeApp, Firestore com persistentLocalCache(singleTab) + ignoreUndefinedProperties, auth,
@@ -125,6 +127,8 @@ UFPE/
     │   │                         { ok, motivo }. pendentesRef: onSnapshot ignorado enquanto há persist na fila.
     │   │                         Snapshot só marca "sincronizado" com !fromCache && !hasPendingWrites.
     │   │                         status: loading|saving|saved|offline|error|desatualizado
+│   │                         erroCarga + tentarDeNovo(): carga sem base local falhou → App mostra TelaErroCarga;
+│   │                         nova tentativa automática no `online` e a cada 30s (sem reload, #7)
     │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, afazeres, compromissos} em localStorage
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h (checa a cada 15min),
@@ -140,7 +144,8 @@ UFPE/
     │   ├── persistencia.js       resolverGravacao(atual, entrada) → { ok, motivo, dados } (versão futura,
     │   │                         sanitiza, trava pareceVazio, "sem-mudanca"); statusDoSnapshot(metadata, online);
     │   │                         criarDespachante() → { enviar(gravar), pendentes } (setDoc na hora, sem fila — #54)
-    │   ├── confirmacaoAdiada.js  criarConfirmacaoAdiada(aoConfirmar, ms) → mudar/confirmar/cancelar/sincronizar (#41)
+    │   ├── carregamento.js       telaInicial({temDados, erroCarga, travou}), acaoDoWatchdog (1 reload/sessão), constantes (#7)
+│   ├── confirmacaoAdiada.js  criarConfirmacaoAdiada(aoConfirmar, ms) → mudar/confirmar/cancelar/sincronizar (#41)
     │   ├── migracoes.js          VERSAO_ATUAL, MIGRACOES{n: fn pura}, versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, ocorrenciasNoIntervalo(afazer, ini, fim) → [{data, dataOriginal}],
     │   │                         gerarOcorrenciasComData (interno), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
@@ -174,6 +179,7 @@ UFPE/
     │       ├── CarregandoPainel.jsx Tela de loading (capacete + órbitas CSS)
     │       ├── EstadoVazio.jsx     Mensagem de vazio + botão opcional
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período)
+│       ├── TelaErroCarga.jsx   Erro da carga inicial (#7): "Tentar de novo" + "Usar sem login" (estilos no fim de painel.css)
     │       ├── SeletorCor.jsx      Color picker nativo + campo hex; arrastar só muda a prévia, onChange no `change`/blur/400ms
     │       │                       (`adiarMs={0}` p/ estado local; drawers passam `key` = id do item)
     │       └── SeletorPeriodo.jsx  Título-dropdown: trocar/criar/renomear/excluir período

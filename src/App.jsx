@@ -14,19 +14,50 @@ import PainelCompromisso from "./components/PainelCompromisso";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
+import TelaErroCarga from "./components/ui/TelaErroCarga.jsx";
 import { useCloudBackup, listarBackupsCloud } from "./hooks/useCloudBackup";
 import { ehVersaoFutura } from "./utils/migracoes";
+import {
+  TEMPO_LIMITE_CARREGAMENTO_MS,
+  CHAVE_WATCHDOG_RECARREGOU,
+  telaInicial,
+  acaoDoWatchdog,
+} from "./utils/carregamento";
 
 const MSG_BACKUP_VERSAO_FUTURA =
   "Este backup foi criado por uma versão mais nova do app. Recarregue a página para atualizar o app e tente de novo.";
 
-// Se a tela de carregamento inicial ficar travada por mais tempo que isso,
-// assumimos que algo no boot (rede, auth, etc.) não vai se resolver sozinho
-// e recarregamos a página automaticamente.
-const TEMPO_LIMITE_CARREGAMENTO_MS = 12000;
+// sessionStorage pode lançar (modo privado/bloqueado): nunca deixar isso
+// derrubar a tela inicial.
+function lerSessao(chave) {
+  try {
+    return sessionStorage.getItem(chave);
+  } catch {
+    return null;
+  }
+}
+function gravarSessao(chave, valor) {
+  try {
+    if (valor == null) sessionStorage.removeItem(chave);
+    else sessionStorage.setItem(chave, valor);
+  } catch {
+    /* sem sessionStorage: o watchdog só não lembra do reload anterior */
+  }
+}
 
 export default function App() {
-  const { data, persist, status, online, ultimaSincronizacao, user, loginWithGoogle, logout } = usePersistedData();
+  const {
+    data,
+    persist,
+    status,
+    online,
+    ultimaSincronizacao,
+    user,
+    erroCarga,
+    tentarDeNovo,
+    loginWithGoogle,
+    logout,
+  } = usePersistedData();
 
   useCloudBackup(user, data, status !== "loading");
   const [aba, setAba] = useState("visaogeral");
@@ -34,18 +65,46 @@ export default function App() {
   const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
   const [gatilhoNovoAfazer, setGatilhoNovoAfazer] = useState(null);
+  const [cargaTravada, setCargaTravada] = useState(false);
 
   // Watchdog: se a tela de carregamento ficar travada (ex: a rede caiu ou
-  // mudou bem no meio da checagem inicial e nada nunca resolve), força um
-  // reload em vez de deixar o usuário preso ali precisando atualizar na mão.
+  // mudou bem no meio da checagem inicial e nada nunca resolve), recarrega
+  // a página — mas só UMA vez por sessão (#7). Antes recarregava a cada 12s
+  // para sempre quando a carga falhava sem cache (offline num aparelho novo).
+  // Erro conhecido (`erroCarga`) não passa pelo watchdog: vai direto para a
+  // tela de erro, que tenta de novo sem reload.
   useEffect(() => {
-    if (data) return;
-    const timer = setTimeout(() => window.location.reload(), TEMPO_LIMITE_CARREGAMENTO_MS);
+    if (data) {
+      gravarSessao(CHAVE_WATCHDOG_RECARREGOU, null);
+      setCargaTravada(false);
+      return;
+    }
+    if (erroCarga || cargaTravada) return;
+    const timer = setTimeout(() => {
+      if (acaoDoWatchdog(!!lerSessao(CHAVE_WATCHDOG_RECARREGOU)) === "recarregar") {
+        gravarSessao(CHAVE_WATCHDOG_RECARREGOU, "1");
+        window.location.reload();
+      } else {
+        setCargaTravada(true);
+      }
+    }, TEMPO_LIMITE_CARREGAMENTO_MS);
     return () => clearTimeout(timer);
-  }, [data]);
+  }, [data, erroCarga, cargaTravada]);
 
-  if (!data) {
+  const tela = telaInicial({ temDados: !!data, erroCarga, travou: cargaTravada });
+  if (tela === "carregando") {
     return <CarregandoPainel texto="Carregando seu painel..." />;
+  }
+  if (tela === "erro" || tela === "travado") {
+    return (
+      <TelaErroCarga
+        motivo={tela}
+        online={online}
+        tentando={tela === "erro" && status === "loading"}
+        onTentarDeNovo={tela === "travado" ? () => window.location.reload() : tentarDeNovo}
+        onUsarSemLogin={user ? logout : null}
+      />
+    );
   }
 
   const periodoAtivo =
