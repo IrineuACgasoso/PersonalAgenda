@@ -48,11 +48,35 @@ function sanitizarCompromisso(c) {
   return { ...c, horarios: listaDeObjetos(c.horarios) };
 }
 
+// Remove (em profundidade) propriedades `undefined` e itens `undefined` de
+// listas (#43). O Firestore REJEITA um `setDoc` com qualquer campo
+// `undefined` — e como o valor continuava no estado, TODA gravação seguinte
+// também falhava ("Erro ao salvar" permanente). Ex.: desmarcar um afazer
+// antigo sem `concluidoEm` gravava `concluidoEm: undefined`.
+// Só percorre objetos simples e arrays: o AppData é JSON puro.
+export function removerUndefined(valor) {
+  if (Array.isArray(valor)) {
+    return valor.filter((item) => item !== undefined).map(removerUndefined);
+  }
+  if (valor && typeof valor === "object") {
+    const proto = Object.getPrototypeOf(valor);
+    if (proto !== Object.prototype && proto !== null) return valor;
+    const limpo = {};
+    for (const [chave, v] of Object.entries(valor)) {
+      if (v !== undefined) limpo[chave] = removerUndefined(v);
+    }
+    return limpo;
+  }
+  return valor;
+}
+
 export function sanitizarDados(entrada) {
   if (!entrada || typeof entrada !== "object") return { ...DADOS_PADRAO };
 
-  const raw = migrarDados(entrada);
+  return removerUndefined(normalizar(migrarDados(entrada)));
+}
 
+function normalizar(raw) {
   return {
     ...DADOS_PADRAO,
     ...raw,

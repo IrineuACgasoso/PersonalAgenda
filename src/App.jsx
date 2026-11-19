@@ -198,7 +198,10 @@ export default function App() {
         }
 
         const feito = !a.feito;
-        return { ...a, feito, concluidoEm: feito ? Date.now() : a.concluidoEm };
+        // Ao desmarcar, mantém o `concluidoEm` que já existir. Nunca gravar
+        // `concluidoEm: undefined` (afazer antigo sem o campo): o Firestore
+        // recusa campo undefined e travava todas as gravações (#43).
+        return feito ? { ...a, feito, concluidoEm: Date.now() } : { ...a, feito };
       }),
     }));
   };

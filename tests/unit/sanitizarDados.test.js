@@ -1,7 +1,7 @@
 // Camada de proteção dos dados persistidos: src/utils/sanitizarDados.js
 // Estes testes protegem contra PERDA DE DADOS — não afrouxe sem motivo.
 import { describe, it, expect } from "vitest";
-import { sanitizarDados, pareceVazio, DADOS_PADRAO } from "../../src/utils/sanitizarDados.js";
+import { sanitizarDados, pareceVazio, DADOS_PADRAO, removerUndefined } from "../../src/utils/sanitizarDados.js";
 import { appData, afazer, cadeira, compromisso, horario, backupAntigo } from "../fixtures/fabricas.js";
 
 describe("sanitizarDados", () => {
@@ -95,5 +95,46 @@ describe("pareceVazio (trava anti-sobrescrita)", () => {
   });
   it("período criado pelo usuário = não vazio", () => {
     expect(pareceVazio({ ...DADOS_PADRAO, periodos: [{ id: "abc", nome: "2027.1" }] })).toBe(false);
+  });
+});
+
+// #43: o Firestore recusa setDoc com qualquer campo `undefined`, e o valor
+// ficava no estado → todas as gravações seguintes falhavam.
+describe("removerUndefined / sanitizarDados sem undefined (#43)", () => {
+  // Procura qualquer `undefined` em profundidade (o que o Firestore recusaria).
+  const temUndefined = (v) =>
+    v === undefined ||
+    (Array.isArray(v) && v.some(temUndefined)) ||
+    (!!v && typeof v === "object" && Object.values(v).some(temUndefined));
+
+  it("afazer desmarcado com concluidoEm: undefined não carrega o campo", () => {
+    const d = sanitizarDados(appData({ afazeres: [{ ...afazer(), feito: false, concluidoEm: undefined }] }));
+    expect("concluidoEm" in d.afazeres[0]).toBe(false);
+    expect(temUndefined(d)).toBe(false);
+  });
+
+  it("remove undefined em qualquer nível (topo, cadeira, horário, listas)", () => {
+    const c = { ...cadeira(), apelido: undefined, horarios: [{ ...horario(), local: undefined }, undefined] };
+    const d = sanitizarDados({ ...appData({ cadeiras: [c] }), campoX: undefined, eventosConcluidos: ["a", undefined] });
+    expect(temUndefined(d)).toBe(false);
+    expect("campoX" in d).toBe(false);
+    expect(d.cadeiras[0].horarios).toHaveLength(1);
+    expect(d.eventosConcluidos).toEqual(["a"]);
+  });
+
+  it("rotina montada pelo formulário com campos undefined sai limpa", () => {
+    const af = { ...afazer(), rotina: { tipo: "diaria", intervaloDias: undefined, diasSemana: undefined, totalRepeticoes: undefined } };
+    expect(temUndefined(sanitizarDados(appData({ afazeres: [af] })))).toBe(false);
+  });
+
+  it("preserva null, false, 0 e string vazia (só undefined sai)", () => {
+    expect(removerUndefined({ a: null, b: false, c: 0, d: "", e: undefined })).toEqual({ a: null, b: false, c: 0, d: "" });
+  });
+
+  it("não muta a entrada", () => {
+    const entrada = { a: undefined, b: [{ c: undefined }] };
+    removerUndefined(entrada);
+    expect("a" in entrada).toBe(true);
+    expect("c" in entrada.b[0]).toBe(true);
   });
 });

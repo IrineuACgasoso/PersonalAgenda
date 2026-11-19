@@ -23,7 +23,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#39 Status "sincronizado" só com o servidor confirmando** (2026-11-19). `statusDoSnapshot`: `saved` + `marcarSincronizado()` só com `!fromCache && !hasPendingWrites`; o fim do `setDoc` (que só resolve com o servidor) também marca.
 - [x] **#54 Edições offline depois da 1ª ficavam só na memória** (2026-11-19). Sem fila: `criarDespachante` (`utils/persistencia.js`) chama `setDoc` na hora — cada edição entra logo na fila persistente do Firestore (IndexedDB), e o SDK garante a ordem. A promise só alimenta status/`pendentes`.
 - [x] **#41 Seletor de cor gravava a cada pixel arrastado** (2026-11-19). Arrastar só muda a prévia; `onChange` sai no `change` nativo (fechar o seletor), no blur, ao desmontar ou após 400ms parado, sem repetir o mesmo valor (`utils/confirmacaoAdiada.js`). Drawers passam `key={id}` para a cor pendente ir pro item certo.
-- [ ] **#43 `undefined` no estado trava todas as gravações:** o Firestore rejeita `setDoc` com campo `undefined`, e como o valor continua no estado, **toda** gravação seguinte também falha ("Erro ao salvar" permanente). Caminho possível hoje: desmarcar um afazer antigo que não tem `concluidoEm` (`App.jsx` `alternarFeitoAfazer` grava `concluidoEm: a.concluidoEm`). Rede de segurança: `ignoreUndefinedProperties: true` no `initializeFirestore` **e** o `sanitizarDados` removendo `undefined` (com teste). _Logo após #41._
+- [x] **#43 `undefined` no estado travava todas as gravações** (2026-11-19). `removerUndefined` (profundo) no fim do `sanitizarDados` + `ignoreUndefinedProperties: true` no `initializeFirestore`; a causa concreta (`alternarFeitoAfazer` gravando `concluidoEm: undefined` ao desmarcar) corrigida na origem. +6 testes.
 - [ ] **#7 Loop de reload offline:** logado, sem cache local e sem rede → `status=error`, `data=null`, e o watchdog recarrega a cada 12s para sempre. Trocar por uma tela de erro com "tentar de novo"/"continuar offline".
 - [ ] **#8 `useCloudBackup` faz snapshot a cada abertura** (`ultimoBackupRef` zera no reload), o que gira o histórico de 10 backups em poucas horas. Basear no timestamp do backup mais recente no Firestore e não recriar o interval a cada mudança de `data`. _Review:_ **offline é pior** — o `setDoc` do backup só resolve quando o servidor confirma, então `ultimoBackupRef` não é atualizado e **cada edição feita offline enfileira mais um snapshot completo**; ao reconectar, todos sobem de uma vez (e a rotação apaga backups bons). Marcar "backup em andamento" antes do `await` e pular quando `!navigator.onLine`.
 - [ ] **#9 `useAutoBackup` não está ligado** (o README promete backup diário em .json + histórico local). Decidir com o usuário: religar em `App.jsx` ou remover o hook e o trecho do README.
@@ -98,6 +98,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] #43 `undefined` no estado não trava mais as gravações (2026-11-19).
 - [x] #54 gravações offline sem fila em memória + #41 seletor de cor sem gravação por pixel (2026-11-19).
 - [x] #6 `persist(updater)` sem race + #39 status de sync só com servidor confirmando (2026-11-19).
 - [x] #5 `sanitizarDados` normaliza listas de cadeiras/compromissos (2026-11-19).

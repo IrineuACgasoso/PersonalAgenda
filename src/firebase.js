@@ -26,8 +26,12 @@ const app = initializeApp(firebaseConfig);
 // servidor sozinhas assim que a conexão volta — não precisamos reimplementar
 // essa sincronização na mão. `persistentSingleTabManager` evita conflito
 // entre abas: só a aba ativa usa o cache (mais simples que coordenar múltiplas).
+// `ignoreUndefinedProperties`: rede de segurança do #43 — sem ela, um único
+// campo `undefined` no estado fazia TODO setDoc falhar. O sanitizarDados já
+// remove os undefined; isto cobre qualquer caminho que escape dele.
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }),
+  ignoreUndefinedProperties: true,
 });
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();

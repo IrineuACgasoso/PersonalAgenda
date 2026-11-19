@@ -164,3 +164,16 @@ describe("criarDespachante (#54)", () => {
     expect(await d.enviar(() => undefined)).toEqual({ ok: true, erro: null, ultima: true });
   });
 });
+
+describe("resolverGravacao nunca entrega undefined ao setDoc (#43)", () => {
+  it("desmarcar afazer antigo sem concluidoEm grava sem o campo", () => {
+    const atual = sanitizarDados(appData({ afazeres: [{ ...afazer({ id: "a1" }), feito: true }] }));
+    delete atual.afazeres[0].concluidoEm;
+    const r = resolverGravacao(atual, (d) => ({
+      ...d,
+      afazeres: d.afazeres.map((a) => ({ ...a, feito: false, concluidoEm: a.concluidoEm })),
+    }));
+    expect(r.ok).toBe(true);
+    expect("concluidoEm" in r.dados.afazeres[0]).toBe(false);
+  });
+});

@@ -110,7 +110,7 @@ UFPE/
     │                    watchdog de 12s no loading (reload), TODAS as ações CRUD, alternar concluído,
     │                    mover instância, excluir instância, limpar concluídos, export/import/restore,
     │                    roteamento por `aba` ("visaogeral" | "afazeres" | "compromissos" | "cadeiras" | "agenda")
-    ├── firebase.js      initializeApp, Firestore com persistentLocalCache(singleTab), auth,
+    ├── firebase.js      initializeApp, Firestore com persistentLocalCache(singleTab) + ignoreUndefinedProperties, auth,
     │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail), fazerLogout()
     ├── constants.js     DIAS, DIAS_FULL, CORES (paleta p/ novas cadeiras), HORA_INICIO/FIM (6–23),
     │                    STORAGE_KEY, SIDEBAR_STATE_KEY (sem uso), ULTIMA_SINCRONIZACAO_KEY,
@@ -134,7 +134,8 @@ UFPE/
     ├── utils/
     │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1", versao atual), sanitizarDados() (1º migra, depois
     │   │                         normaliza; whitelist de afazeres/rotina; listas internas de cadeira
-    │   │                         (horarios/links/datas) e compromisso (horarios) sempre arrays de objetos),
+    │   │                         (horarios/links/datas) e compromisso (horarios) sempre arrays de objetos;
+│   │                         por último removerUndefined() em profundidade — o Firestore recusa undefined, #43),
     │   │                         pareceVazio() (trava anti-sobrescrita)
     │   ├── persistencia.js       resolverGravacao(atual, entrada) → { ok, motivo, dados } (versão futura,
     │   │                         sanitiza, trava pareceVazio, "sem-mudanca"); statusDoSnapshot(metadata, online);
