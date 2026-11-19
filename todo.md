@@ -11,7 +11,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ## 🔴 ALTO
 
 ### Fase 1 — Segurança e fundação
-- [~] **#1 Versionar e endurecer as Firestore Rules.** `firestore.rules` + `firebase.json` + `.firebaserc` criados e validados (compila no servidor via `--dry-run`, 4 testes de sincronia em `integridade.test.js`). **Falta o usuário publicar:** `firebase deploy --only firestore:rules` e confirmar que o app sincroniza. Opcional depois: testes de comportamento com o emulador (precisa de Java).
+- [x] **#1 Versionar e endurecer as Firestore Rules.** `firestore.rules` + `firebase.json` + `.firebaserc`, 4 testes de sincronia em `integridade.test.js`. **Publicadas em 2026-11-18** pelo usuário. Falta só confirmar no app que a sincronização segue funcionando. Opcional depois: testes de comportamento com o emulador (precisa de Java).
 - [x] **#2 Dependências vulneráveis.** Produção: **0 vulnerabilidades** (firebase 12.19 + override `@grpc/grpc-js ^1.14.7`). Dev: Vite 5→6.4.6, Vitest 2→4.1, plugin-react 4.7. Restam 4 *moderate* no `glob/minimatch` do `workbox-build` (vite-plugin-pwa), que roda só no build sobre padrões do próprio projeto: **risco aceito**, revisar em #30.
 - [ ] **#3 Code review completa do projeto** (correção, dados, segurança, performance, a11y, CSS morto). Cada achado novo entra aqui com nível e posição na ordem.
 - [x] **#4 Schema versionado + migrações.** `src/utils/migracoes.js` (`VERSAO_ATUAL = 1`, baseline), aplicado dentro de `sanitizarDados`. Proteção: a versão antiga do app **não grava** sobre dados de versão futura (status "desatualizado"), e import/restore recusam backup futuro. `importarBackup` agora preserva `versao`.

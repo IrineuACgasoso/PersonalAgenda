@@ -14,7 +14,8 @@
 - **Docs:** `CLAUDE.md` (pedir `/clear` ao fim de cada feature; git na main só com check verde; regras de migração e Rules), `organization.md`, `todo.md`, `README.md` (Rules via arquivo, Vite 6, testes).
 - **➡ Próximo passo recomendado:** o usuário publica as Rules e testa o app (login, editar algo, ver "Nuvem sincronizada"). Depois, **#3 code review completa**, que vai alimentar a fase 2 (#5–#15, bugs de dados). Começar a fase 2 por **#5** e **#6**.
 - **Pendências de curto prazo:**
-  - [ ] Usuário: `firebase deploy --only firestore:rules` e confirmar a sincronização. Se der "Erro ao salvar"/permissão negada, reverter no console (Firestore → Regras → histórico) e me avisar.
+  - [x] Rules publicadas pelo usuário (`firebase deploy --only firestore:rules` → "released rules").
+  - [ ] Usuário: confirmar no app (login → editar algo → "Nuvem sincronizada"). Se der "Erro ao salvar"/permissão negada, reverter no console (Firestore → Regras → histórico) e me avisar.
   - [ ] Usuário: testar no celular a lista do calendário com nome longo (sessão 2).
   - [ ] #9: decidir sobre o `useAutoBackup`.
 
