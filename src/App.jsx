@@ -558,6 +558,7 @@ export default function App() {
             periodos={data.periodos}
             periodoAtivo={periodoAtivo}
             cadeiras={cadeirasDoPeriodo}
+            eventosExcluidos={eventosExcluidos}
             onCriar={criarCadeira}
             onAbrir={setCadeiraAbertaId}
             onExcluir={excluirCadeira}
@@ -579,6 +580,7 @@ export default function App() {
       {cadeiraAberta && (
         <PainelCadeira
           cadeira={cadeiraAberta}
+          eventosExcluidos={eventosExcluidos}
           onFechar={() => setCadeiraAbertaId(null)}
           onAtualizar={(patch) => atualizarCadeira(cadeiraAberta.id, patch)}
           onExcluir={() => excluirCadeira(cadeiraAberta.id)}

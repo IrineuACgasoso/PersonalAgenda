@@ -50,7 +50,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ### Fase 4 — Cadeiras
 - [x] **#19 Cadeiras com início/fim próprios** (2026-11-19). `cadeira.dataInicio/dataFim` opcionais (sanitizados: só `YYYY-MM-DD`), editados no drawer (De/Até, botão de limpar, erro inline se fim < início). `cadeiraEstaAtivaNaData` olha **só** a cadeira; aulas e avaliações fora da vigência somem do calendário; início/fim viram bandeirinha na célula e linha "Início/Fim de X" no dia (seguem o filtro Aulas). Card mostra a vigência. Cadeira nova herda a vigência da última do período com datas.
 - [x] **#20 Remover a "Duração do período"** (2026-11-19). Barra e CSS `periodo-duracao-*` removidos. **Schema v4:** `MIGRACOES[4]` copia as datas do período para as cadeiras (campo a campo, sem sobrescrever) e tira `dataInicio/dataFim` dos períodos.
-- [ ] **#21 Reformulação da aba Cadeiras e do drawer da cadeira.** Combinar o layout com o usuário antes. Ideias: card com o próximo horário/avaliação e a vigência; drawer com cabeçalho mais rico; seções no lugar de 3 abas no mobile. _Depende de #19 e #20._
+- [x] **#21 Reformulação da aba Cadeiras e do drawer da cadeira** (2026-11-19). Layout escolhido pelo usuário: card "próximo" (próxima aula — pulando as removidas da agenda —, próxima avaliação com destaque se faltam ≤3 dias, barra de progresso da vigência, contadores menores) e drawer com o mesmo resumo no cabeçalho + **seções recolhíveis** (Horários/Links/Datas com contagem) no lugar das 3 abas. Lógica pura em `utils/cadeiras.js`; componente `ui/ResumoCadeira.jsx`.
 
 ### Fase 5 — Afazeres / Rotinas / Compromissos
 - [ ] **#22 Reformulação em 3 abas na sidebar.** _Depende de #4, #10 e #11._

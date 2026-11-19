@@ -24,6 +24,7 @@ npm run format    # corrige a formatação (Prettier) e o que o ESLint souber co
 | `unit/projecao.test.js` | O que aparece em cada dia do calendário geral (`src/utils/projecao.js`), a ordenação e as chaves de evento por id (#10) / data natural (#14) |
 | `unit/migracoes.test.js` | Registro de migrações, v0→atual, v1→v2 (chaves por id, #10), v2→v3 (data natural, #14), v3→v4 (vigência do período → cadeiras, #20), ponta a ponta com a projeção |
 | `unit/dialogos.test.js` | Fila/dedupe dos diálogos próprios (#17), aviso de gravação recusada (#44, inclui excluir a última cadeira), resumo do backup na lista de restaurar |
+| `unit/cadeiras.test.js` | Resumo da cadeira (#21): próxima aula (em andamento, removida da agenda, vigência), próxima avaliação, progresso da vigência e textos |
 | `unit/desfazer.test.js` | "Desfazer" (#18): reinserir na posição original, sem duplicar, excluir+desfazer = lista original |
 | `unit/links.test.js` | `normalizarUrl` e `hrefSeguro` (só http(s) vira link, #50) |
 | `unit/integridade.test.js` | Checagens estáticas: ícones do PWA (#15), ordem do CSS, `@media` só no `mobile.css`, `.env` ignorado, regressões de UI (#42, #50, sem `toISOString()` em `src/` #13, sem `alert/confirm/prompt` nativos #17), `check` roda o lint com `src` explícito (#16) |

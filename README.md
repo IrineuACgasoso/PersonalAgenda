@@ -31,6 +31,7 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Múltiplos **períodos** (ex.: `2026.1`, `2026.2`) com seletor no próprio título da tela, com criação, renomeação inline e exclusão.
 - **Vigência opcional por cadeira** (`dataInicio` / `dataFim`, no drawer da cadeira): aulas e avaliações só aparecem no calendário dentro desse intervalo, e o início/fim ganham uma bandeirinha no calendário geral. Cadeira nova herda a vigência das outras do período.
 - Cada **cadeira** tem cor própria, **horários de aula** (dia, início, fim, local), **links/materiais** e **datas importantes** (provas, trabalhos).
+- O card (e o topo do painel da cadeira) mostra a **próxima aula**, a **próxima avaliação** (destacada quando faltam 3 dias ou menos) e uma **barra de progresso** da vigência. No painel, horários, links e datas ficam em seções recolhíveis.
 - Suporte a **códigos de turma do Google Classroom**, sempre listados antes dos links comuns.
 
 <p align="center">

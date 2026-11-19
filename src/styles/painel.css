@@ -91,27 +91,63 @@
   color: #f87171;
 }
 
-.painel-tabs {
+/* ---------- Seções do drawer da cadeira (#21) ---------- */
+.painel-resumo {
+  padding-left: 19px; /* alinha com o nome, depois da bolinha de cor */
+}
+
+.painel-resumo .resumo-cadeira {
+  margin-top: 6px;
+}
+
+.painel-secoes {
   display: flex;
+  flex-direction: column;
   gap: 4px;
   margin-top: 18px;
-  border-bottom: 1px solid var(--vidro-borda);
 }
 
-.painel-tab {
-  padding: 9px 4px;
-  background: transparent;
+.painel-secao {
+  border-top: 1px solid var(--vidro-borda);
+}
+
+.painel-secao-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 2px;
   border: none;
-  color: var(--texto-fraco);
-  font-size: 13.5px;
+  background: transparent;
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-right: 14px;
 }
 
-.painel-tab.ativa {
-  color: #fff;
-  border-bottom: 2px solid var(--accent);
+.painel-secao-seta {
+  flex-shrink: 0;
+  color: var(--texto-fraco);
+  transition: transform 0.15s;
+}
+
+.painel-secao-seta.fechada {
+  transform: rotate(-90deg);
+}
+
+.painel-secao-contagem {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.painel-secao-corpo {
+  padding: 2px 0 16px;
 }
 
 .painel-conteudo {

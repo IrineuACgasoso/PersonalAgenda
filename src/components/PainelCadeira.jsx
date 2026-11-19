@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Trash2, X } from "lucide-react";
+import { Trash2, X, ChevronDown } from "lucide-react";
 import { dataCompleta, erroDeVigencia } from "../utils/calendario";
 import useListaInterna from "../hooks/useListaInterna";
 import { DIAS_FULL } from "../constants";
@@ -7,12 +7,29 @@ import AbaHorarios from "./abas/AbaHorarios";
 import AbaLinks from "./abas/AbaLinks";
 import AbaDatas from "./abas/AbaDatas";
 import SeletorCor from "./ui/SeletorCor.jsx";
+import ResumoCadeira from "./ui/ResumoCadeira.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
 
-export default function PainelCadeira({ cadeira, onFechar, onAtualizar, onExcluir }) {
-  const [subaba, setSubaba] = useState("horarios");
+// Seção recolhível do drawer (#21): substitui as 3 abas — tudo fica numa
+// rolagem só, e dá para fechar o que não interessa.
+function Secao({ titulo, contagem, aberta, onAlternar, children }) {
+  return (
+    <section className="painel-secao">
+      <button type="button" className="painel-secao-cabecalho" onClick={onAlternar} aria-expanded={aberta}>
+        <ChevronDown size={16} className={`painel-secao-seta${aberta ? "" : " fechada"}`} />
+        <span>{titulo}</span>
+        <span className="painel-secao-contagem">{contagem}</span>
+      </button>
+      {aberta && <div className="painel-secao-corpo">{children}</div>}
+    </section>
+  );
+}
+
+export default function PainelCadeira({ cadeira, eventosExcluidos = [], onFechar, onAtualizar, onExcluir }) {
+  const [abertas, setAbertas] = useState({ horarios: true, links: true, datas: true });
+  const alternarSecao = (secao) => setAbertas((a) => ({ ...a, [secao]: !a[secao] }));
   const [nomeEdit, setNomeEdit] = useState(cadeira.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
@@ -68,9 +85,14 @@ export default function PainelCadeira({ cadeira, onFechar, onAtualizar, onExclui
           <button className="icon-btn-ghost" onClick={onExcluir} title="Excluir cadeira">
             <Trash2 size={15} />
           </button>
-          <button className="icon-btn-ghost" onClick={onFechar}>
+          <button className="icon-btn-ghost" onClick={onFechar} title="Fechar">
             <X size={17} />
           </button>
+        </div>
+
+        {/* Resumo no cabeçalho (#21): mesma informação do card. */}
+        <div className="painel-resumo">
+          <ResumoCadeira cadeira={cadeira} eventosExcluidos={eventosExcluidos} />
         </div>
 
         {/* SELETOR DE COR (HEXADECIMAL LIVRE) */}
@@ -120,31 +142,31 @@ export default function PainelCadeira({ cadeira, onFechar, onAtualizar, onExclui
           )}
         </div>
 
-        <div className="painel-tabs">
-          <button
-            className={`painel-tab ${subaba === "horarios" ? "ativa" : ""}`}
-            onClick={() => setSubaba("horarios")}
+        <div className="painel-secoes">
+          <Secao
+            titulo="Horários"
+            contagem={cadeira.horarios.length}
+            aberta={abertas.horarios}
+            onAlternar={() => alternarSecao("horarios")}
           >
-            Horários
-          </button>
-          <button className={`painel-tab ${subaba === "links" ? "ativa" : ""}`} onClick={() => setSubaba("links")}>
-            Links e materiais
-          </button>
-          <button className={`painel-tab ${subaba === "datas" ? "ativa" : ""}`} onClick={() => setSubaba("datas")}>
-            Datas importantes
-          </button>
-        </div>
-
-        <div className="painel-conteudo">
-          {subaba === "horarios" && (
             <AbaHorarios horarios={cadeira.horarios} onAdd={addHorario} onRemover={rmHorario} onEditar={editHorario} />
-          )}
-          {subaba === "links" && (
+          </Secao>
+          <Secao
+            titulo="Links e materiais"
+            contagem={cadeira.links.length}
+            aberta={abertas.links}
+            onAlternar={() => alternarSecao("links")}
+          >
             <AbaLinks links={cadeira.links} onAdd={addLink} onRemover={rmLink} onEditar={editLink} />
-          )}
-          {subaba === "datas" && (
+          </Secao>
+          <Secao
+            titulo="Datas importantes"
+            contagem={cadeira.datas.length}
+            aberta={abertas.datas}
+            onAlternar={() => alternarSecao("datas")}
+          >
             <AbaDatas datas={cadeira.datas} onAdd={addData} onRemover={rmData} onEditar={editData} />
-          )}
+          </Secao>
         </div>
       </div>
     </div>

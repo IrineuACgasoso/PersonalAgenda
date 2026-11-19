@@ -1,15 +1,16 @@
 // src/components/VisaoCadeiras.jsx
 import { useState, useRef } from "react";
-import { Plus, Trash2, Clock, Link as LinkIcon, Calendar, CalendarRange } from "lucide-react";
+import { Plus, Trash2, Clock, Link as LinkIcon, Calendar } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorPeriodo from "./ui/SeletorPeriodo.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
-import { textoVigencia } from "../utils/calendario.js";
+import ResumoCadeira from "./ui/ResumoCadeira.jsx";
 
 export default function VisaoCadeiras({
   periodos,
   periodoAtivo,
   cadeiras,
+  eventosExcluidos = [],
   onCriar,
   onAbrir,
   onExcluir,
@@ -71,6 +72,7 @@ export default function VisaoCadeiras({
                   <span className="card-title">{c.nome}</span>
                   <button
                     className="icon-btn-ghost"
+                    title="Excluir cadeira"
                     onClick={(e) => {
                       e.stopPropagation();
                       onExcluir(c.id);
@@ -79,7 +81,10 @@ export default function VisaoCadeiras({
                     <Trash2 size={13} />
                   </button>
                 </div>
-                <div className="card-meta">
+                {/* Resumo (#21): o que importa agora — próxima aula/avaliação e
+                    quanto da vigência já passou. */}
+                <ResumoCadeira cadeira={c} eventosExcluidos={eventosExcluidos} />
+                <div className="card-meta card-contagens">
                   <Clock size={12} />
                   <span>
                     {c.horarios.length} horário{c.horarios.length !== 1 ? "s" : ""}
@@ -94,11 +99,6 @@ export default function VisaoCadeiras({
                   <span>
                     {c.datas.length} data{c.datas.length !== 1 ? "s" : ""}
                   </span>
-                </div>
-                {/* Vigência própria da cadeira (#19); muda-se no drawer. */}
-                <div className="card-meta card-vigencia">
-                  <CalendarRange size={12} />
-                  <span>{textoVigencia(c) || "Sem início/fim definidos"}</span>
                 </div>
               </div>
             </div>

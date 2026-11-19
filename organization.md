@@ -24,8 +24,8 @@
 | Estilo da célula do calendário (hoje/selecionada/avaliação) | `src/components/VisaoGeral.jsx` ~458–480 (inline) + `src/styles/calendario.css` |
 | Formulário de afazer (rotina, urgência, cor) | `src/components/VisaoAfazeres.jsx` → `FormularioAfazer` ~37, `submit` ~93 |
 | Ordem da lista de afazeres | `src/components/VisaoAfazeres.jsx` ~258–271 |
-| Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` ~157–190 + `src/styles/cadeiras.css` |
-| Drawer da cadeira (Horários/Links/Datas) | `src/components/PainelCadeira.jsx` + `src/components/abas/*` |
+| Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` + `src/styles/cadeiras.css`; resumo (próx. aula/avaliação, barra da vigência) em `ui/ResumoCadeira.jsx`, lógica pura em `src/utils/cadeiras.js` (#21) |
+| Drawer da cadeira (resumo + seções recolhíveis Horários/Links/Datas) | `src/components/PainelCadeira.jsx` (`Secao`) + `src/components/abas/*` (conteúdo de cada seção); CSS `.painel-secao*` em `painel.css` |
 | Grade semanal 06h–23h | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css` |
 | Menu lateral, backup, login, indicador de status | `src/components/Sidebar.jsx` + `src/styles/sidebar.css` |
 | Backup na nuvem (snapshots a cada 3h) | `src/hooks/useCloudBackup.js`; decisões puras (quando fazer, rotação) em `src/utils/backupNuvem.js` |
@@ -109,6 +109,7 @@ UFPE/
 │       ├── links.test.js          normalizarUrl / hrefSeguro (#50)
 │       ├── dialogos.test.js       Fila/dedupe de diálogos (#17), mensagemDeRecusa (#44), resumoDoBackup
 │       ├── desfazer.test.js       reinserirPorId / reinserirVarios / separarRemovidos (#18)
+│       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação + marcos de vigência
 │       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
 │                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO),
@@ -169,6 +170,8 @@ UFPE/
     │   │                         ROTINAS_COM_DATA_BASE/dataAoSalvarAfazer/rotinaSemDataBase (#40), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
     │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, vigência da cadeira (#19): vigenciaDaCadeira,
     │   │                         cadeiraEstaAtivaNaData, textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
+    │   ├── cadeiras.js           PURO (#21): diasEntre, proximaAula (vigência + excluídas), proximaAvaliacao, progressoVigencia,
+    │   │                         rotuloDias, textoProximaAula, textoProximaAvaliacao — usados por ui/ResumoCadeira.jsx
     │   ├── projecao.js           PURO: projeta eventos de uma janela [inicioISO, fimISO] — avaliações, aulas (vigência),
     │   │                         compromissos, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
     │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto)
@@ -189,7 +192,7 @@ UFPE/
     │   ├── VisaoCadeiras.jsx     SeletorPeriodo no título, adicionar cadeira, grid de cards (contagem horários/links/datas + vigência)
     │   ├── VisaoCompromissos.jsx Adicionar + grid de cards de compromissos do período ativo
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/compromissos, grade semanal posicionada por %, lista de próximas datas
-    │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), sub-abas Horários/Links/Datas
+    │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), resumo e seções recolhíveis Horários/Links/Datas (#21)
     │   ├── PainelCompromisso.jsx Drawer: nome, cor, período (select), AbaHorarios
     │   ├── abas/
     │   │   ├── AbaHorarios.jsx   CRUD de {dia, inicio, fim, local}; valida início < fim
@@ -203,6 +206,7 @@ UFPE/
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período), sobre a casca `Modal`
     │       ├── ModalRestaurarNuvem.jsx  Lista de backups da nuvem (data + resumo); confirmação/gravação no App
 │       ├── TelaErroCarga.jsx   Erro da carga inicial (#7): "Tentar de novo" + "Usar sem login" (estilos no fim de painel.css)
+    │       ├── ResumoCadeira.jsx   Próx. aula · próx. avaliação · barra da vigência (card e cabeçalho do drawer, #21)
     │       ├── SeletorCor.jsx      Color picker nativo + campo hex; arrastar só muda a prévia, onChange no `change`/blur/400ms
     │       │                       (`adiarMs={0}` p/ estado local; drawers passam `key` = id do item)
     │       └── SeletorPeriodo.jsx  Título-dropdown: trocar/criar/renomear/excluir período
