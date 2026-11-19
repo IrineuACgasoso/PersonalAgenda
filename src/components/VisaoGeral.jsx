@@ -391,19 +391,17 @@ export default function VisaoGeral({
                       {concluido && <Check size={13} />}
                     </button>
                     <div className="data-item-faixa" style={{ background: ev.cor }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="data-item-titulo" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.titulo}</div>
-                      <div className="subtle" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.origem}</div>
+                    {/* Título quebra linha (nunca é cortado com "..."): no
+                        mobile nomes longos ficavam ilegíveis. O item cresce em
+                        altura e a faixa colorida acompanha (align-self: stretch). */}
+                    <div className="data-item-texto">
+                      <div className="data-item-titulo data-item-titulo-quebra">{ev.titulo}</div>
+                      <div className="subtle data-item-sub">{ev.origem}</div>
                     </div>
-                    <div className="data-item-urgencia" style={{ width: 34, flex: "0 0 34px", display: "flex", justifyContent: "center" }}>
+                    <div className="data-item-urgencia">
                       {ev.tipo === "afazeres" && <BarraUrgencia nivel={ev.urgencia || 1} />}
                     </div>
-                    <div
-                      className="data-item-data"
-                      style={{ width: 56, flex: "0 0 56px", textAlign: "right", fontSize: "1.05rem", fontWeight: 600, letterSpacing: "0.5px" }}
-                    >
-                      {ev.hora || ""}
-                    </div>
+                    <div className="data-item-data data-item-hora">{ev.hora || ""}</div>
                     {onExcluirInstanciaEvento && (
                       <button
                         type="button"
@@ -523,7 +521,7 @@ export default function VisaoGeral({
           style={{ left: itemArrastando.x, top: itemArrastando.y, borderColor: itemArrastando.cor }}
         >
           <span className="drag-ghost-ponto" style={{ background: itemArrastando.cor }} />
-          {itemArrastando.titulo}
+          <span className="drag-ghost-titulo">{itemArrastando.titulo}</span>
         </div>
       )}
     </div>

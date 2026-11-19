@@ -139,6 +139,28 @@
     min-width: 640px;
   }
 
+  /* ---------- lista "Eventos em DD/MM" (visão geral) ----------
+     Colunas fixas mais estreitas para sobrar largura pro nome do evento,
+     que quebra linha (ver .data-item-titulo-quebra em agenda.css). */
+  .data-item {
+    gap: 8px;
+    padding: 10px 10px;
+  }
+
+  .data-item-urgencia {
+    flex-basis: 26px;
+  }
+
+  .data-item-hora {
+    flex-basis: 42px;
+    font-size: 0.92rem;
+    letter-spacing: 0;
+  }
+
+  .data-item .data-item-faixa {
+    width: 5px;
+  }
+
   /* ---------- calendário (visão geral) ---------- */
   .calendario-celula {
     min-height: 50px;

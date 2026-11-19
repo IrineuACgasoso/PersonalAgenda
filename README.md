@@ -287,7 +287,7 @@ src/
 
 - **Single-user:** o acesso é restrito a um e-mail fixo no código. Multiusuário exigiria remover essa trava (as Rules já isolam por `uid`).
 - **Cache do Firestore em modo single-tab** (`persistentSingleTabManager`): o uso offline simultâneo em várias abas do mesmo navegador não é coordenado.
-- **Sem testes automatizados.**
+- **Testes só da lógica pura** (Vitest, `npm test`): recorrência, calendário, sanitização e integridade do projeto. Componentes React ainda não são testados.
 
 ---
 
