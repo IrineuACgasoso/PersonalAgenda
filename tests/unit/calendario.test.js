@@ -1,8 +1,18 @@
 // Grade do mês, vigência e helpers: src/utils/calendario.js + formatarData.js
 import { describe, it, expect } from "vitest";
-import { gerarCelulasMes, getIntervaloMes, cadeiraEstaAtivaNaData, hexParaRgb } from "../../src/utils/calendario.js";
+import {
+  gerarCelulasMes,
+  getIntervaloMes,
+  cadeiraEstaAtivaNaData,
+  hexParaRgb,
+  erroDeVigencia,
+  dataCompleta,
+  ehDataISO,
+  textoVigencia,
+  vigenciaPadraoParaNovaCadeira,
+} from "../../src/utils/calendario.js";
 import { formatarData } from "../../src/utils/formatarData.js";
-import { cadeira, periodo } from "../fixtures/fabricas.js";
+import { cadeira } from "../fixtures/fabricas.js";
 
 describe("gerarCelulasMes", () => {
   it("novembro/2026 começa na segunda com 6 dias de outubro e fecha a semana com dezembro", () => {
@@ -33,22 +43,72 @@ describe("getIntervaloMes", () => {
   });
 });
 
-describe("cadeiraEstaAtivaNaData", () => {
-  const p = periodo({ id: "p", dataInicio: "2026-08-01", dataFim: "2026-12-15" });
-  const c = cadeira({ periodoId: "p" });
-  it("dentro da vigência do período", () => expect(cadeiraEstaAtivaNaData(c, "2026-11-18", [p])).toBe(true));
+describe("cadeiraEstaAtivaNaData (vigência da própria cadeira, #19)", () => {
+  const c = cadeira({ dataInicio: "2026-08-01", dataFim: "2026-12-15" });
+  it("dentro da vigência", () => expect(cadeiraEstaAtivaNaData(c, "2026-11-18")).toBe(true));
   it("limites são inclusivos", () => {
-    expect(cadeiraEstaAtivaNaData(c, "2026-08-01", [p])).toBe(true);
-    expect(cadeiraEstaAtivaNaData(c, "2026-12-15", [p])).toBe(true);
+    expect(cadeiraEstaAtivaNaData(c, "2026-08-01")).toBe(true);
+    expect(cadeiraEstaAtivaNaData(c, "2026-12-15")).toBe(true);
   });
   it("fora da vigência", () => {
-    expect(cadeiraEstaAtivaNaData(c, "2026-07-31", [p])).toBe(false);
-    expect(cadeiraEstaAtivaNaData(c, "2026-12-16", [p])).toBe(false);
+    expect(cadeiraEstaAtivaNaData(c, "2026-07-31")).toBe(false);
+    expect(cadeiraEstaAtivaNaData(c, "2026-12-16")).toBe(false);
   });
-  it("período sem datas = sempre ativa", () => {
-    expect(cadeiraEstaAtivaNaData(c, "1999-01-01", [periodo({ id: "p" })])).toBe(true);
+  it("só início ou só fim limita um lado", () => {
+    expect(cadeiraEstaAtivaNaData(cadeira({ dataInicio: "2026-08-01" }), "2030-01-01")).toBe(true);
+    expect(cadeiraEstaAtivaNaData(cadeira({ dataInicio: "2026-08-01" }), "2026-07-01")).toBe(false);
+    expect(cadeiraEstaAtivaNaData(cadeira({ dataFim: "2026-12-15" }), "1999-01-01")).toBe(true);
   });
-  it("período inexistente = sempre ativa", () => expect(cadeiraEstaAtivaNaData(c, "2026-11-18", [])).toBe(true));
+  it("sem datas = sempre ativa", () => {
+    expect(cadeiraEstaAtivaNaData(cadeira(), "1999-01-01")).toBe(true);
+    expect(cadeiraEstaAtivaNaData(cadeira({ dataInicio: "", dataFim: "" }), "1999-01-01")).toBe(true);
+  });
+});
+
+describe("validação e texto da vigência (#19)", () => {
+  it("fim antes do início é erro; igual ou só um lado, não", () => {
+    expect(erroDeVigencia("2026-08-01", "2026-07-31")).toMatch(/antes/);
+    expect(erroDeVigencia("2026-08-01", "2026-08-01")).toBeNull();
+    expect(erroDeVigencia("2026-08-01", "")).toBeNull();
+    expect(erroDeVigencia("", "")).toBeNull();
+  });
+  it("dataCompleta ignora os anos intermediários ao digitar no desktop", () => {
+    expect(dataCompleta("0202-03-01")).toBe(false);
+    expect(dataCompleta("2026-03-01")).toBe(true);
+    expect(dataCompleta("")).toBe(false);
+  });
+  it("ehDataISO só aceita YYYY-MM-DD", () => {
+    expect(ehDataISO("2026-03-01")).toBe(true);
+    expect(ehDataISO("01/03/2026")).toBe(false);
+    expect(ehDataISO(20260301)).toBe(false);
+  });
+  it("textoVigencia", () => {
+    expect(textoVigencia(cadeira({ dataInicio: "2026-08-01", dataFim: "2026-12-15" }))).toBe("01/08/2026 – 15/12/2026");
+    expect(textoVigencia(cadeira({ dataInicio: "2026-08-01" }))).toBe("A partir de 01/08/2026");
+    expect(textoVigencia(cadeira({ dataFim: "2026-12-15" }))).toBe("Até 15/12/2026");
+    expect(textoVigencia(cadeira())).toBe("");
+  });
+});
+
+describe("vigenciaPadraoParaNovaCadeira (#19)", () => {
+  it("copia a vigência da última cadeira do mesmo período que tem datas", () => {
+    const lista = [
+      cadeira({ periodoId: "p", dataInicio: "2026-03-01", dataFim: "2026-07-01" }),
+      cadeira({ periodoId: "p", dataInicio: "2026-08-01", dataFim: "2026-12-15" }),
+      cadeira({ periodoId: "p" }),
+      cadeira({ periodoId: "outro", dataInicio: "2030-01-01" }),
+    ];
+    expect(vigenciaPadraoParaNovaCadeira(lista, "p")).toEqual({ dataInicio: "2026-08-01", dataFim: "2026-12-15" });
+  });
+  it("sem referência no período ⇒ sem datas", () => {
+    expect(vigenciaPadraoParaNovaCadeira([cadeira({ periodoId: "outro", dataFim: "2026-12-01" })], "p")).toEqual({});
+    expect(vigenciaPadraoParaNovaCadeira([], "p")).toEqual({});
+  });
+  it("só um lado definido ⇒ copia só ele", () => {
+    expect(vigenciaPadraoParaNovaCadeira([cadeira({ periodoId: "p", dataFim: "2026-12-01" })], "p")).toEqual({
+      dataFim: "2026-12-01",
+    });
+  });
 });
 
 describe("hexParaRgb", () => {

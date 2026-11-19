@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { VERSAO_ATUAL, MIGRACOES, versaoDos, ehVersaoFutura, migrarDados } from "../../src/utils/migracoes.js";
 import { sanitizarDados } from "../../src/utils/sanitizarDados.js";
 import { projetarEventos } from "../../src/utils/projecao.js";
-import { appData, backupAntigo, cadeira, compromisso, horario, afazer } from "../fixtures/fabricas.js";
+import { appData, backupAntigo, cadeira, compromisso, horario, afazer, periodo } from "../fixtures/fabricas.js";
 
 // Congela recursivamente: qualquer mutação da entrada lança erro.
 function congelar(o) {
@@ -221,5 +221,52 @@ describe("v2 → v3: ocorrências de afazer pela data natural (#14)", () => {
       "2026-11-12"
     ];
     expect(ev.feito).toBe(true);
+  });
+});
+
+describe("v3 → v4: vigência sai do período e vai para as cadeiras (#19/#20)", () => {
+  const migrar = (d) => MIGRACOES[4](d);
+  const comDatas = periodo({ id: "p", dataInicio: "2026-08-01", dataFim: "2026-12-15" });
+
+  it("cadeira sem datas herda as do período; o período perde as datas", () => {
+    const d = migrar(appData({ versao: 3, periodos: [comDatas], cadeiras: [cadeira({ id: "c", periodoId: "p" })] }));
+    expect(d.cadeiras[0]).toMatchObject({ dataInicio: "2026-08-01", dataFim: "2026-12-15" });
+    expect(d.periodos[0]).toEqual({ id: "p", nome: comDatas.nome });
+  });
+
+  it("não sobrescreve a data que a cadeira já tem (campo a campo)", () => {
+    const c = cadeira({ id: "c", periodoId: "p", dataFim: "2027-01-10" });
+    const d = migrar(appData({ versao: 3, periodos: [comDatas], cadeiras: [c] }));
+    expect(d.cadeiras[0]).toMatchObject({ dataInicio: "2026-08-01", dataFim: "2027-01-10" });
+  });
+
+  it("período sem datas (ou cadeira órfã) não ganha campo nenhum", () => {
+    const d = migrar(
+      appData({
+        versao: 3,
+        periodos: [periodo({ id: "p" })],
+        cadeiras: [cadeira({ id: "c", periodoId: "p" }), cadeira({ id: "o", periodoId: "sumiu" })],
+      }),
+    );
+    expect("dataInicio" in d.cadeiras[0]).toBe(false);
+    expect("dataFim" in d.cadeiras[1]).toBe(false);
+  });
+
+  it("tolera dados incompletos e não muta a entrada", () => {
+    expect(() => migrar({})).not.toThrow();
+    expect(() => migrar({ periodos: [null, 3], cadeiras: [null, { id: "x" }] })).not.toThrow();
+    expect(() =>
+      migrar(congelar(appData({ periodos: [comDatas], cadeiras: [cadeira({ periodoId: "p" })] }))),
+    ).not.toThrow();
+  });
+
+  it("ponta a ponta: o calendário mostra as mesmas aulas de antes da migração", () => {
+    const c = cadeira({ id: "c", periodoId: "p", nome: "IP", horarios: [horario({ id: "h", dia: 0 })] });
+    const novo = sanitizarDados(
+      appData({ versao: 3, periodos: [{ ...comDatas, dataFim: "2026-11-10" }], cadeiras: [c] }),
+    );
+    expect(novo.versao).toBe(VERSAO_ATUAL);
+    const m = projetarEventos({ inicioISO: "2026-11-01", fimISO: "2026-11-30", cadeiras: novo.cadeiras });
+    expect(Object.keys(m).sort()).toEqual(["2026-11-02", "2026-11-09"]);
   });
 });

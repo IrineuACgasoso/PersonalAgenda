@@ -1,7 +1,7 @@
 // O que aparece em cada dia do calendário geral: src/utils/projecao.js
 import { describe, it, expect } from "vitest";
-import { projetarEventos, compararEventosDoDia } from "../../src/utils/projecao.js";
-import { cadeira, compromisso, afazer, horario, periodo } from "../fixtures/fabricas.js";
+import { projetarEventos, compararEventosDoDia, projetarMarcosVigencia } from "../../src/utils/projecao.js";
+import { cadeira, compromisso, afazer, horario } from "../fixtures/fabricas.js";
 
 const NOV = { inicioISO: "2026-11-01", fimISO: "2026-11-30", hojeISO: "2026-11-18" };
 const titulos = (mapa, dia) => (mapa[dia] || []).map((e) => e.titulo);
@@ -15,20 +15,21 @@ describe("aulas", () => {
   });
 
   it("aparecem só no dia da semana do horário (segundas de novembro)", () => {
-    const m = projetarEventos({ ...NOV, cadeiras: [c], periodos: [periodo({ id: "p" })] });
+    const m = projetarEventos({ ...NOV, cadeiras: [c] });
     const dias = Object.keys(m).filter((d) => m[d].some((e) => e.tipo === "aulas"));
     expect(dias).toEqual(["2026-11-02", "2026-11-09", "2026-11-16", "2026-11-23", "2026-11-30"]);
   });
 
-  it("respeitam a vigência do período", () => {
-    const p = periodo({ id: "p", dataFim: "2026-11-10" });
-    const m = projetarEventos({ ...NOV, cadeiras: [c], periodos: [p] });
+  it("respeitam a vigência da própria cadeira (#19)", () => {
+    const m = projetarEventos({ ...NOV, cadeiras: [{ ...c, dataInicio: "2026-11-05", dataFim: "2026-11-20" }] });
+    expect(titulos(m, "2026-11-02")).toEqual([]);
     expect(titulos(m, "2026-11-09")).toEqual(["IP"]);
-    expect(titulos(m, "2026-11-16")).toEqual([]);
+    expect(titulos(m, "2026-11-16")).toEqual(["IP"]);
+    expect(titulos(m, "2026-11-23")).toEqual([]);
   });
 
   it("ocorrência excluída some só naquele dia", () => {
-    const m = projetarEventos({ ...NOV, cadeiras: [c], periodos: [], eventosExcluidos: ["aulas|2026-11-09|c1|h1"] });
+    const m = projetarEventos({ ...NOV, cadeiras: [c], eventosExcluidos: ["aulas|2026-11-09|c1|h1"] });
     expect(titulos(m, "2026-11-09")).toEqual([]);
     expect(titulos(m, "2026-11-16")).toEqual(["IP"]);
   });
@@ -40,6 +41,32 @@ describe("aulas", () => {
       filtros: { aulas: false, avaliacoes: true, compromissos: true, afazeres: true },
     });
     expect(titulos(m, "2026-11-02")).toEqual([]);
+  });
+});
+
+describe("marcos de vigência (#19)", () => {
+  it("início e fim de cada cadeira no dia certo, só dentro da janela", () => {
+    const a = cadeira({ id: "a", nome: "IP", cor: "#f00", dataInicio: "2026-11-03", dataFim: "2027-03-01" });
+    const b = cadeira({ id: "b", nome: "Cálculo", cor: "#0f0", dataInicio: "2026-11-03", dataFim: "2026-11-27" });
+    const m = projetarMarcosVigencia([a, b, cadeira()], NOV.inicioISO, NOV.fimISO);
+    expect(Object.keys(m).sort()).toEqual(["2026-11-03", "2026-11-27"]);
+    expect(m["2026-11-03"]).toEqual([
+      { tipo: "inicio", idCadeira: "a", nome: "IP", cor: "#f00" },
+      { tipo: "inicio", idCadeira: "b", nome: "Cálculo", cor: "#0f0" },
+    ]);
+    expect(m["2026-11-27"]).toEqual([{ tipo: "fim", idCadeira: "b", nome: "Cálculo", cor: "#0f0" }]);
+  });
+  it("avaliação fora da vigência não aparece", () => {
+    const c = cadeira({
+      dataFim: "2026-11-15",
+      datas: [
+        { id: "d1", titulo: "P1", data: "2026-11-10" },
+        { id: "d2", titulo: "Final", data: "2026-11-20" },
+      ],
+    });
+    const m = projetarEventos({ ...NOV, cadeiras: [c] });
+    expect(titulos(m, "2026-11-10")).toEqual(["P1"]);
+    expect(titulos(m, "2026-11-20")).toEqual([]);
   });
 });
 

@@ -10,6 +10,7 @@
 // depois completa/normaliza os campos.
 
 import { VERSAO_ATUAL, migrarDados, versaoDos } from "./migracoes.js";
+import { ehDataISO } from "./calendario.js";
 
 export const DADOS_PADRAO = {
   versao: VERSAO_ATUAL,
@@ -39,6 +40,10 @@ function sanitizarCadeira(c) {
     horarios: listaDeObjetos(c.horarios),
     links: listaDeObjetos(c.links),
     datas: listaDeObjetos(c.datas),
+    // Vigência própria (#19), opcional: só "YYYY-MM-DD" válido sobrevive
+    // (undefined é removido por removerUndefined; "" = sem limite).
+    dataInicio: ehDataISO(c.dataInicio) ? c.dataInicio : undefined,
+    dataFim: ehDataISO(c.dataFim) ? c.dataFim : undefined,
   };
 }
 

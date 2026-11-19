@@ -10,6 +10,8 @@ import {
   Check,
   Plus,
   Trash2,
+  Flag,
+  FlagOff,
 } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
@@ -37,7 +39,6 @@ export default function VisaoGeral({
   cadeiras = [],
   compromissos = [],
   afazeres = [],
-  periodos = [],
   eventosConcluidos = [],
   eventosExcluidos = [],
   onAlternarEventoConcluido,
@@ -58,11 +59,10 @@ export default function VisaoGeral({
   const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
 
   const { filtros, alternarFiltro } = useFiltrosCalendario();
-  const eventosPorDia = useEventosCalendario({
+  const { eventosPorDia, marcosVigencia } = useEventosCalendario({
     cadeiras,
     compromissos,
     afazeres,
-    periodos,
     ano,
     mes,
     filtros,
@@ -191,6 +191,8 @@ export default function VisaoGeral({
   // pendentes primeiro (por horário/urgência), concluídos vão para o final —
   // dentro dos pendentes, afazeres de maior urgência sobem para o topo; sort
   // é estável, então a ordem por horário dentro de cada grupo é preservada
+  const marcosDoDiaSelecionado = (diaSelecionado && marcosVigencia[diaSelecionado]) || [];
+
   const eventosDoDiaSelecionado = useMemo(() => {
     const lista = diaSelecionado ? eventosPorDia[diaSelecionado] || [] : [];
     return [...lista].sort((a, b) => {
@@ -397,7 +399,24 @@ export default function VisaoGeral({
           {!diaSelecionado && (
             <EstadoVazio texto="Clique em qualquer dia do calendário para ver a programação detalhada." pequeno />
           )}
-          {diaSelecionado && eventosDoDiaSelecionado.length === 0 && (
+          {/* Início/fim de vigência das cadeiras (#19): só informativo, sem
+              check nem lixeira — muda-se no drawer da cadeira. */}
+          {marcosDoDiaSelecionado.length > 0 && (
+            <div className="marcos-vigencia">
+              {marcosDoDiaSelecionado.map((m) => {
+                const Icone = m.tipo === "inicio" ? Flag : FlagOff;
+                return (
+                  <div key={`${m.tipo}|${m.idCadeira}`} className="marco-vigencia">
+                    <Icone size={13} color={m.cor} />
+                    <span>
+                      {m.tipo === "inicio" ? "Início" : "Fim"} de <strong>{m.nome}</strong>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {diaSelecionado && eventosDoDiaSelecionado.length === 0 && marcosDoDiaSelecionado.length === 0 && (
             <EstadoVazio texto="Nenhum evento neste dia" pequeno />
           )}
           {diaSelecionado && eventosDoDiaSelecionado.length > 0 && (
@@ -496,6 +515,9 @@ export default function VisaoGeral({
           const ehAlvoDrag = itemArrastando && diaAlvo === dataISO;
           const temAvaliacao = eventos.some((ev) => ev.tipo === "avaliacoes");
           const eventoImportante = eventos.find((ev) => ev.tipo === "avaliacoes");
+          const marcos = marcosVigencia[dataISO] || [];
+          const marcoInicio = marcos.find((m) => m.tipo === "inicio");
+          const marcoFim = marcos.find((m) => m.tipo === "fim");
 
           let celulaStyle = { transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)" };
           if (ehHoje && !selecionada) {
@@ -584,6 +606,15 @@ export default function VisaoGeral({
               >
                 {dia}
               </span>
+              {marcos.length > 0 && (
+                <span
+                  className="calendario-marcos"
+                  title={marcos.map((m) => `${m.tipo === "inicio" ? "Início" : "Fim"} de ${m.nome}`).join(", ")}
+                >
+                  {marcoInicio && <Flag size={11} color={marcoInicio.cor} />}
+                  {marcoFim && <FlagOff size={11} color={marcoFim.cor} />}
+                </span>
+              )}
               <div className="calendario-pontos">
                 {eventos.slice(0, 4).map((ev, i) => (
                   <span key={i} className="calendario-ponto" style={{ background: ev.cor }} />

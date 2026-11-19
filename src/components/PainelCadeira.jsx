@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
+import { dataCompleta, erroDeVigencia } from "../utils/calendario";
 import useListaInterna from "../hooks/useListaInterna";
 import { DIAS_FULL } from "../constants";
 import AbaHorarios from "./abas/AbaHorarios";
@@ -20,6 +21,25 @@ export default function PainelCadeira({ cadeira, onFechar, onAtualizar, onExclui
   // sendo digitado a cada sync vindo de outro aparelho.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setNomeEdit(cadeira.nome), [cadeira.id]);
+
+  // Vigência (#19): estado local para o input não "pular" enquanto digita.
+  // Grava a cada data completa e válida; fim antes do início mostra o erro
+  // embaixo e não grava (sem diálogo: o valor pode estar no meio da edição).
+  const vigenciaDa = (c) => ({ inicio: c.dataInicio || "", fim: c.dataFim || "" });
+  const [vigencia, setVigencia] = useState(() => vigenciaDa(cadeira));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setVigencia(vigenciaDa(cadeira)), [cadeira.id]);
+  const erroVigencia = erroDeVigencia(vigencia.inicio, vigencia.fim);
+
+  const alterarVigencia = (campo, valor) => {
+    const nova = { ...vigencia, [campo]: valor };
+    setVigencia(nova);
+    if (valor && !dataCompleta(valor)) return;
+    if (erroDeVigencia(nova.inicio, nova.fim)) return;
+    const atual = vigenciaDa(cadeira);
+    if (nova.inicio === atual.inicio && nova.fim === atual.fim) return;
+    onAtualizar({ dataInicio: nova.inicio, dataFim: nova.fim });
+  };
 
   const salvarNome = () => {
     const v = nomeEdit.trim();
@@ -56,6 +76,48 @@ export default function PainelCadeira({ cadeira, onFechar, onAtualizar, onExclui
         {/* SELETOR DE COR (HEXADECIMAL LIVRE) */}
         <div style={{ marginTop: 10 }}>
           <SeletorCor key={cadeira.id} valor={cadeira.cor} onChange={(cor) => onAtualizar({ cor })} />
+        </div>
+
+        {/* VIGÊNCIA DA CADEIRA (#19): fora dela, aulas e avaliações não aparecem no calendário */}
+        <div className="painel-vigencia">
+          <span className="subtle painel-vigencia-rotulo">Vigência</span>
+          <div className="painel-vigencia-campos">
+            {[
+              ["inicio", "De"],
+              ["fim", "Até"],
+            ].map(([campo, rotulo]) => (
+              <label key={campo} className="painel-vigencia-campo">
+                <span className="subtle">{rotulo}</span>
+                <input
+                  type="date"
+                  className="input"
+                  value={vigencia[campo]}
+                  max={campo === "inicio" ? vigencia.fim || undefined : undefined}
+                  min={campo === "fim" ? vigencia.inicio || undefined : undefined}
+                  onChange={(e) => alterarVigencia(campo, e.target.value)}
+                />
+                {vigencia[campo] && (
+                  <button
+                    type="button"
+                    className="icon-btn-ghost"
+                    title={`Limpar data de ${campo === "inicio" ? "início" : "fim"}`}
+                    onClick={() => alterarVigencia(campo, "")}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </label>
+            ))}
+          </div>
+          {erroVigencia ? (
+            <span className="painel-vigencia-erro">{erroVigencia}</span>
+          ) : (
+            <span className="subtle painel-vigencia-dica">
+              {vigencia.inicio || vigencia.fim
+                ? "Fora dessas datas, as aulas e avaliações não aparecem no calendário."
+                : "Sem datas: as aulas aparecem em todas as semanas."}
+            </span>
+          )}
         </div>
 
         <div className="painel-tabs">

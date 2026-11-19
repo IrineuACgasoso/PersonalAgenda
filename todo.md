@@ -48,8 +48,8 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#18 Desfazer (undo)** (2026-11-19). Toast "… excluído · Desfazer" (6s) ao excluir cadeira, compromisso, afazer, horário, link, data, ocorrência do calendário e "Apagar concluídos" — sem `confirm()` nesses casos. Período, importar e restaurar continuam pedindo confirmação (período também tem desfazer). Desfazer reinsere na posição original sem duplicar (`utils/desfazer.js`). Concluir não ganhou toast (é um toggle).
 
 ### Fase 4 — Cadeiras
-- [ ] **#19 Cadeiras com início/fim próprios** (opcionais), para cadeiras que duram mais ou menos que o período. Campos `cadeira.dataInicio/dataFim` em `sanitizarDados`; `cadeiraEstaAtivaNaData` olha primeiro a cadeira; o calendário geral mostra aulas/avaliações só na vigência dela e marca visualmente o início e o fim. _Depende de #4._
-- [ ] **#20 Remover a "Duração do período"** (barra De/Até em `VisaoCadeiras` + CSS `periodo-duracao-*` em `periodo-seletor.css` e `mobile.css`). Migração: copiar `periodo.dataInicio/dataFim` para as cadeiras sem datas próprias. _Depende de #19._
+- [x] **#19 Cadeiras com início/fim próprios** (2026-11-19). `cadeira.dataInicio/dataFim` opcionais (sanitizados: só `YYYY-MM-DD`), editados no drawer (De/Até, botão de limpar, erro inline se fim < início). `cadeiraEstaAtivaNaData` olha **só** a cadeira; aulas e avaliações fora da vigência somem do calendário; início/fim viram bandeirinha na célula e linha "Início/Fim de X" no dia (seguem o filtro Aulas). Card mostra a vigência. Cadeira nova herda a vigência da última do período com datas.
+- [x] **#20 Remover a "Duração do período"** (2026-11-19). Barra e CSS `periodo-duracao-*` removidos. **Schema v4:** `MIGRACOES[4]` copia as datas do período para as cadeiras (campo a campo, sem sobrescrever) e tira `dataInicio/dataFim` dos períodos.
 - [ ] **#21 Reformulação da aba Cadeiras e do drawer da cadeira.** Combinar o layout com o usuário antes. Ideias: card com o próximo horário/avaliação e a vigência; drawer com cabeçalho mais rico; seções no lugar de 3 abas no mobile. _Depende de #19 e #20._
 
 ### Fase 5 — Afazeres / Rotinas / Compromissos

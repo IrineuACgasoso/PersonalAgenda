@@ -178,7 +178,33 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   color: var(--texto);
   font-size: 14px;
+  overflow: hidden; /* recorta a barra de tempo nos cantos arredondados */
   animation: modal-surgir 0.15s ease-out;
+}
+
+/* Barra de tempo do toast: esvazia da direita para a esquerda durante
+   `duracaoMs` (passado inline pelo Toast). */
+.toast-progresso {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--accent-2);
+  opacity: 0.7;
+  transform-origin: left center;
+  animation-name: toast-esvaziar;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes toast-esvaziar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 .toast-texto {

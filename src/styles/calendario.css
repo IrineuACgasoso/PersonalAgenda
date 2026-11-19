@@ -73,6 +73,7 @@
 }
 
 .calendario-celula {
+  position: relative; /* âncora do marcador de vigência (.calendario-marcos) */
   min-height: 66px;
   border: 1px solid var(--vidro-borda);
   border-radius: var(--raio-md);
@@ -143,4 +144,40 @@
 .calendario-mais {
   font-size: 10px;
   color: #8a8a92;
+}
+
+/* Início/fim da vigência de alguma cadeira (#19): bandeirinha na cor da
+   cadeira no canto da célula. Só informativo (o clique é da célula). */
+.calendario-marcos {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+}
+
+/* Linha "Início de X" / "Fim de X" no topo da lista do dia selecionado. */
+.marcos-vigencia {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.marco-vigencia {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--vidro-borda);
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+
+.marco-vigencia strong {
+  color: var(--texto);
+  font-weight: 600;
 }

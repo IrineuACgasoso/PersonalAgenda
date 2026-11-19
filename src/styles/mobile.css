@@ -120,6 +120,16 @@
     margin-top: 52px;
   }
 
+  /* Vigência da cadeira (#19): um campo por linha, input ocupa o resto. */
+  .painel-vigencia-campos {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .painel-vigencia-campo .input {
+    flex: 1;
+  }
+
   /* ---------- afazeres ----------
      Lista de afazeres: em vez de esticar a página inteira, rola por
      dentro de uma área com altura limitada (só no mobile) */
@@ -174,35 +184,6 @@
 
   .periodo-seletor-nome {
     font-size: 19px;
-  }
-
-  /* ---------- duração do período ---------- */
-  .periodo-duracao-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .periodo-duracao-campos {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .periodo-data-campo {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .periodo-data-campo .input {
-    flex: 1;
-    width: auto;
-  }
-
-  .periodo-duracao-acoes {
-    align-self: flex-end;
   }
 
   /* Diálogos (#17) e toast (#18): botões ocupam a largura toda (alvo de

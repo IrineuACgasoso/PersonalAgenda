@@ -1,5 +1,6 @@
 // src/utils/calendario.js
 import { toISO } from "./afazeres.js";
+import { formatarData } from "./formatarData.js";
 
 export const NOME_MESES = [
   "Janeiro",
@@ -78,10 +79,55 @@ export function gerarCelulasMes(ano, mes) {
   return celulas;
 }
 
-export function cadeiraEstaAtivaNaData(cadeira, dataISO, periodos = []) {
-  const periodo = periodos.find((p) => p.id === cadeira.periodoId);
-  if (!periodo) return true;
-  if (periodo.dataInicio && dataISO < periodo.dataInicio) return false;
-  if (periodo.dataFim && dataISO > periodo.dataFim) return false;
+// Vigência da cadeira (#19): `dataInicio`/`dataFim` opcionais, na própria
+// cadeira ("YYYY-MM-DD"; vazio = sem limite daquele lado). Antes a vigência
+// vinha do PERÍODO; a migração v4 (#20) copiou as datas do período para as
+// cadeiras, então o período não entra mais nesta conta.
+export function vigenciaDaCadeira(cadeira) {
+  return { inicio: cadeira?.dataInicio || "", fim: cadeira?.dataFim || "" };
+}
+
+export function cadeiraEstaAtivaNaData(cadeira, dataISO) {
+  const { inicio, fim } = vigenciaDaCadeira(cadeira);
+  if (inicio && dataISO < inicio) return false;
+  if (fim && dataISO > fim) return false;
   return true;
+}
+
+// Texto curto da vigência para o card da cadeira ("" = sem limites).
+export function textoVigencia(cadeira) {
+  const { inicio, fim } = vigenciaDaCadeira(cadeira);
+  if (inicio && fim) return `${formatarData(inicio)} – ${formatarData(fim)}`;
+  if (inicio) return `A partir de ${formatarData(inicio)}`;
+  if (fim) return `Até ${formatarData(fim)}`;
+  return "";
+}
+
+// "YYYY-MM-DD" bem formado (o que o sanitizarDados aceita como vigência).
+export function ehDataISO(valor) {
+  return typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor);
+}
+
+// Data "completa" no <input type="date">: ao digitar o ano no desktop, o
+// valor passa por 0002, 0020, 0202… antes de 2026 — não gravar esses.
+export function dataCompleta(valor) {
+  return ehDataISO(valor) && Number(valor.slice(0, 4)) >= 1900;
+}
+
+// Valida a vigência digitada no drawer. Devolve a mensagem de erro ou null.
+export function erroDeVigencia(inicio, fim) {
+  if (inicio && fim && fim < inicio) return "A data de fim não pode ser antes da data de início.";
+  return null;
+}
+
+// Vigência sugerida para uma cadeira NOVA do período: a da última cadeira
+// do mesmo período que tem alguma data. Mantém o comportamento de antes do
+// #20 (cadeira nova já nascia com a duração do período) sem precisar de
+// campo no período. Sem nenhuma referência ⇒ sem limites.
+export function vigenciaPadraoParaNovaCadeira(cadeiras = [], periodoId) {
+  const referencia = [...cadeiras].reverse().find((c) => c?.periodoId === periodoId && (c.dataInicio || c.dataFim));
+  const patch = {};
+  if (referencia?.dataInicio) patch.dataInicio = referencia.dataInicio;
+  if (referencia?.dataFim) patch.dataFim = referencia.dataFim;
+  return patch;
 }

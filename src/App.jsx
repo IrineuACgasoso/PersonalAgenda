@@ -21,6 +21,7 @@ import { useCloudBackup } from "./hooks/useCloudBackup";
 import { ehVersaoFutura } from "./utils/migracoes";
 import { toISO, ehRotina, afazerConcluido } from "./utils/afazeres";
 import { mensagemDeRecusa } from "./utils/dialogos";
+import { vigenciaPadraoParaNovaCadeira } from "./utils/calendario";
 import { reinserirPorId, reinserirVarios, separarRemovidos } from "./utils/desfazer";
 import {
   TEMPO_LIMITE_CARREGAMENTO_MS,
@@ -227,7 +228,12 @@ export default function App() {
       links: [],
       datas: [],
     };
-    gravar((d) => ({ ...d, cadeiras: [...d.cadeiras, nova] }));
+    // Vigência (#19): nasce com a das outras cadeiras do período (lida no
+    // estado mais recente); dá para mudar no drawer.
+    gravar((d) => ({
+      ...d,
+      cadeiras: [...d.cadeiras, { ...nova, ...vigenciaPadraoParaNovaCadeira(d.cadeiras, nova.periodoId) }],
+    }));
     setCadeiraAbertaId(nova.id);
   };
 
@@ -524,7 +530,6 @@ export default function App() {
             cadeiras={data.cadeiras}
             compromissos={compromissosDoPeriodo}
             afazeres={afazeres}
-            periodos={data.periodos}
             eventosConcluidos={eventosConcluidos}
             eventosExcluidos={eventosExcluidos}
             onAlternarEventoConcluido={alternarEventoConcluido}

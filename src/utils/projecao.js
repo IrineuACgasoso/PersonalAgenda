@@ -7,7 +7,7 @@
 
 import { DIAS_FULL } from "../constants.js";
 import { toISO, parseISO, ocorrenciasNoIntervalo } from "./afazeres.js";
-import { cadeiraEstaAtivaNaData } from "./calendario.js";
+import { cadeiraEstaAtivaNaData, vigenciaDaCadeira } from "./calendario.js";
 
 const COR_PADRAO_AFAZER_CALENDARIO = "#8b5cf6";
 
@@ -36,12 +36,12 @@ function paraCadaDia(inicioISO, fimISO, fn) {
   }
 }
 
-// 1. Avaliações (datas importantes das cadeiras)
-export function projetarAvaliacoes(cadeiras, periodos, inicioISO, fimISO) {
+// 1. Avaliações (datas importantes das cadeiras, dentro da vigência — #19)
+export function projetarAvaliacoes(cadeiras, inicioISO, fimISO) {
   return cadeiras.flatMap((c) =>
     (c.datas || [])
       .filter((d) => d.data >= inicioISO && d.data <= fimISO)
-      .filter((d) => cadeiraEstaAtivaNaData(c, d.data, periodos))
+      .filter((d) => cadeiraEstaAtivaNaData(c, d.data))
       .map((d) => ({
         tipo: "avaliacoes",
         data: d.data,
@@ -54,12 +54,12 @@ export function projetarAvaliacoes(cadeiras, periodos, inicioISO, fimISO) {
   );
 }
 
-// 2. Aulas recorrentes (horários semanais das cadeiras, dentro da vigência)
-export function projetarAulas(cadeiras, periodos, inicioISO, fimISO) {
+// 2. Aulas recorrentes (horários semanais das cadeiras, dentro da vigência — #19)
+export function projetarAulas(cadeiras, inicioISO, fimISO) {
   const lista = [];
   paraCadaDia(inicioISO, fimISO, (dataISO, diaSemana) => {
     cadeiras.forEach((c) => {
-      if (!cadeiraEstaAtivaNaData(c, dataISO, periodos)) return;
+      if (!cadeiraEstaAtivaNaData(c, dataISO)) return;
       (c.horarios || [])
         .filter((h) => h.dia === diaSemana)
         .forEach((h) => {
@@ -76,6 +76,26 @@ export function projetarAulas(cadeiras, periodos, inicioISO, fimISO) {
     });
   });
   return lista;
+}
+
+// 2b. Marcos de vigência (#19): início e fim de cada cadeira com datas
+// próprias. NÃO são eventos (não se concluem nem se excluem, não viram
+// ponto no calendário): o calendário desenha um marcador na célula e uma
+// linha no topo da lista do dia. Devolve { "YYYY-MM-DD": marco[] }, com
+// marco = { tipo: "inicio" | "fim", idCadeira, nome, cor }.
+export function projetarMarcosVigencia(cadeiras, inicioISO, fimISO) {
+  const mapa = {};
+  const adicionar = (data, marco) => {
+    if (!data || data < inicioISO || data > fimISO) return;
+    (mapa[data] ||= []).push(marco);
+  };
+  cadeiras.forEach((c) => {
+    const { inicio, fim } = vigenciaDaCadeira(c);
+    const base = { idCadeira: c.id, nome: c.nome, cor: c.cor };
+    adicionar(inicio, { ...base, tipo: "inicio" });
+    adicionar(fim, { ...base, tipo: "fim" });
+  });
+  return mapa;
 }
 
 // 3. Compromissos (horários semanais, sem checagem de vigência)
@@ -208,7 +228,6 @@ export function projetarEventos({
   cadeiras = [],
   compromissos = [],
   afazeres = [],
-  periodos = [],
   eventosExcluidos = [],
   inicioISO,
   fimISO,
@@ -216,8 +235,8 @@ export function projetarEventos({
   filtros = { aulas: true, avaliacoes: true, compromissos: true, afazeres: true },
 }) {
   const eventos = [
-    ...(filtros.aulas ? projetarAulas(cadeiras, periodos, inicioISO, fimISO) : []),
-    ...(filtros.avaliacoes ? projetarAvaliacoes(cadeiras, periodos, inicioISO, fimISO) : []),
+    ...(filtros.aulas ? projetarAulas(cadeiras, inicioISO, fimISO) : []),
+    ...(filtros.avaliacoes ? projetarAvaliacoes(cadeiras, inicioISO, fimISO) : []),
     ...(filtros.compromissos ? projetarCompromissos(compromissos, inicioISO, fimISO) : []),
     ...(filtros.afazeres ? projetarAfazeres(afazeres, inicioISO, fimISO) : []),
     ...(filtros.afazeres ? projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) : []),

@@ -141,6 +141,11 @@ function Toast({ toast, onFechar }) {
       <button className="toast-fechar" onClick={() => onFechar(toast.id)} aria-label="Fechar aviso">
         <X size={15} />
       </button>
+      {/* Barra de tempo: esvazia em `duracaoMs`, junto com o timer que fecha o
+          toast, para o usuário saber quanto tempo ainda tem para "Desfazer".
+          Só visual (a duração vem do mesmo valor); a key do Toast reinicia a
+          animação quando um toast novo substitui o anterior. */}
+      <span className="toast-progresso" style={{ animationDuration: `${toast.duracaoMs}ms` }} aria-hidden="true" />
     </div>
   );
 }

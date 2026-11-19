@@ -17,14 +17,13 @@
 | Formato das chaves de evento (concluído/excluído no calendário) | `src/utils/projecao.js` → `chaveAula/chaveCompromisso/chaveAvaliacao`; mudar formato ⇒ migração |
 | O que aparece em cada dia do calendário geral | `src/utils/projecao.js` (puro): `projetarAvaliacoes/Aulas/Compromissos/Afazeres/AfazeresSemData`, `compararEventosDoDia` (ordenação), `agruparPorDia`, `projetarEventos` (tudo de uma vez). O hook `useEventosCalendario.js` só memoiza |
 | Rodar/escrever testes | `tests/README.md`; dados de exemplo em `tests/fixtures/fabricas.js` |
-| Vigência de cadeira/período no calendário | `src/utils/calendario.js` → `cadeiraEstaAtivaNaData()` ~68 |
+| Vigência da cadeira (#19) | Regra: `src/utils/calendario.js` → `vigenciaDaCadeira`, `cadeiraEstaAtivaNaData`, `erroDeVigencia`, `vigenciaPadraoParaNovaCadeira`; edição no drawer `PainelCadeira.jsx` (bloco "Vigência"); marcos no calendário: `projetarMarcosVigencia` (`projecao.js`) + `VisaoGeral.jsx` (`.calendario-marcos`, `.marco-vigencia` em `calendario.css`) |
 | Grade do mês (células, dias de meses vizinhos) | `src/utils/calendario.js` → `gerarCelulasMes()` ~40 |
 | Lista "Eventos em DD/MM" do calendário geral | `src/components/VisaoGeral.jsx` render ~366–420; estilos `.data-item-*` em `agenda.css` (fim do arquivo) e `mobile.css` |
 | Drag-and-drop de afazeres no calendário | `src/components/VisaoGeral.jsx` ~186–325 |
 | Estilo da célula do calendário (hoje/selecionada/avaliação) | `src/components/VisaoGeral.jsx` ~458–480 (inline) + `src/styles/calendario.css` |
 | Formulário de afazer (rotina, urgência, cor) | `src/components/VisaoAfazeres.jsx` → `FormularioAfazer` ~37, `submit` ~93 |
 | Ordem da lista de afazeres | `src/components/VisaoAfazeres.jsx` ~258–271 |
-| Duração do período (De/Até) — a ser removida | `src/components/VisaoCadeiras.jsx` ~22–60 e ~85–140; CSS `periodo-seletor.css` ~91+, `mobile.css` ~157+ |
 | Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` ~157–190 + `src/styles/cadeiras.css` |
 | Drawer da cadeira (Horários/Links/Datas) | `src/components/PainelCadeira.jsx` + `src/components/abas/*` |
 | Grade semanal 06h–23h | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css` |
@@ -45,10 +44,10 @@
 ## Modelo de dados (`AppData`, um único documento `users/{uid}` ou `localStorage["painel-academico-data"]`)
 
 ```
-versao            int — versão do schema (atual: 3; ausente = 0). Ver utils/migracoes.js
-periodos[]        { id, nome, dataInicio?, dataFim? }
+versao            int — versão do schema (atual: 4; ausente = 0). Ver utils/migracoes.js
+periodos[]        { id, nome }                                   ← sem datas desde a v4 (#20)
 periodoAtivoId    string | null
-cadeiras[]        { id, periodoId, nome, cor, horarios[], links[], datas[] }
+cadeiras[]        { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[], links[], datas[] }  ← vigência (#19)
   horarios[]      { id, dia(0=Seg..6=Dom), inicio "HH:MM", fim, local? }
   links[]         { id, titulo, url, isClassroom?, codigoClassroom? }
   datas[]         { id, titulo, data "YYYY-MM-DD", hora? }       ← avaliações
@@ -106,11 +105,11 @@ UFPE/
 │       ├── backupNuvem.test.js    Backup na nuvem: sem snapshot por reabertura/offline, sem estado vazio, rotação (#8)
 │       ├── carregamento.test.js   Tela inicial (app/erro/travado/carregando) e watchdog sem loop (#7)
 │       ├── confirmacaoAdiada.test.js  Seletor de cor: 1 gravação por arrasto, dedupe, confirmar/cancelar (#41)
-│       ├── migracoes.test.js      Registro de migrações completo, v0→atual, v1→v2 (#10), v2→v3 (#14), não muta, versão futura intocada
+│       ├── migracoes.test.js      Registro de migrações completo, v0→atual, v1→v2 (#10), v2→v3 (#14), v3→v4 (#20), não muta, versão futura intocada
 │       ├── links.test.js          normalizarUrl / hrefSeguro (#50)
 │       ├── dialogos.test.js       Fila/dedupe de diálogos (#17), mensagemDeRecusa (#44), resumoDoBackup
 │       ├── desfazer.test.js       reinserirPorId / reinserirVarios / separarRemovidos (#18)
-│       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação
+│       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação + marcos de vigência
 │       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
 │                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO),
 │                                  sem alert/confirm/prompt nativos (#17), check roda o lint (#16)
@@ -141,7 +140,7 @@ UFPE/
     │   │                         status: loading|saving|saved|offline|error|desatualizado
 │   │                         erroCarga + tentarDeNovo(): carga sem base local falhou → App mostra TelaErroCarga;
 │   │                         nova tentativa automática no `online` e a cada 30s (sem reload, #7)
-    │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js
+    │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js → { eventosPorDia, marcosVigencia }
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, afazeres, compromissos} em localStorage
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h contadas do backup mais
     │   │                         recente NO SERVIDOR (checa a cada 15min; timer não depende de `data`; 1 por vez;
@@ -168,7 +167,8 @@ UFPE/
     │   │                         gerarOcorrenciasComData (interno), mesmoDiaMesesDepois (mensal, #12), ehRotina,
     │   │                         afazerConcluido (rotina nunca, #11), ocorrenciaAtual (check da aba, #11),
     │   │                         ROTINAS_COM_DATA_BASE/dataAoSalvarAfazer/rotinaSemDataBase (#40), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
-    │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, cadeiraEstaAtivaNaData
+    │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, vigência da cadeira (#19): vigenciaDaCadeira,
+    │   │                         cadeiraEstaAtivaNaData, textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
     │   ├── projecao.js           PURO: projeta eventos de uma janela [inicioISO, fimISO] — avaliações, aulas (vigência),
     │   │                         compromissos, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
     │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto)
@@ -186,11 +186,10 @@ UFPE/
     │   │                         (mouse direto; toque com long-press 350ms; autoscroll; troca de mês sobre as setas)
     │   ├── VisaoAfazeres.jsx     FormularioAfazer (nome, cor, data/hora, rotina, repetições, dias da semana, urgência)
     │   │                         + lista (pendentes por data/urgência, concluídos por concluidoEm), editar/excluir, apagar concluídos
-    │   ├── VisaoCadeiras.jsx     SeletorPeriodo no título, barra "Duração do período" (editar com lápis),
-    │   │                         adicionar cadeira, grid de cards (contagem horários/links/datas)
+    │   ├── VisaoCadeiras.jsx     SeletorPeriodo no título, adicionar cadeira, grid de cards (contagem horários/links/datas + vigência)
     │   ├── VisaoCompromissos.jsx Adicionar + grid de cards de compromissos do período ativo
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/compromissos, grade semanal posicionada por %, lista de próximas datas
-    │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, sub-abas Horários/Links/Datas
+    │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), sub-abas Horários/Links/Datas
     │   ├── PainelCompromisso.jsx Drawer: nome, cor, período (select), AbaHorarios
     │   ├── abas/
     │   │   ├── AbaHorarios.jsx   CRUD de {dia, inicio, fim, local}; valida início < fim
@@ -218,6 +217,6 @@ UFPE/
         │                       -urgencia/-hora da lista do calendário geral), drag-ghost
         ├── afazeres.css        Formulário, urgência, dias da semana, item-afazer, check-btn
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células, pontos
-        ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90)
+        ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)
         └── mobile.css          Todas as regras ≤860px
 ```

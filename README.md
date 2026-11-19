@@ -29,7 +29,7 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 
 ### 🎓 Períodos e Cadeiras
 - Múltiplos **períodos** (ex.: `2026.1`, `2026.2`) com seletor no próprio título da tela, com criação, renomeação inline e exclusão.
-- **Vigência opcional** do período (`dataInicio` / `dataFim`): aulas só são projetadas no calendário dentro desse intervalo.
+- **Vigência opcional por cadeira** (`dataInicio` / `dataFim`, no drawer da cadeira): aulas e avaliações só aparecem no calendário dentro desse intervalo, e o início/fim ganham uma bandeirinha no calendário geral. Cadeira nova herda a vigência das outras do período.
 - Cada **cadeira** tem cor própria, **horários de aula** (dia, início, fim, local), **links/materiais** e **datas importantes** (provas, trabalhos).
 - Suporte a **códigos de turma do Google Classroom**, sempre listados antes dos links comuns.
 
@@ -251,7 +251,7 @@ src/
 ├── utils/
 │   ├── sanitizarDados.js    # Normalização única dos dados persistidos
 │   ├── afazeres.js          # Cálculo de recorrência
-│   ├── calendario.js        # Células do mês, vigência de período
+│   ├── calendario.js        # Células do mês, vigência da cadeira
 │   └── ...
 └── components/
     ├── Sidebar.jsx

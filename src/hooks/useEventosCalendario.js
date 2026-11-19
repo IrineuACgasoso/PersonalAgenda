@@ -12,6 +12,7 @@ import {
   projetarCompromissos,
   projetarAfazeres,
   projetarAfazeresSemData,
+  projetarMarcosVigencia,
   agruparPorDia,
 } from "../utils/projecao.js";
 
@@ -19,7 +20,6 @@ export function useEventosCalendario({
   cadeiras = [],
   compromissos = [],
   afazeres = [],
-  periodos = [],
   ano,
   mes,
   filtros,
@@ -28,13 +28,13 @@ export function useEventosCalendario({
   const { inicioISO, fimISO } = useMemo(() => getIntervaloMes(ano, mes), [ano, mes]);
 
   const avaliacoes = useMemo(
-    () => (filtros.avaliacoes ? projetarAvaliacoes(cadeiras, periodos, inicioISO, fimISO) : []),
-    [cadeiras, periodos, filtros.avaliacoes, inicioISO, fimISO],
+    () => (filtros.avaliacoes ? projetarAvaliacoes(cadeiras, inicioISO, fimISO) : []),
+    [cadeiras, filtros.avaliacoes, inicioISO, fimISO],
   );
 
   const aulas = useMemo(
-    () => (filtros.aulas ? projetarAulas(cadeiras, periodos, inicioISO, fimISO) : []),
-    [cadeiras, periodos, filtros.aulas, inicioISO, fimISO],
+    () => (filtros.aulas ? projetarAulas(cadeiras, inicioISO, fimISO) : []),
+    [cadeiras, filtros.aulas, inicioISO, fimISO],
   );
 
   const eventosCompromissos = useMemo(
@@ -52,7 +52,13 @@ export function useEventosCalendario({
     [afazeres, filtros.afazeres, inicioISO, fimISO],
   );
 
-  return useMemo(
+  // Marcos de início/fim das cadeiras (#19): seguem o filtro de aulas.
+  const marcosVigencia = useMemo(
+    () => (filtros.aulas ? projetarMarcosVigencia(cadeiras, inicioISO, fimISO) : {}),
+    [cadeiras, filtros.aulas, inicioISO, fimISO],
+  );
+
+  const eventosPorDia = useMemo(
     () =>
       agruparPorDia(
         [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres, ...eventosAfazeresSemData],
@@ -60,4 +66,6 @@ export function useEventosCalendario({
       ),
     [aulas, avaliacoes, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData, eventosExcluidos],
   );
+
+  return { eventosPorDia, marcosVigencia };
 }

@@ -82,3 +82,8 @@
 .card-meta .separador {
   opacity: 0.4;
 }
+
+/* Linha da vigência no card (#19): logo abaixo dos contadores. */
+.card-meta.card-vigencia {
+  margin-top: 5px;
+}

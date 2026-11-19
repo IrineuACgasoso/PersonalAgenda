@@ -148,3 +148,20 @@ describe("removerUndefined / sanitizarDados sem undefined (#43)", () => {
     expect("c" in entrada.b[0]).toBe(true);
   });
 });
+
+describe("vigência da cadeira (#19)", () => {
+  it("mantém datas válidas e descarta lixo", () => {
+    const d = sanitizarDados({
+      versao: 4,
+      periodos: [{ id: "p", nome: "x" }],
+      cadeiras: [
+        { id: "a", periodoId: "p", dataInicio: "2026-08-01", dataFim: "2026-12-15" },
+        { id: "b", periodoId: "p", dataInicio: 5, dataFim: "15/12/2026" },
+        { id: "c", periodoId: "p", dataInicio: "" },
+      ],
+    });
+    expect(d.cadeiras[0]).toMatchObject({ dataInicio: "2026-08-01", dataFim: "2026-12-15" });
+    expect("dataInicio" in d.cadeiras[1] || "dataFim" in d.cadeiras[1]).toBe(false);
+    expect("dataInicio" in d.cadeiras[2]).toBe(false);
+  });
+});

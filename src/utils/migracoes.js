@@ -17,7 +17,7 @@
 // Campos que só ganham um valor padrão NÃO precisam de migração: basta
 // registrá-los no sanitizarDados.
 
-export const VERSAO_ATUAL = 3;
+export const VERSAO_ATUAL = 4;
 
 export const MIGRACOES = {
   // v0 → v1: baseline. Todos os dados anteriores a 2026-11 (sem `versao`)
@@ -64,6 +64,36 @@ export const MIGRACOES = {
             ),
           ]
         : dados.eventosExcluidos,
+    };
+  },
+
+  // v3 → v4 (#19/#20): a vigência sai do PERÍODO e vai para cada CADEIRA.
+  // Cada cadeira herda `dataInicio`/`dataFim` do seu período (campo a
+  // campo, sem sobrescrever o que ela já tiver) e o período perde as datas
+  // — a UI de "Duração do período" foi removida e a vigência passou a ser
+  // só da cadeira (utils/calendario.js → cadeiraEstaAtivaNaData). Assim o
+  // calendário mostra exatamente as mesmas aulas/avaliações de antes.
+  4: (dados) => {
+    const periodos = Array.isArray(dados.periodos) ? dados.periodos : null;
+    const porId = new Map(objetos(periodos).map((p) => [p.id, p]));
+    return {
+      ...dados,
+      cadeiras: Array.isArray(dados.cadeiras)
+        ? dados.cadeiras.map((c) => {
+            if (!c || typeof c !== "object") return c;
+            const p = porId.get(c.periodoId);
+            const novo = { ...c };
+            if (!novo.dataInicio && p?.dataInicio) novo.dataInicio = p.dataInicio;
+            if (!novo.dataFim && p?.dataFim) novo.dataFim = p.dataFim;
+            return novo;
+          })
+        : dados.cadeiras,
+      periodos: periodos
+        ? periodos.map((p) => {
+            if (!p || typeof p !== "object" || !("dataInicio" in p || "dataFim" in p)) return p;
+            return Object.fromEntries(Object.entries(p).filter(([k]) => k !== "dataInicio" && k !== "dataFim"));
+          })
+        : dados.periodos,
     };
   },
 };

@@ -49,6 +49,48 @@
   outline: none;
 }
 
+/* ---------- Vigência da cadeira (#19) ---------- */
+.painel-vigencia {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.painel-vigencia-rotulo {
+  font-weight: 600;
+}
+
+.painel-vigencia-campos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.painel-vigencia-campo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.painel-vigencia-campo .input {
+  width: auto;
+  flex: none;
+  padding: 5px 9px;
+  font-size: 12.5px;
+}
+
+.painel-vigencia-dica {
+  font-size: 12px;
+}
+
+.painel-vigencia-erro {
+  font-size: 12px;
+  color: #f87171;
+}
+
 .painel-tabs {
   display: flex;
   gap: 4px;
