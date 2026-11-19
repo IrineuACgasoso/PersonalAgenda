@@ -59,7 +59,9 @@ export default function App() {
     logout,
   } = usePersistedData();
 
-  useCloudBackup(user, data, status !== "loading");
+  // Só depois da carga inicial e com dados de verdade (na tela de erro do #7
+  // o status alterna loading/error a cada nova tentativa).
+  useCloudBackup(user, data, !!data && status !== "loading");
   const [aba, setAba] = useState("visaogeral");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
@@ -401,7 +403,7 @@ export default function App() {
       return;
     }
     if (backups.length === 0) {
-      window.alert("Ainda não existe nenhum backup salvo na nuvem (o primeiro é criado até 3h após o login).");
+      window.alert("Ainda não existe nenhum backup salvo na nuvem (eles são criados automaticamente a cada 3h, com o app aberto e online).");
       return;
     }
 

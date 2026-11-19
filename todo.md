@@ -25,7 +25,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#41 Seletor de cor gravava a cada pixel arrastado** (2026-11-19). Arrastar só muda a prévia; `onChange` sai no `change` nativo (fechar o seletor), no blur, ao desmontar ou após 400ms parado, sem repetir o mesmo valor (`utils/confirmacaoAdiada.js`). Drawers passam `key={id}` para a cor pendente ir pro item certo.
 - [x] **#43 `undefined` no estado travava todas as gravações** (2026-11-19). `removerUndefined` (profundo) no fim do `sanitizarDados` + `ignoreUndefinedProperties: true` no `initializeFirestore`; a causa concreta (`alternarFeitoAfazer` gravando `concluidoEm: undefined` ao desmarcar) corrigida na origem. +6 testes.
 - [x] **#7 Loop de reload offline** (2026-11-19). Erro de carga sem base local (`erroCarga` no `usePersistedData`) → `TelaErroCarga` com "Tentar de novo" (nova leitura sem reload; automática no evento `online` e a cada 30s) e "Usar sem login" (dados só do aparelho, com aviso). O watchdog do `App` recarrega no máximo 1× por sessão (sessionStorage); na 2ª vez mostra a tela de erro. Decisões puras em `utils/carregamento.js` + 8 testes.
-- [ ] **#8 `useCloudBackup` faz snapshot a cada abertura** (`ultimoBackupRef` zera no reload), o que gira o histórico de 10 backups em poucas horas. Basear no timestamp do backup mais recente no Firestore e não recriar o interval a cada mudança de `data`. _Review:_ **offline é pior** — o `setDoc` do backup só resolve quando o servidor confirma, então `ultimoBackupRef` não é atualizado e **cada edição feita offline enfileira mais um snapshot completo**; ao reconectar, todos sobem de uma vez (e a rotação apaga backups bons). Marcar "backup em andamento" antes do `await` e pular quando `!navigator.onLine`.
+- [x] **#8 `useCloudBackup` fazia snapshot a cada abertura / um por edição offline** (2026-11-19). O intervalo de 3h agora conta a partir do backup mais recente **no servidor** (`getDocsFromServer`), o timer não é recriado a cada mudança de `data` (lê de um ref), `emAndamento` é marcado antes do 1º `await` (nunca 2 ao mesmo tempo) e offline nem tenta. Estado vazio (`pareceVazio`) não entra na rotação. Decisões puras em `utils/backupNuvem.js` + 12 testes.
 - [ ] **#9 `useAutoBackup` não está ligado** (o README promete backup diário em .json + histórico local). Decidir com o usuário: religar em `App.jsx` ou remover o hook e o trecho do README.
 - [ ] **#10 Chaves de evento por nome em vez de id** (aulas/compromissos por `c.nome`, avaliações por `titulo`). Renomear perde concluídos/excluídos, e nomes iguais colidem. Migrar para `id` com migração das chaves salvas. _Depende de #4._
 - [ ] **#11 Concluir rotina na aba Afazeres marca a rotina inteira como `feito`** → "Apagar concluídos" apaga a rotina toda. Correção mínima agora: na aba, o check de uma rotina conclui só a ocorrência de hoje. A semântica final é definida em #22.
@@ -98,6 +98,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] #8 backup na nuvem sem snapshot por abertura/edição offline (2026-11-19).
 - [x] #7 tela de erro no lugar do loop de reload offline (2026-11-19).
 - [x] #43 `undefined` no estado não trava mais as gravações (2026-11-19).
 - [x] #54 gravações offline sem fila em memória + #41 seletor de cor sem gravação por pixel (2026-11-19).

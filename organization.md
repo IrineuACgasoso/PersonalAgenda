@@ -28,7 +28,7 @@
 | Drawer da cadeira (Horários/Links/Datas) | `src/components/PainelCadeira.jsx` + `src/components/abas/*` |
 | Grade semanal 06h–23h | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css` |
 | Menu lateral, backup, login, indicador de status | `src/components/Sidebar.jsx` + `src/styles/sidebar.css` |
-| Backup na nuvem (snapshots a cada 3h) | `src/hooks/useCloudBackup.js` |
+| Backup na nuvem (snapshots a cada 3h) | `src/hooks/useCloudBackup.js`; decisões puras (quando fazer, rotação) em `src/utils/backupNuvem.js` |
 | Seletor de cor (prévia local, grava ao soltar/fechar) | `src/components/ui/SeletorCor.jsx` + `src/utils/confirmacaoAdiada.js` |
 | Exportar/importar `.json`, restaurar da nuvem | `src/App.jsx` → `exportarBackup` ~260, `importarBackup` ~275, `restaurarBackupNuvem` ~306 |
 | Navegação por Enter em formulários | `src/hooks/useNavegacaoEnter.js` |
@@ -96,6 +96,7 @@ UFPE/
 │       ├── calendario.test.js     Grade do mês, intervalo, vigência, hexParaRgb, formatarData
 │       ├── sanitizarDados.test.js Preservação de campos, retrocompat, pareceVazio
 │       ├── persistencia.test.js   resolverGravacao (updater sem race #6, travas), statusDoSnapshot (#39), criarDespachante (#54)
+│       ├── backupNuvem.test.js    Backup na nuvem: sem snapshot por reabertura/offline, sem estado vazio, rotação (#8)
 │       ├── carregamento.test.js   Tela inicial (app/erro/travado/carregando) e watchdog sem loop (#7)
 │       ├── confirmacaoAdiada.test.js  Seletor de cor: 1 gravação por arrasto, dedupe, confirmar/cancelar (#41)
 │       ├── migracoes.test.js      Registro de migrações completo, v0→atual, não muta, versão futura intocada
@@ -131,8 +132,9 @@ UFPE/
 │   │                         nova tentativa automática no `online` e a cada 30s (sem reload, #7)
     │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, afazeres, compromissos} em localStorage
-    │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h (checa a cada 15min),
-    │   │                         mantém 10. listarBackupsCloud(uid)
+    │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h contadas do backup mais
+    │   │                         recente NO SERVIDOR (checa a cada 15min; timer não depende de `data`; 1 por vez;
+    │   │                         offline não tenta — #8), mantém 10. listarBackupsCloud(uid)
     │   ├── useAutoBackup.js      ⚠ NÃO USADO em lugar nenhum. Backup diário (download .json + 10 em localStorage)
     │   └── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
     ├── utils/
@@ -144,7 +146,8 @@ UFPE/
     │   ├── persistencia.js       resolverGravacao(atual, entrada) → { ok, motivo, dados } (versão futura,
     │   │                         sanitiza, trava pareceVazio, "sem-mudanca"); statusDoSnapshot(metadata, online);
     │   │                         criarDespachante() → { enviar(gravar), pendentes } (setDoc na hora, sem fila — #54)
-    │   ├── carregamento.js       telaInicial({temDados, erroCarga, travou}), acaoDoWatchdog (1 reload/sessão), constantes (#7)
+    │   ├── backupNuvem.js        deveFazerBackup({agora, ultimoBackup, online, dados}) → {fazer, motivo}, backupsParaApagar (#8)
+│   ├── carregamento.js       telaInicial({temDados, erroCarga, travou}), acaoDoWatchdog (1 reload/sessão), constantes (#7)
 │   ├── confirmacaoAdiada.js  criarConfirmacaoAdiada(aoConfirmar, ms) → mudar/confirmar/cancelar/sincronizar (#41)
     │   ├── migracoes.js          VERSAO_ATUAL, MIGRACOES{n: fn pura}, versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, ocorrenciasNoIntervalo(afazer, ini, fim) → [{data, dataOriginal}],

@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-11-19 (4) — #43 undefined, #7 tela de erro de carga, #8 backup na nuvem
+- **Processo:** usuário liberou **commit + push direto na main** para itens não críticos com `npm run check` verde (memória atualizada). Cada item abaixo foi um commit + push separado.
+- **#43 (`9dc3b6c`):** `removerUndefined()` (profundo, não muta) no fim do `sanitizarDados` + `ignoreUndefinedProperties: true` no `initializeFirestore` (`src/firebase.js`). Causa concreta corrigida na origem: `alternarFeitoAfazer` não grava mais `concluidoEm: undefined` ao desmarcar. +6 testes (`sanitizarDados`, `persistencia`).
+- **#7 (`2eeb4d3`):** `usePersistedData` expõe `erroCarga` + `tentarDeNovo()` (refaz a carga sem reload, via `tentativa` nas deps do efeito 2; automático no evento `online` e a cada 30s). `App` mostra `ui/TelaErroCarga.jsx` ("Tentar de novo" e "Usar sem login", com aviso de que o que for editado assim fica só no aparelho). Watchdog: no máximo **1 reload por sessão** (`sessionStorage`); na 2ª vez, tela "travado". Decisões em `utils/carregamento.js`; CSS no fim de `painel.css`. +8 testes.
+- **#8:** `useCloudBackup` reescrito: intervalo de 3h contado do backup mais recente **no servidor**, efeito depende só de `[user, dadosCarregados]` (lê `data` de um ref), `emAndamento` antes do 1º `await`, offline não tenta, estado vazio não entra na rotação (que agora lê do servidor). `App` só liga o backup com `data` presente. Decisões em `utils/backupNuvem.js`. +12 testes. Texto do "sem backups" no restaurar atualizado.
+- **Testes:** 134 ✅ + 2 `it.fails` conhecidos. `npm run check` ✅. Dev server conferido (módulos novos compilam, 200).
+- **Docs:** `todo.md`, `organization.md`, `tests/README.md`.
+- **➡ Próximo passo recomendado:** **#9** precisa de decisão do usuário (religar `useAutoBackup` ou remover). Depois **#10** (chaves de evento por id — mexe em schema/migração ⇒ **crítico, perguntar antes de commitar**) ou, se preferir algo leve antes, **#11/#12**.
+- **Testar no app:** (1) desmarcar um afazer antigo já concluído → bolinha volta a "sincronizado" (não fica em "Erro ao salvar"); (2) janela anônima, logar, DevTools → Offline, recarregar → em vez de recarregar sem parar, aparece "Sem conexão" com "Tentar de novo"; voltar a rede → carrega sozinho em até 30s; (3) recarregar o app várias vezes seguidas → a lista de "Restaurar da nuvem" **não** ganha um backup novo por reload.
+
+---
+
 ## 2026-11-19 (3) — #54 gravações offline sem fila + #41 seletor de cor
 - **Commit** do trabalho da sessão (2) (`e3cb26b`), que estava pendente.
 - **#54:** a fila serializada do `persist()` saiu. `criarDespachante()` (`utils/persistencia.js`) chama `setDoc` **na hora**; cada edição entra logo na fila persistente do Firestore (IndexedDB, sobrevive a fechar o app offline) e o SDK garante a ordem das escritas. A promise só serve para o status (`ultima` = só a mais recente muda a bolinha) e para `pendentes` (o `onSnapshot` segue ignorado enquanto > 0). Erro síncrono (localStorage cheio, deslogado) vira `ok=false` em vez de exceção.
