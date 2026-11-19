@@ -2,7 +2,7 @@
 // Estes testes protegem contra PERDA DE DADOS — não afrouxe sem motivo.
 import { describe, it, expect } from "vitest";
 import { sanitizarDados, pareceVazio, DADOS_PADRAO } from "../../src/utils/sanitizarDados.js";
-import { appData, afazer, cadeira, backupAntigo } from "../fixtures/fabricas.js";
+import { appData, afazer, cadeira, compromisso, horario, backupAntigo } from "../fixtures/fabricas.js";
 
 describe("sanitizarDados", () => {
   it("entrada nula/inválida vira o padrão", () => {
@@ -52,12 +52,36 @@ describe("sanitizarDados", () => {
     expect(sanitizarDados({ periodos: [] }).periodos).toEqual(DADOS_PADRAO.periodos);
   });
 
-  // BUG CONHECIDO (todo.md): arrays internos de cadeira não são normalizados;
-  // um backup sem `links` quebra `c.links.length` em VisaoCadeiras.
-  it.fails("normaliza horarios/links/datas ausentes nas cadeiras", () => {
+  // Regressão #5: arrays internos de cadeira não eram normalizados; um backup
+  // sem `links` quebrava `c.links.length` em VisaoCadeiras.
+  it("normaliza horarios/links/datas ausentes nas cadeiras", () => {
     const { links, ...semLinks } = cadeira();
-    const d = sanitizarDados(appData({ cadeiras: [semLinks] }));
+    const d = sanitizarDados(appData({ cadeiras: [semLinks, { id: "c2", nome: "Só nome" }] }));
     expect(d.cadeiras[0].links).toEqual([]);
+    expect(d.cadeiras[1]).toMatchObject({ horarios: [], links: [], datas: [] });
+  });
+
+  it("normaliza horarios ausentes/inválidos nos compromissos", () => {
+    const d = sanitizarDados(appData({ compromissos: [{ id: "x", nome: "Academia", horarios: "lixo" }] }));
+    expect(d.compromissos[0].horarios).toEqual([]);
+  });
+
+  it("preserva o conteúdo e os campos extras de cadeiras/compromissos", () => {
+    const h = horario();
+    const c = cadeira({ horarios: [h], links: [{ id: "l1", url: "https://x.com" }], extra: 7 });
+    const comp = compromisso({ horarios: [h], extra: 8 });
+    const d = sanitizarDados(appData({ cadeiras: [c], compromissos: [comp] }));
+    expect(d.cadeiras[0]).toEqual(c);
+    expect(d.compromissos[0]).toEqual(comp);
+  });
+
+  it("descarta itens que não são objetos (null, string) em vez de quebrar", () => {
+    const c = cadeira({ horarios: [null, horario(), "x"] });
+    const d = sanitizarDados(appData({ cadeiras: [null, c], compromissos: [7], afazeres: [null, afazer()] }));
+    expect(d.cadeiras).toHaveLength(1);
+    expect(d.cadeiras[0].horarios).toHaveLength(1);
+    expect(d.compromissos).toEqual([]);
+    expect(d.afazeres).toHaveLength(1);
   });
 });
 

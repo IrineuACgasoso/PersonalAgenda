@@ -22,6 +22,32 @@ export const DADOS_PADRAO = {
   periodoAtivoId: "p1",
 };
 
+// Mantém só os itens que são objetos de verdade. Um `null`/string perdido
+// numa lista (backup editado à mão, dado corrompido) quebraria qualquer
+// `.map((x) => x.id)` da UI; descartar o lixo é melhor que travar a tela.
+function listaDeObjetos(valor) {
+  return Array.isArray(valor)
+    ? valor.filter((item) => item && typeof item === "object" && !Array.isArray(item))
+    : [];
+}
+
+// Cadeiras e compromissos: a UI acessa `c.horarios.length`, `c.links.map`
+// etc. sem checar, então as listas internas precisam existir sempre. Um
+// backup antigo/incompleto sem `links` derrubava a VisaoCadeiras inteira.
+// ATENÇÃO: lista interna nova numa cadeira/compromisso ⇒ registrar aqui.
+function sanitizarCadeira(c) {
+  return {
+    ...c,
+    horarios: listaDeObjetos(c.horarios),
+    links: listaDeObjetos(c.links),
+    datas: listaDeObjetos(c.datas),
+  };
+}
+
+function sanitizarCompromisso(c) {
+  return { ...c, horarios: listaDeObjetos(c.horarios) };
+}
+
 export function sanitizarDados(entrada) {
   if (!entrada || typeof entrada !== "object") return { ...DADOS_PADRAO };
 
@@ -37,12 +63,12 @@ export function sanitizarDados(entrada) {
       Array.isArray(raw.periodos) && raw.periodos.length > 0
         ? raw.periodos
         : DADOS_PADRAO.periodos,
-    cadeiras: Array.isArray(raw.cadeiras) ? raw.cadeiras : [],
-    compromissos: Array.isArray(raw.compromissos) ? raw.compromissos : [],
+    cadeiras: listaDeObjetos(raw.cadeiras).map(sanitizarCadeira),
+    compromissos: listaDeObjetos(raw.compromissos).map(sanitizarCompromisso),
     eventosConcluidos: Array.isArray(raw.eventosConcluidos) ? raw.eventosConcluidos : [],
     eventosExcluidos: Array.isArray(raw.eventosExcluidos) ? raw.eventosExcluidos : [],
     afazeres: Array.isArray(raw.afazeres)
-      ? raw.afazeres.map((a) => ({
+      ? listaDeObjetos(raw.afazeres).map((a) => ({
           ...a,
           feito: !!a.feito,
           datasConcluidas: Array.isArray(a.datasConcluidas) ? a.datasConcluidas : [],

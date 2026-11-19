@@ -127,7 +127,9 @@ UFPE/
     │   └── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
     ├── utils/
     │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1", versao atual), sanitizarDados() (1º migra, depois
-    │   │                         normaliza; whitelist de afazeres/rotina), pareceVazio() (trava anti-sobrescrita)
+    │   │                         normaliza; whitelist de afazeres/rotina; listas internas de cadeira
+    │   │                         (horarios/links/datas) e compromisso (horarios) sempre arrays de objetos),
+    │   │                         pareceVazio() (trava anti-sobrescrita)
     │   ├── migracoes.js          VERSAO_ATUAL, MIGRACOES{n: fn pura}, versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, ocorrenciasNoIntervalo(afazer, ini, fim) → [{data, dataOriginal}],
     │   │                         gerarOcorrenciasComData (interno), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)

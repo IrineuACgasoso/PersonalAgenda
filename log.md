@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-11-19 (1) — #5 sanitizarDados normaliza cadeiras/compromissos
+- **Feito:** `src/utils/sanitizarDados.js` ganhou `listaDeObjetos`, `sanitizarCadeira` (`horarios/links/datas`) e `sanitizarCompromisso` (`horarios`). Lista ausente/inválida vira `[]`; itens que não são objeto (`null`, string, número) são descartados em `cadeiras`, `compromissos`, `afazeres` e nas listas internas (antes um `null` em `afazeres` fazia o próprio `sanitizarDados` lançar erro). Campos extras continuam preservados (spread).
+- **Testes:** `it.fails` de `sanitizarDados.test.js` → `it` (regressão) + 3 novos (compromisso sem `horarios`, preservação de conteúdo/campos extras, descarte de lixo). Total 89 (87 ✅ + 2 `it.fails` conhecidos: mensal dia 31 e ícone maskable). `npm run check` ✅.
+- **Docs:** `todo.md` (#5 feito), `organization.md` (descrição do `sanitizarDados`).
+- **➡ Próximo passo recomendado:** **#6 + #39** juntos (`usePersistedData.js`: `persist(updater)` funcional + status "sincronizado" só quando `!hasPendingWrites`). Considerar já a assinatura `{ ok, motivo }` do #44 para não mexer no `persist` duas vezes.
+- **Pendências de curto prazo:** as mesmas da sessão anterior (confirmar sync com as Rules recarregando a página; nome longo no celular; decidir #9).
+
+---
+
+## 2026-11-18 (4) — #3 Code review completa
+- **Feito:** leitura de todo o JS (`src/` inteiro, `vite.config.js`, `firestore.rules`, `index.html`) + varredura de classes CSS sem uso. **Nenhuma alteração de código** — só `todo.md` e este log.
+- **Achados novos → `todo.md` #39–#53**, encaixados nas fases (vale a posição, não o número):
+  - 🔴 Fase 2: **#39** "Nuvem sincronizada" antes do servidor confirmar (`hasPendingWrites` ignorado) · **#41** seletor de cor grava a cada pixel arrastado (dezenas de `setDoc`/s) · **#43** um `undefined` no estado faz todas as gravações falharem · **#40** rotina sem data-base nunca aparece no calendário · **#42** gatilho "novo afazer na data" fica preso na aba Afazeres · **#50** `href` de link sem validar o esquema (`javascript:` via backup).
+  - 🟡 **#44** `persist()` recusado falha em silêncio ("Backup restaurado com sucesso" mesmo bloqueado) · **#45** (dentro do #22) lixeira do calendário em afazer avulso só esconde · **#46** "Próximas datas" começa pelas passadas.
+  - 🟢 **#47** multi-aba sem cache offline · **#48** nome vazio no drawer · **#49** "hoje" congelado após meia-noite · **#51** a11y · **#52** chaves de evento órfãs/crescimento do doc · **#53** excluir o último período recria "2026.1".
+  - Complementos: **#6** (caso concreto: nome no drawer + clique em Adicionar), **#8** (offline, cada edição enfileira um backup completo), **#13** (confirmados só 2 lugares), **#26** (`.loading-text`, `.vidro`, `.chevron-btn` sem uso).
+- **Estado:** código inalterado desde `7546946` → `npm run check` segue como na sessão (3).
+- **➡ Próximo passo recomendado:** Fase 2 começando por **#5** (normalizar cadeiras/compromissos no `sanitizarDados`, já tem `it.fails`) e **#6 + #39** juntos (os dois mexem em `usePersistedData.js`; `persist(updater)` + status honesto).
+- **Pendências de curto prazo:**
+  - [ ] Usuário: confirmar no app que a sincronização segue OK com as Rules novas (login → editar → "Nuvem sincronizada"). Obs.: por causa do #39, esse texto aparece mesmo antes da confirmação; o teste que vale é **recarregar a página e ver a edição lá**.
+  - [ ] Usuário: testar no celular a lista do calendário com nome longo (sessão 2).
+  - [ ] #9: decidir sobre o `useAutoBackup`.
+
+---
+
 ## 2026-11-18 (3) — #1 Rules, #2 npm audit, #4 schema versionado
 - **Push** do commit anterior (`a966a2d`) para `origin/main`.
 - **#1 Firestore Rules** (`firestore.rules`, `firebase.json`, `.firebaserc`): uid + e-mail permitido + `email_verified` no servidor; formato mínimo do AppData (`periodos` não vazio, listas obrigatórias, `versao` int); doc principal não pode ser apagado; backups só create/delete com id = timestamp; resto negado. Compilado no servidor com `--dry-run` ✅. **O deploy real foi bloqueado pela permissão do modo automático → o usuário precisa rodar `firebase deploy --only firestore:rules`.**
