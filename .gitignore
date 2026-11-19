@@ -4,3 +4,5 @@ dist
 .env.local
 node_modules
 .zip
+# Logs do Firebase CLI
+firebase-debug*.log
