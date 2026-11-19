@@ -17,7 +17,8 @@
 | Data de fim do afazer recorrente (só dias da repetição) | `VisaoAfazeres.jsx` (`datasPossiveisDeFim` → `SeletorData permitidas`) + `ehDataDaRegra` (`utils/afazeres.js`) |
 | Seletor de data próprio (popover, desabilitar dias) | `src/components/ui/SeletorData.jsx` + `src/styles/seletor-data.css`; fecha fora/Esc com `hooks/useFecharAoClicarFora.js` |
 | Seções das abas Afazeres / Compromissos | `secoesDosAfazeres` (`utils/afazeres.js`), `secoesDosCompromissos` (`utils/compromissos.js`); componente `ui/SecaoLista.jsx`; CSS `listas.css` |
-| Card/drawer de rotina (faixa da semana, próxima, h/semana) | `VisaoRotinas.jsx`, `PainelRotina.jsx`, `ui/ResumoRotina.jsx`; puro em `utils/rotinas.js`; CSS `rotinas.css` |
+| Card/drawer de rotina (faixa da semana, próxima, h/semana, vigência) | `VisaoRotinas.jsx`, `PainelRotina.jsx`, `ui/ResumoRotina.jsx`; puro em `utils/rotinas.js`; CSS `rotinas.css` |
+| Campos De/Até da vigência (cadeira e rotina) | `src/components/ui/CampoVigencia.jsx` (valida com `erroDeVigencia`/`dataCompleta`) |
 | Marcadores na célula do calendário (★ compromisso, livro, bandeiras) | `marcadoresDoDia` / `resumirMarcadores` (`utils/projecao.js`) + render em `VisaoGeral.jsx` (`.calendario-marcos` em `calendario.css`) |
 | Formato das chaves de evento (concluído/excluído no calendário) | `src/utils/projecao.js` → `chaveAula/chaveRotina/chaveCompromisso/chaveAvaliacao`; mudar formato ⇒ migração |
 | O que aparece em cada dia do calendário geral | `src/utils/projecao.js` (puro): `projetarAvaliacoes/Aulas/Rotinas/Compromissos/Afazeres/AfazeresSemData`, `compararEventosDoDia` (ordenação), `agruparPorDia`, `projetarEventos` (tudo de uma vez). O hook `useEventosCalendario.js` só memoiza |
@@ -57,7 +58,7 @@ cadeiras[]        { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[],
   horarios[]      { id, dia(0=Seg..6=Dom), inicio "HH:MM", fim, local? }
   links[]         { id, titulo, url, isClassroom?, codigoClassroom? }
   datas[]         { id, titulo, data "YYYY-MM-DD", hora? }       ← avaliações
-rotinas[]         { id, periodoId, nome, cor, horarios[] }       ← semanais (eram "compromissos" até a v4)
+rotinas[]         { id, nome, cor, horarios[], dataInicio?, dataFim? }  ← semanais (eram "compromissos" até a v4); sem período desde a v6 (#56)
 compromissos[]    { id, nome, cor, data, inicio "HH:MM", fim?, feito, concluidoEm? }  ← pontuais (v5)
 afazeres[]        { id, nome, data?, cor?, urgencia 1|2|3, feito, concluidoEm?,      ← sem hora desde a v5
                     rotina{ tipo, intervaloDias, dataFim ("" = para sempre), diasSemana[] },
@@ -73,7 +74,7 @@ Chaves de evento (v2+, montadas em `utils/projecao.js` → `chaveAula/chaveCompr
 usePersistedData ──data──▶ App.jsx (deriva periodoAtivo, cadeirasDoPeriodo, compromissosDoPeriodo)
       ▲                       │ props + callbacks (criarX/atualizarX/excluirX)
       └── persist((d) => novo) ◀┘   (updater recebe o estado mais recente; devolve { ok, motivo })
-VisaoGeral → useEventosCalendario(cadeiras TODAS + rotinas DO PERÍODO ATIVO + compromissos + afazeres)
+VisaoGeral → useEventosCalendario(cadeiras TODAS + rotinas TODAS (filtradas pela vigência) + compromissos + afazeres)
            → utils/projecao.js (puro) → { "YYYY-MM-DD": evento[] }
 ```
 
@@ -133,7 +134,7 @@ UFPE/
     │                    mover instância, excluir instância, limpar concluídos, export/import/restore,
     │                    gravar() (persist + aviso de recusa, #44), excluir com Desfazer (#18), entrar() (aviso de login),
     │                    roteamento por `aba` ("visaogeral" | "afazeres" | "compromissos" | "rotinas" | "cadeiras" | "agenda");
-    │                    rotinas/cadeiras/agenda exigem período ativo, compromissos/afazeres não
+    │                    cadeiras/agenda exigem período ativo; rotinas/compromissos/afazeres não
     ├── firebase.js      initializeApp, Firestore com persistentLocalCache(singleTab) + ignoreUndefinedProperties, auth,
     │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail; devolve { ok, user | mensagem }), fazerLogout()
     ├── constants.js     DIAS, DIAS_FULL, CORES (paleta p/ novas cadeiras), HORA_INICIO/FIM (6–23),
@@ -173,16 +174,17 @@ UFPE/
     │   ├── backupNuvem.js        deveFazerBackup({agora, ultimoBackup, online, dados}) → {fazer, motivo}, backupsParaApagar (#8)
 │   ├── carregamento.js       telaInicial({temDados, erroCarga, travou}), acaoDoWatchdog (1 reload/sessão), constantes (#7)
 │   ├── confirmacaoAdiada.js  criarConfirmacaoAdiada(aoConfirmar, ms) → mudar/confirmar/cancelar/sincronizar (#41)
-    │   ├── migracoes.js          VERSAO_ATUAL (5), MIGRACOES{n: fn pura}: 1 baseline, 2 chaves por id (#10), 3 data natural
+    │   ├── migracoes.js          VERSAO_ATUAL (6), MIGRACOES{n: fn pura}: 1 baseline, 2 chaves por id (#10), 3 data natural
     │   │                         das ocorrências movidas (#14), 4 vigência na cadeira (#20), 5 rotinas/compromissos pontuais/
-    │   │                         dataFim (#22); versaoDos, ehVersaoFutura, migrarDados
+    │   │                         dataFim (#22), 6 rotina sem período + vigência herdada (#56); versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, datasDaRegra/ehDataDaRegra/dataFimDaRotina (Fase 5), ocorrenciasNoIntervalo(afazer, ini, fim)
     │   │                         → [{data, dataOriginal}], mesmoDiaMesesDepois (mensal, #12), ehRotina, afazerConcluido (rotina nunca, #11),
     │   │                         ocorrenciaAtual (check da aba, #11), ROTINAS_COM_DATA_BASE/dataAoSalvarAfazer/rotinaSemDataBase (#40),
     │   │                         textoRepeticao/textoFimRepeticao/descreverAfazer, secoesDosAfazeres
     │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, vigência da cadeira (#19): vigenciaDaCadeira,
-    │   │                         cadeiraEstaAtivaNaData, textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
-    │   ├── rotinas.js            PURO (Fase 5): diasAtivosDaRotina, minutosPorSemana, textoDuracao, proximaOcorrenciaRotina — ui/ResumoRotina.jsx
+    │   │                         cadeiraEstaAtivaNaData (aliases vigenciaDe/estaAtivoNaData p/ rotinas), textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
+    │   ├── rotinas.js            PURO (Fase 5): diasAtivosDaRotina, minutosPorSemana, textoDuracao, proximaOcorrenciaRotina (vigência), rotinaEncerrada,
+    │   │                         horariosNaSemana (agenda semanal, #56) — ui/ResumoRotina.jsx
     │   ├── compromissos.js       PURO (Fase 5): erroDoCompromisso, secoesDosCompromissos, textoHorarioCompromisso, textoDataComSemana, rotuloRelativo
     │   ├── cadeiras.js           PURO (#21): diasEntre, proximoHorarioSemanal (genérico, usado por rotinas), proximaAula (vigência + excluídas), proximasAvaliacoes (destaque ≤7 dias), progressoVigencia,
     │   │                         rotuloDias, textoProximaAula, textoQuandoAvaliacao — usados por ui/ResumoCadeira.jsx
@@ -205,11 +207,11 @@ UFPE/
     │   ├── VisaoAfazeres.jsx     FormularioAfazer (nome, dia/começa em, repetição, dias da semana, termina em, urgência, cor, frase-resumo)
     │   │                         + seções Atrasados/Hoje/Próximos/Sem data/Recorrentes/Concluídos (ItemAfazer)
     │   ├── VisaoCadeiras.jsx     SeletorPeriodo no título, adicionar cadeira, grid de cards (contagem horários/links/datas + vigência)
-    │   ├── VisaoRotinas.jsx      Adicionar + grid de cards de rotinas do período ativo (ResumoRotina)
+    │   ├── VisaoRotinas.jsx      Adicionar + grid de cards de todas as rotinas (ResumoRotina)
     │   ├── VisaoCompromissos.jsx Compromissos pontuais: FormularioCompromisso (nome, data, início, fim?, cor) + Hoje/Próximos/Passados
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/rotinas, grade semanal posicionada por %, lista de próximas datas
     │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), resumo e seções recolhíveis Horários/Links/Datas (#21)
-    │   ├── PainelRotina.jsx      Drawer: nome, ResumoRotina, cor, período (select), seção Horários (AbaHorarios)
+    │   ├── PainelRotina.jsx      Drawer: nome, ResumoRotina, cor, vigência opcional (CampoVigencia), seção Horários (AbaHorarios)
     │   ├── abas/
     │   │   ├── AbaHorarios.jsx   CRUD de {dia, inicio, fim, local}; valida início < fim
     │   │   ├── AbaLinks.jsx      CRUD de links web e códigos Classroom (copiar), drop de URL; Classroom primeiro
@@ -222,7 +224,7 @@ UFPE/
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período), sobre a casca `Modal`
     │       ├── ModalRestaurarNuvem.jsx  Lista de backups da nuvem (data + resumo); confirmação/gravação no App
 │       ├── TelaErroCarga.jsx   Erro da carga inicial (#7): "Tentar de novo" + "Usar sem login" (estilos no fim de painel.css)
-    │       ├── ResumoRotina.jsx    Faixa S T Q Q S S D (dias ativos na cor), caixa "Próxima", h/semana
+    │       ├── ResumoRotina.jsx    Faixa S T Q Q S S D (dias ativos na cor), caixa "Próxima" (ou "Encerrada"), h/semana, vigência
     │       ├── SeletorData.jsx     Seletor de data próprio: popover do mês, `permitidas(ini, fim) → Set`, minimo/maximo, marcada, limpavel
     │       ├── SecaoLista.jsx      Seção recolhível com contagem e ação no cabeçalho (abas Afazeres/Compromissos)
     │       ├── ResumoCadeira.jsx   Caixas "Próx. aula"/"Próx. avaliações" (cor da cadeira; vazia = tracejada compacta; até 3 avaliações no card, 5 no drawer, + "+N") · barra da vigência + % (#21)

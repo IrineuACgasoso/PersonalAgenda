@@ -32,7 +32,7 @@ export function cadeira(overrides = {}) {
 
 // Rotina = bloco semanal com horários (era o "compromisso" até a v4).
 export function rotina(overrides = {}) {
-  return { id: id("rot"), periodoId: "per-x", nome: "Academia", cor: "#10b981", horarios: [], ...overrides };
+  return { id: id("rot"), nome: "Academia", cor: "#10b981", horarios: [], ...overrides };
 }
 
 // Compromisso pontual (v5): data + início (fim opcional).

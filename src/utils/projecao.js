@@ -7,7 +7,7 @@
 
 import { DIAS_FULL } from "../constants.js";
 import { toISO, parseISO, ocorrenciasNoIntervalo } from "./afazeres.js";
-import { cadeiraEstaAtivaNaData, vigenciaDaCadeira } from "./calendario.js";
+import { cadeiraEstaAtivaNaData, vigenciaDaCadeira, estaAtivoNaData } from "./calendario.js";
 
 const COR_PADRAO_AFAZER_CALENDARIO = "#8b5cf6";
 
@@ -101,11 +101,13 @@ export function projetarMarcosVigencia(cadeiras, inicioISO, fimISO) {
   return mapa;
 }
 
-// 3. Rotinas (horários semanais, sem checagem de vigência)
+// 3. Rotinas (horários semanais). Vigência própria opcional (#56, v6):
+// fora de dataInicio/dataFim a rotina não aparece; sem datas, vale sempre.
 export function projetarRotinas(rotinas, inicioISO, fimISO) {
   const lista = [];
   paraCadaDia(inicioISO, fimISO, (dataISO, diaSemana) => {
     rotinas.forEach((r) => {
+      if (!estaAtivoNaData(r, dataISO)) return;
       (r.horarios || [])
         .filter((h) => h.dia === diaSemana)
         .forEach((h) => {

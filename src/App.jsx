@@ -112,10 +112,9 @@ export default function App() {
   const periodoAtivo = data.periodos.find((p) => p.id === data.periodoAtivoId) || data.periodos[0];
   const cadeirasDoPeriodo = data.cadeiras.filter((c) => c.periodoId === periodoAtivo?.id);
   const cadeiraAberta = data.cadeiras.find((c) => c.id === cadeiraAbertaId);
-  // Rotinas (ex-"compromissos" semanais, v5) são do período; compromissos
-  // pontuais não (têm data própria).
+  // Rotinas (ex-"compromissos" semanais, v5) não pertencem a período desde
+  // a v6 (#56): cada uma tem vigência própria opcional (dataInicio/dataFim).
   const rotinas = data.rotinas || [];
-  const rotinasDoPeriodo = rotinas.filter((r) => r.periodoId === periodoAtivo?.id);
   const rotinaAberta = rotinas.find((r) => r.id === rotinaAbertaId);
   const compromissos = data.compromissos || [];
 
@@ -163,10 +162,10 @@ export default function App() {
     }));
   };
 
-  // Período leva junto as cadeiras e as rotinas dele: continua pedindo
+  // Período leva junto as cadeiras dele: continua pedindo
   // confirmação, e ainda dá para desfazer (#18).
   const excluirPeriodo = async (id) => {
-    const ok = await confirmar("Excluir este período? As cadeiras e rotinas dele também serão removidas.", {
+    const ok = await confirmar("Excluir este período? As cadeiras dele também serão removidas.", {
       titulo: "Excluir período",
       textoConfirmar: "Excluir",
       perigo: true,
@@ -177,30 +176,25 @@ export default function App() {
       const p = separarRemovidos(d.periodos, (x) => x.id === id);
       if (p.removidos.length === 0) return d;
       const c = separarRemovidos(d.cadeiras, (x) => x.periodoId === id);
-      const rot = separarRemovidos(d.rotinas || [], (x) => x.periodoId === id);
       removido = {
         periodos: p.removidos,
         cadeiras: c.removidos,
-        rotinas: rot.removidos,
         eraAtivo: d.periodoAtivoId === id,
       };
       return {
         ...d,
         periodos: p.restantes,
         cadeiras: c.restantes,
-        rotinas: rot.restantes,
         periodoAtivoId: d.periodoAtivoId === id ? (p.restantes[0]?.id ?? null) : d.periodoAtivoId,
       };
     });
-    if (rotinaAberta?.periodoId === id) setRotinaAbertaId(null);
     if (cadeiraAberta?.periodoId === id) setCadeiraAbertaId(null);
     if (!gravouAlgo(r) || !removido) return;
-    const { periodos, cadeiras, rotinas: rots, eraAtivo } = removido;
+    const { periodos, cadeiras, eraAtivo } = removido;
     avisarComDesfazer(`Período "${periodos[0].item.nome}" excluído`, (d) => ({
       ...d,
       periodos: reinserirVarios(d.periodos, periodos),
       cadeiras: reinserirVarios(d.cadeiras, cadeiras),
-      rotinas: reinserirVarios(d.rotinas || [], rots),
       periodoAtivoId: eraAtivo ? id : d.periodoAtivoId,
     }));
   };
@@ -259,11 +253,9 @@ export default function App() {
 
   /* ---- ações rotinas (ex-"compromissos" semanais, v5) ---- */
   const criarRotina = (nome) => {
-    if (!periodoAtivo) return;
     const nova = {
       id: uid(),
       nome,
-      periodoId: periodoAtivo.id,
       cor: CORES[rotinas.length % CORES.length],
       horarios: [],
     };
@@ -597,7 +589,7 @@ export default function App() {
         ) : aba === "visaogeral" ? (
           <VisaoGeral
             cadeiras={data.cadeiras}
-            rotinas={rotinasDoPeriodo}
+            rotinas={rotinas}
             compromissos={compromissos}
             afazeres={afazeres}
             eventosConcluidos={eventosConcluidos}
@@ -614,20 +606,19 @@ export default function App() {
             onNovoAfazer={abrirNovoAfazerNaData}
             onNovoCompromisso={abrirNovoCompromissoNaData}
           />
+        ) : aba === "rotinas" ? (
+          <VisaoRotinas
+            rotinas={rotinas}
+            eventosExcluidos={eventosExcluidos}
+            onCriar={criarRotina}
+            onAbrir={setRotinaAbertaId}
+            onExcluir={excluirRotina}
+          />
         ) : !periodoAtivo ? (
           <EstadoVazio
             texto="Crie um período para começar"
             onAcao={() => setModalPeriodo(true)}
             acaoTexto="Novo período"
-          />
-        ) : aba === "rotinas" ? (
-          <VisaoRotinas
-            periodoAtivo={periodoAtivo}
-            rotinas={rotinasDoPeriodo}
-            eventosExcluidos={eventosExcluidos}
-            onCriar={criarRotina}
-            onAbrir={setRotinaAbertaId}
-            onExcluir={excluirRotina}
           />
         ) : aba === "cadeiras" ? (
           <VisaoCadeiras
@@ -646,7 +637,7 @@ export default function App() {
         ) : (
           <VisaoAgenda
             cadeiras={cadeirasDoPeriodo}
-            rotinas={rotinasDoPeriodo}
+            rotinas={rotinas}
             onAbrirCadeira={setCadeiraAbertaId}
             onAbrirRotina={setRotinaAbertaId}
           />
@@ -666,7 +657,6 @@ export default function App() {
       {rotinaAberta && (
         <PainelRotina
           rotina={rotinaAberta}
-          periodos={data.periodos}
           eventosExcluidos={eventosExcluidos}
           onFechar={() => setRotinaAbertaId(null)}
           onAtualizar={(patch) => atualizarRotina(rotinaAberta.id, patch)}

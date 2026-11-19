@@ -6,6 +6,8 @@
 
 import { chaveRotina } from "./projecao.js";
 import { proximoHorarioSemanal } from "./cadeiras.js";
+import { toISO, parseISO } from "./afazeres.js";
+import { vigenciaDe, estaAtivoNaData } from "./calendario.js";
 
 const minutosDe = (hhmm) => {
   const [h, m] = String(hhmm || "")
@@ -36,10 +38,32 @@ export function textoDuracao(minutos) {
   return m ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
 }
 
-// Próxima ocorrência (ou a em andamento), pulando as removidas da agenda.
+// Próxima ocorrência (ou a em andamento), dentro da vigência (#56) e
+// pulando as removidas da agenda.
 export function proximaOcorrenciaRotina(rotina, agora = new Date(), eventosExcluidos = []) {
   const excluidos = new Set(eventosExcluidos);
+  const { inicio, fim } = vigenciaDe(rotina);
   return proximoHorarioSemanal(rotina?.horarios, agora, {
+    inicio,
+    fim,
     excluida: (dataISO, h) => excluidos.has(chaveRotina(dataISO, rotina, h)),
   });
+}
+
+// Rotina cuja data de fim já passou (o card mostra "Encerrada").
+export function rotinaEncerrada(rotina, hojeISO) {
+  const { fim } = vigenciaDe(rotina);
+  return !!fim && fim < hojeISO;
+}
+
+// Horários da rotina que valem na SEMANA de `hojeISO` (seg–dom) — a agenda
+// semanal é uma grade sem datas, então cada horário é checado na data do
+// seu dia da semana nesta semana (#56: vigência própria da rotina).
+export function horariosNaSemana(rotina, hojeISO) {
+  const hoje = parseISO(hojeISO);
+  const segunda = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - ((hoje.getDay() + 6) % 7));
+  const dataDoDia = (dia) => toISO(new Date(segunda.getFullYear(), segunda.getMonth(), segunda.getDate() + dia));
+  return (rotina?.horarios || []).filter(
+    (h) => h && Number.isInteger(h.dia) && estaAtivoNaData(rotina, dataDoDia(h.dia)),
+  );
 }

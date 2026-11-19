@@ -1,6 +1,6 @@
 // src/components/PainelRotina.jsx
 // Drawer da rotina (Fase 5, ex-PainelCompromisso): nome, resumo (faixa da
-// semana, próxima, horas/semana), cor, período e a seção de horários.
+// semana, próxima, horas/semana), cor, vigência opcional (#56) e horários.
 import { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
 import useListaInterna from "../hooks/useListaInterna";
@@ -8,18 +8,12 @@ import { DIAS_FULL } from "../constants";
 import AbaHorarios from "./abas/AbaHorarios";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import ResumoRotina from "./ui/ResumoRotina.jsx";
+import CampoVigencia from "./ui/CampoVigencia.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
 
-export default function PainelRotina({
-  rotina,
-  periodos = [],
-  eventosExcluidos = [],
-  onFechar,
-  onAtualizar,
-  onExcluir,
-}) {
+export default function PainelRotina({ rotina, eventosExcluidos = [], onFechar, onAtualizar, onExcluir }) {
   const [nomeEdit, setNomeEdit] = useState(rotina.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
@@ -67,25 +61,15 @@ export default function PainelRotina({
           <SeletorCor key={rotina.id} valor={rotina.cor} onChange={(cor) => onAtualizar({ cor })} />
         </div>
 
-        <div className="painel-vigencia">
-          <span className="subtle painel-vigencia-rotulo">Período</span>
-          <select
-            className="input"
-            value={rotina.periodoId || ""}
-            onChange={(e) => {
-              if (e.target.value) onAtualizar({ periodoId: e.target.value });
-            }}
-          >
-            {periodos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
-            ))}
-          </select>
-          <span className="subtle painel-vigencia-dica">
-            Só aparece na agenda e no calendário quando este período estiver selecionado.
-          </span>
-        </div>
+        {/* Vigência própria (#56): a rotina não pertence mais a um período */}
+        <CampoVigencia
+          key={rotina.id}
+          item={rotina}
+          onAtualizar={onAtualizar}
+          rotulo="Período da rotina"
+          dicaComDatas="Fora dessas datas, a rotina não aparece no calendário nem na agenda."
+          dicaSemDatas="Sem datas: a rotina vale todas as semanas, sem fim."
+        />
 
         <div className="painel-secoes">
           <section className="painel-secao">

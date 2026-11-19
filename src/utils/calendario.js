@@ -83,6 +83,8 @@ export function gerarCelulasMes(ano, mes) {
 // cadeira ("YYYY-MM-DD"; vazio = sem limite daquele lado). Antes a vigência
 // vinha do PERÍODO; a migração v4 (#20) copiou as datas do período para as
 // cadeiras, então o período não entra mais nesta conta.
+// Rotinas (#56, v6) usam os MESMOS campos e as mesmas funções: qualquer item
+// com `dataInicio`/`dataFim` opcionais.
 export function vigenciaDaCadeira(cadeira) {
   return { inicio: cadeira?.dataInicio || "", fim: cadeira?.dataFim || "" };
 }
@@ -93,6 +95,10 @@ export function cadeiraEstaAtivaNaData(cadeira, dataISO) {
   if (fim && dataISO > fim) return false;
   return true;
 }
+
+// Nomes genéricos para quem não é cadeira (rotinas).
+export const vigenciaDe = vigenciaDaCadeira;
+export const estaAtivoNaData = cadeiraEstaAtivaNaData;
 
 // Texto curto da vigência para o card da cadeira ("" = sem limites).
 export function textoVigencia(cadeira) {

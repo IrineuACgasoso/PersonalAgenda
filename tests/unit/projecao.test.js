@@ -107,6 +107,23 @@ describe("rotinas (ex-compromissos semanais, v5)", () => {
     });
     expect(m["2026-11-06"].map((e) => e.tipo)).toEqual(["compromissos"]);
   });
+  it("vigência própria (#56): fora de dataInicio/dataFim não aparece", () => {
+    // Sextas de novembro/2026: 06, 13, 20, 27.
+    const r = rotina({ horarios: [horario({ dia: 4 })], dataInicio: "2026-11-10", dataFim: "2026-11-20" });
+    const m = projetarEventos({ ...NOV, rotinas: [r] });
+    const dias = Object.keys(m).filter((d) => m[d].some((e) => e.tipo === "rotinas"));
+    expect(dias.sort()).toEqual(["2026-11-13", "2026-11-20"]);
+  });
+  it("só início ou só fim limita só daquele lado", () => {
+    const so = (extra) => {
+      const m = projetarEventos({ ...NOV, rotinas: [rotina({ horarios: [horario({ dia: 4 })], ...extra })] });
+      return Object.keys(m)
+        .filter((d) => m[d].some((e) => e.tipo === "rotinas"))
+        .sort();
+    };
+    expect(so({ dataInicio: "2026-11-14" })).toEqual(["2026-11-20", "2026-11-27"]);
+    expect(so({ dataFim: "2026-11-06" })).toEqual(["2026-11-06"]);
+  });
 });
 
 describe("compromissos pontuais (v5)", () => {

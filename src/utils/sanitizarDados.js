@@ -48,9 +48,16 @@ function sanitizarCadeira(c) {
   };
 }
 
-// Rotina (ex-"compromisso" semanal, v5): só a lista de horários.
+// Rotina (ex-"compromisso" semanal, v5): lista de horários + vigência
+// opcional (#56, v6 — não pertence mais a período). Mesmas regras da
+// vigência da cadeira: só "YYYY-MM-DD" válido sobrevive.
 function sanitizarRotina(r) {
-  return { ...r, horarios: listaDeObjetos(r.horarios) };
+  return {
+    ...r,
+    horarios: listaDeObjetos(r.horarios),
+    dataInicio: ehDataISO(r.dataInicio) ? r.dataInicio : undefined,
+    dataFim: ehDataISO(r.dataFim) ? r.dataFim : undefined,
+  };
 }
 
 const HORA = /^\d{2}:\d{2}$/;

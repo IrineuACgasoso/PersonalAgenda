@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-11-19 (10) — #56 Rotinas sem período (vigência própria) — **schema v6**
+- **Decisão do usuário:** na migração, a rotina **herda a vigência do período** = menor `dataInicio` e maior `dataFim` entre as cadeiras daquele período que têm a data. Período sem datas, sumido ou com datas incoerentes (fim < início) ⇒ rotina sem limites. Sem isso, as rotinas de períodos antigos (escondidas quando o período não estava ativo) reapareceriam para sempre.
+- **Schema v6 (`MIGRACOES[6]`):** remove `rotina.periodoId`; adiciona `dataInicio`/`dataFim` herdados (sem sobrescrever o que a rotina já tiver). `sanitizarRotina`: `dataInicio/dataFim` só `YYYY-MM-DD` (senão some). **Rules não mudaram** (só exigem `rotinas` como lista) ⇒ **sem deploy**.
+- **Removido:** select "Período" do `PainelRotina`, `rotinasDoPeriodo` no `App.jsx` (calendário, agenda e aba recebem todas), "N rotinas em <período>", exigência de período ativo para a aba Rotinas, exclusão das rotinas junto com o período (`excluirPeriodo` + desfazer; texto do confirm ajustado).
+- **Vigência:** `vigenciaDe`/`estaAtivoNaData` (aliases genéricos em `utils/calendario.js`). `projetarRotinas` pula dias fora da vigência; `proximaOcorrenciaRotina` passa início/fim; `rotinaEncerrada` (card mostra "Encerrada"); `horariosNaSemana` (agenda semanal: cada horário checado na data do seu dia nesta semana). Card/drawer mostram a vigência (`textoVigencia`).
+- **UI:** `ui/CampoVigencia.jsx` extraído do `PainelCadeira` (De/Até, limpar, erro inline) e usado nos dois drawers (rótulo "Período da rotina" na rotina).
+- **Testes:** 283 ✅ (+12): migração v6 (herança, só um lado, incoerente, não sobrescreve, pureza, ponta a ponta), sanitizer, projeção com vigência, `rotinaEncerrada`, `horariosNaSemana`, próxima com vigência. `npm run check` ✅. **Verificado no navegador** (Playwright + Chrome, dados v5 semeados): migra para v6, rotina do período antigo vira "Encerrada" com 01/03–15/07, some da agenda, definir "Até" no drawer grava `dataFim`, sem erros no console.
+- **Blaze (#23):** o usuário já tem conta Blaze; falta só vincular este projeto ao faturamento (Console Firebase → ⚙ Uso e faturamento → Detalhes e configurações → Modificar plano). Anotado no `todo.md`.
+- **Testar no app:** (1) aba Rotinas abre mesmo sem período; as rotinas do período atual aparecem com a vigência herdada das cadeiras; (2) rotinas de períodos antigos aparecem como "Encerrada"; (3) apagar as datas no drawer ⇒ a rotina vale sempre; (4) PWA antigo (v5) em outro aparelho vê os dados como "desatualizado" até atualizar (esperado).
+- **➡ Próximo passo recomendado:** **#23 lembretes** (vincular o Blaze antes, se for a opção b) ou **#55** (cor padrão do afazer, rápido).
+
+---
+
 ## 2026-11-19 (9) — Fase 5 (#22 + #45): Rotinas, Compromissos pontuais e Afazeres novos — **schema v5**
 - **Decisões do usuário (perguntas da sessão):** afazer pontual com data+hora vira compromisso na migração, recorrente com hora perde a hora; compromisso = nome, cor, data, início obrigatório, fim opcional, sem campos extras, com check e seção "Passados"; afazer sem hora, "intervalo" = repetição + data de fim (não existe pontual com intervalo); pontual atrasado fica na data com selo "atrasado"; seletor de data próprio também no início e no compromisso; lista de afazeres em seções; marcadores em linha (até 3, depois 2 + "+N"); Rotinas com faixa da semana; lixeira exclui de verdade item pontual (#45); extras: arrastar compromisso, "+" com menu, filtro próprio de Rotinas.
 - **Schema v5 (`MIGRACOES[5]`):** `compromissos` semanais → `rotinas` (chaves `compromissos|ISO|id|h` → `rotinas|ISO|id|h`); `compromissos` agora = pontuais `{ id, nome, cor, data, inicio, fim?, feito, concluidoEm? }` (afazeres sem repetição com data + hora viram compromisso, mesmo id); afazer perde `hora`; `rotina.totalRepeticoes` → `rotina.dataFim` (dia da última ocorrência; sem data-base = sem fim, como era). Lógica da v4 copiada dentro da migração (não importa de `afazeres.js`).
@@ -19,6 +32,7 @@
 - **⚠ Deploy das Rules (usuário):** `firebase deploy --only firestore:rules` **depois** de abrir a versão nova pelo menos uma vez (o doc precisa já ter `rotinas`, senão um PWA antigo em cache teria gravações recusadas). PWA antigo vê o doc v5 como "desatualizado" (esperado).
 - **Testar no app:** (1) Rotinas: os antigos compromissos semanais estão lá, com a faixa da semana e "Próxima"; (2) Compromissos: os afazeres que tinham hora viraram compromissos; ★ no calendário; (3) afazer recorrente com "qtd. de vezes" agora mostra "até DD/MM"; (4) criar afazer semanal → "Termina em" só deixa clicar no mesmo dia da semana; (5) "+" no calendário → Compromisso abre a aba com a data; (6) arrastar um compromisso para outro dia; (7) lixeira num afazer sem repetição → some da aba também (Desfazer volta).
 - **Pendências novas:** #55 (cor padrão do afazer, `#221e1e`, quase invisível no calendário), #56 (calendário: cadeiras de todos os períodos × rotinas só do ativo — não mexido).
+- **➡ Próximo (feito na sessão 10):** #56, rotinas sem período.
 
 ---
 

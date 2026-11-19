@@ -1,14 +1,15 @@
 // src/components/VisaoRotinas.jsx
 // Rotinas (Fase 5, ex-"Compromissos" semanais): blocos com dia da semana e
-// horário fixos (academia, inglês…), presos a um período. Cada card mostra
-// a faixa da semana, a próxima ocorrência e as horas por semana.
+// horário fixos (academia, inglês…). Não pertencem a período (#56): cada uma
+// tem vigência própria opcional. Cada card mostra a faixa da semana, a
+// próxima ocorrência e as horas por semana.
 import { useState, useRef } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import ResumoRotina from "./ui/ResumoRotina.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
-export default function VisaoRotinas({ periodoAtivo, rotinas, eventosExcluidos = [], onCriar, onAbrir, onExcluir }) {
+export default function VisaoRotinas({ rotinas, eventosExcluidos = [], onCriar, onAbrir, onExcluir }) {
   const [novoNome, setNovoNome] = useState("");
   const addRowRef = useRef(null);
   useNavegacaoEnter(addRowRef);
@@ -25,7 +26,7 @@ export default function VisaoRotinas({ periodoAtivo, rotinas, eventosExcluidos =
       <div className="header-bar">
         <h1 className="titulo-pagina">Rotinas</h1>
         <span className="subtle" style={{ marginLeft: "auto" }}>
-          {rotinas.length} rotina{rotinas.length !== 1 ? "s" : ""} em {periodoAtivo.nome}
+          {rotinas.length} rotina{rotinas.length !== 1 ? "s" : ""}
         </span>
       </div>
       <p className="subtle pagina-descricao">
@@ -45,7 +46,7 @@ export default function VisaoRotinas({ periodoAtivo, rotinas, eventosExcluidos =
       </div>
 
       {rotinas.length === 0 ? (
-        <EstadoVazio texto="Nenhuma rotina cadastrada neste período ainda" />
+        <EstadoVazio texto="Nenhuma rotina cadastrada ainda" />
       ) : (
         <div className="grid-cadeiras">
           {rotinas.map((r) => (

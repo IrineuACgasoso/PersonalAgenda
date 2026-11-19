@@ -55,7 +55,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ### Fase 5 — Afazeres / Rotinas / Compromissos
 - [x] **#22 Reformulação em 3 abas na sidebar** (2026-11-19). **Schema v5.** Rotinas (ex-compromissos semanais, presas ao período, cards com faixa da semana), Compromissos pontuais (data + início, fim opcional, ★ no calendário, check, "Passados"), Afazeres sem hora com data de fim escolhida num calendário que só mostra os dias da repetição (vazio = para sempre) e lista em seções. Marcadores ★/livro/bandeiras na célula. Ver `log.md` (9).
   - **#45** resolvido junto: a lixeira do calendário exclui de verdade compromisso e afazer sem repetição (com Desfazer).
-- [ ] **#23 Lembretes programados e configuráveis.** _#22 feito: compromissos pontuais já existem._ Decisão técnica antes: (a) notificação local só com o app aberto/SW vivo, que é simples mas pouco confiável; (b) FCM + Cloud Function agendada, que é confiável mas exige o plano Blaze; (c) exportar `.ics` e usar os lembretes nativos (ver #33). iOS só recebe push com o PWA instalado (16.4+). Modelo: `lembretes: [{ antecedenciaMin }]` por compromisso/avaliação + um padrão global.
+- [ ] **#23 Lembretes programados e configuráveis.** _#22 feito: compromissos pontuais já existem._ **O usuário já tem conta Blaze** (2026-11-19): falta só vincular este projeto Firebase ao faturamento — isso favorece a opção (b). Decisão técnica antes: (a) notificação local só com o app aberto/SW vivo, que é simples mas pouco confiável; (b) FCM + Cloud Function agendada, que é confiável mas exige o plano Blaze; (c) exportar `.ics` e usar os lembretes nativos (ver #33). iOS só recebe push com o PWA instalado (16.4+). Modelo: `lembretes: [{ antecedenciaMin }]` por compromisso/avaliação + um padrão global.
 
 ### Fase 6 — Visual e performance
 - [ ] **#24 Melhora na qualidade de exibição** (detalhar com o usuário): tirar os estilos inline de `VisaoGeral` (células do calendário) para CSS, hierarquia tipográfica, contraste, espaçamentos no mobile, título da aba (`index.html` diz "Painel acadêmico").
@@ -78,7 +78,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [ ] **#51** Acessibilidade: células do calendário e cards de cadeira/compromisso são `div` com `onClick` (sem teclado/`role`); drawers não fecham com Esc nem prendem o foco; o drag só funciona com ponteiro.
 - [ ] **#52** `eventosConcluidos`/`eventosExcluidos` crescem para sempre e guardam chaves órfãs de cadeiras/afazeres já apagados. O documento único tem limite de 1 MB, e cada backup copia tudo. Limpar as chaves do item ao excluí-lo. _Fazer depois de #10 (o formato das chaves muda)._
 - [ ] **#55** Cor padrão do afazer (`#221e1e`) some no fundo escuro (ponto no calendário e faixa do item quase invisíveis). Trocar o padrão ou clarear no calendário.
-- [ ] **#56** Calendário geral recebe as cadeiras de **todos** os períodos, mas as rotinas só do **ativo**. Padronizar (por vigência?) — veio do #22 e não foi mexido.
+- [x] **#56 Rotinas sem período** (2026-11-19). `periodoId` removido; vigência própria opcional (`dataInicio`/`dataFim`) limita calendário, agenda semanal e "Próxima". **Schema v6**: a rotina herda menor início / maior fim das cadeiras do seu período.
 - [ ] **#53** Excluir o último período recria em silêncio um "2026.1" (`id: "p1"`, via `sanitizarDados`). Bloquear a exclusão do único período ou avisar. _Combina com #38._
 
 ### Ideias aprovadas pelo usuário (implementar depois das fases acima)
@@ -94,6 +94,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] #56 rotinas sem período, com vigência própria (schema v6) (2026-11-19).
 - [x] #22 Fase 5: Rotinas / Compromissos / Afazeres (schema v5) + #45 lixeira exclui item pontual (2026-11-19).
 - [x] #16 ESLint + Prettier · #17 diálogos próprios · #44 aviso de gravação recusada · #18 desfazer com toast (2026-11-19).
 - [x] #9 autobackup removido · #10 chaves por id (migração v2) · #11 check de rotina por ocorrência · #12 mensal no fim do mês · #13 hoje local · #14 data natural (migração v3) · #15 ícone maskable · #40 rotina sem data · #42 gatilho preso · #50 href seguro (2026-11-19).

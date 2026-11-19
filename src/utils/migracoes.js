@@ -17,7 +17,7 @@
 // Campos que só ganham um valor padrão NÃO precisam de migração: basta
 // registrá-los no sanitizarDados.
 
-export const VERSAO_ATUAL = 5;
+export const VERSAO_ATUAL = 6;
 
 export const MIGRACOES = {
   // v0 → v1: baseline. Todos os dados anteriores a 2026-11 (sem `versao`)
@@ -120,6 +120,41 @@ export const MIGRACOES = {
       afazeres: afazeres ? afazeres.filter((a) => !afazerViraCompromissoV5(a)).map(afazerV5) : dados.afazeres,
       eventosConcluidos: renomearChavesV5(dados.eventosConcluidos),
       eventosExcluidos: renomearChavesV5(dados.eventosExcluidos),
+    };
+  },
+
+  // v5 → v6 (#56): a rotina deixa de pertencer a um período. Ela perde
+  // `periodoId` e ganha `dataInicio`/`dataFim` opcionais (vigência própria,
+  // como a cadeira). Decisão do usuário: a rotina HERDA a vigência do seu
+  // período = menor início e maior fim entre as cadeiras daquele período
+  // que têm a data. Sem isso, as rotinas de períodos antigos (que ficavam
+  // escondidas quando o período não estava ativo) reapareceriam para sempre.
+  // Período sem datas (ou datas incoerentes) ⇒ rotina sem limites.
+  6: (dados) => {
+    if (!Array.isArray(dados.rotinas)) return { ...dados };
+    const cadeiras = objetos(dados.cadeiras);
+    return {
+      ...dados,
+      rotinas: dados.rotinas.map((r) => {
+        if (!r || typeof r !== "object") return r;
+        const novo = Object.fromEntries(Object.entries(r).filter(([k]) => k !== "periodoId"));
+        if (r.periodoId === undefined || r.periodoId === null) return novo;
+        const doPeriodo = cadeiras.filter((c) => c.periodoId === r.periodoId);
+        const inicios = doPeriodo
+          .map((c) => c.dataInicio)
+          .filter(ehISOV5)
+          .sort();
+        const fins = doPeriodo
+          .map((c) => c.dataFim)
+          .filter(ehISOV5)
+          .sort();
+        const inicio = inicios[0] || "";
+        const fim = fins[fins.length - 1] || "";
+        if (inicio && fim && fim < inicio) return novo;
+        if (!ehISOV5(novo.dataInicio) && inicio) novo.dataInicio = inicio;
+        if (!ehISOV5(novo.dataFim) && fim) novo.dataFim = fim;
+        return novo;
+      }),
     };
   },
 };

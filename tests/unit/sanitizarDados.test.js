@@ -68,6 +68,21 @@ describe("sanitizarDados", () => {
     expect(d.rotinas[0].horarios).toEqual([]);
   });
 
+  it("vigência da rotina (#56): só YYYY-MM-DD sobrevive", () => {
+    const d = sanitizarDados(
+      appData({
+        rotinas: [
+          { id: "a", nome: "A", horarios: [], dataInicio: "2026-08-01", dataFim: "2026-12-15" },
+          { id: "b", nome: "B", horarios: [], dataInicio: 5, dataFim: "15/12/2026" },
+          { id: "c", nome: "C", horarios: [], dataInicio: "" },
+        ],
+      }),
+    );
+    expect(d.rotinas[0]).toMatchObject({ dataInicio: "2026-08-01", dataFim: "2026-12-15" });
+    expect("dataInicio" in d.rotinas[1] || "dataFim" in d.rotinas[1]).toBe(false);
+    expect("dataInicio" in d.rotinas[2]).toBe(false);
+  });
+
   it("preserva o conteúdo e os campos extras de cadeiras/rotinas/compromissos", () => {
     const h = horario();
     const c = cadeira({ horarios: [h], links: [{ id: "l1", url: "https://x.com" }], extra: 7 });

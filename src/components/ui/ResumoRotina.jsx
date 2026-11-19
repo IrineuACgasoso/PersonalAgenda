@@ -3,12 +3,18 @@
 // cor da rotina, caixa "Próxima" (mesma caixa do resumo da cadeira) e total
 // de horas por semana. Usado no card (VisaoRotinas) e no drawer (PainelRotina).
 // A lógica é pura, em utils/rotinas.js.
-import { Clock, Timer } from "lucide-react";
+import { CalendarRange, Clock, Timer } from "lucide-react";
 import { DIAS_FULL } from "../../constants.js";
 import { toISO } from "../../utils/afazeres.js";
-import { hexParaRgb } from "../../utils/calendario.js";
+import { hexParaRgb, textoVigencia } from "../../utils/calendario.js";
 import { textoProximaAula } from "../../utils/cadeiras.js";
-import { diasAtivosDaRotina, minutosPorSemana, proximaOcorrenciaRotina, textoDuracao } from "../../utils/rotinas.js";
+import {
+  diasAtivosDaRotina,
+  minutosPorSemana,
+  proximaOcorrenciaRotina,
+  rotinaEncerrada,
+  textoDuracao,
+} from "../../utils/rotinas.js";
 
 export default function ResumoRotina({ rotina, eventosExcluidos = [] }) {
   const agora = new Date();
@@ -17,6 +23,8 @@ export default function ResumoRotina({ rotina, eventosExcluidos = [] }) {
   const ativos = diasAtivosDaRotina(rotina);
   const proxima = proximaOcorrenciaRotina(rotina, agora, eventosExcluidos);
   const n = rotina.horarios.length;
+  const vigencia = textoVigencia(rotina);
+  const encerrada = rotinaEncerrada(rotina, hojeISO);
 
   return (
     <div className="resumo-rotina" style={{ "--cor-rgb": hexParaRgb(rotina.cor) }}>
@@ -40,9 +48,11 @@ export default function ResumoRotina({ rotina, eventosExcluidos = [] }) {
         <span className="resumo-caixa-valor">
           {proxima
             ? textoProximaAula(proxima, hojeISO)
-            : n === 0
-              ? "Sem horários cadastrados"
-              : "Nada nas próximas semanas"}
+            : encerrada
+              ? "Encerrada"
+              : n === 0
+                ? "Sem horários cadastrados"
+                : "Nada nas próximas semanas"}
         </span>
       </div>
 
@@ -52,6 +62,14 @@ export default function ResumoRotina({ rotina, eventosExcluidos = [] }) {
           {textoDuracao(minutosPorSemana(rotina))}/semana · {n} horário{n !== 1 ? "s" : ""}
         </span>
       </div>
+
+      {/* Vigência própria (#56), só quando tem alguma data */}
+      {vigencia && (
+        <div className="resumo-rotina-rodape">
+          <CalendarRange size={12} />
+          <span>{vigencia}</span>
+        </div>
+      )}
     </div>
   );
 }

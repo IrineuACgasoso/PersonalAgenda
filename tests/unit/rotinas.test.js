@@ -6,6 +6,8 @@ import {
   minutosPorSemana,
   textoDuracao,
   proximaOcorrenciaRotina,
+  rotinaEncerrada,
+  horariosNaSemana,
 } from "../../src/utils/rotinas.js";
 import { chaveRotina } from "../../src/utils/projecao.js";
 import { rotina, horario } from "../fixtures/fabricas.js";
@@ -64,5 +66,33 @@ describe("proximaOcorrenciaRotina", () => {
   });
   it("sem horários = null", () => {
     expect(proximaOcorrenciaRotina(rotina(), agora())).toBeNull();
+  });
+  it("respeita a vigência (#56): começa no início futuro, para no fim", () => {
+    expect(proximaOcorrenciaRotina({ ...r, dataInicio: "2026-12-01" }, agora())?.data).toBe("2026-12-02");
+    expect(proximaOcorrenciaRotina({ ...r, dataFim: "2026-11-19" }, agora("19:30"))).toBeNull();
+    expect(proximaOcorrenciaRotina({ ...r, dataFim: "2026-11-20" }, agora("19:30"))?.data).toBe("2026-11-20");
+  });
+});
+
+describe("vigência da rotina (#56)", () => {
+  it("rotinaEncerrada: só com fim antes de hoje", () => {
+    expect(rotinaEncerrada(rotina(), "2026-11-18")).toBe(false);
+    expect(rotinaEncerrada(rotina({ dataFim: "2026-11-18" }), "2026-11-18")).toBe(false);
+    expect(rotinaEncerrada(rotina({ dataFim: "2026-11-17" }), "2026-11-18")).toBe(true);
+    expect(rotinaEncerrada(rotina({ dataInicio: "2020-01-01" }), "2026-11-18")).toBe(false);
+  });
+
+  it("horariosNaSemana: cada horário checado na data do seu dia nesta semana", () => {
+    // Semana de 18/11/2026 (quarta): seg 16 … dom 22.
+    const seg = horario({ id: "seg", dia: 0 });
+    const sex = horario({ id: "sex", dia: 4 });
+    const r = rotina({ horarios: [seg, sex] });
+    const ids = (extra) => horariosNaSemana({ ...r, ...extra }, "2026-11-18").map((h) => h.id);
+    expect(ids({})).toEqual(["seg", "sex"]);
+    expect(ids({ dataInicio: "2026-11-19" })).toEqual(["sex"]);
+    expect(ids({ dataFim: "2026-11-19" })).toEqual(["seg"]);
+    expect(ids({ dataFim: "2026-11-01" })).toEqual([]);
+    // Domingo pertence à semana que começou na segunda anterior.
+    expect(horariosNaSemana({ ...r, dataInicio: "2026-11-20" }, "2026-11-22").map((h) => h.id)).toEqual(["sex"]);
   });
 });

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2, X, ChevronDown } from "lucide-react";
-import { dataCompleta, erroDeVigencia } from "../utils/calendario";
 import useListaInterna from "../hooks/useListaInterna";
 import { DIAS_FULL } from "../constants";
 import AbaHorarios from "./abas/AbaHorarios";
@@ -8,6 +7,7 @@ import AbaLinks from "./abas/AbaLinks";
 import AbaDatas from "./abas/AbaDatas";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import ResumoCadeira from "./ui/ResumoCadeira.jsx";
+import CampoVigencia from "./ui/CampoVigencia.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
@@ -38,25 +38,6 @@ export default function PainelCadeira({ cadeira, eventosExcluidos = [], onFechar
   // sendo digitado a cada sync vindo de outro aparelho.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setNomeEdit(cadeira.nome), [cadeira.id]);
-
-  // Vigência (#19): estado local para o input não "pular" enquanto digita.
-  // Grava a cada data completa e válida; fim antes do início mostra o erro
-  // embaixo e não grava (sem diálogo: o valor pode estar no meio da edição).
-  const vigenciaDa = (c) => ({ inicio: c.dataInicio || "", fim: c.dataFim || "" });
-  const [vigencia, setVigencia] = useState(() => vigenciaDa(cadeira));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => setVigencia(vigenciaDa(cadeira)), [cadeira.id]);
-  const erroVigencia = erroDeVigencia(vigencia.inicio, vigencia.fim);
-
-  const alterarVigencia = (campo, valor) => {
-    const nova = { ...vigencia, [campo]: valor };
-    setVigencia(nova);
-    if (valor && !dataCompleta(valor)) return;
-    if (erroDeVigencia(nova.inicio, nova.fim)) return;
-    const atual = vigenciaDa(cadeira);
-    if (nova.inicio === atual.inicio && nova.fim === atual.fim) return;
-    onAtualizar({ dataInicio: nova.inicio, dataFim: nova.fim });
-  };
 
   const salvarNome = () => {
     const v = nomeEdit.trim();
@@ -101,46 +82,13 @@ export default function PainelCadeira({ cadeira, eventosExcluidos = [], onFechar
         </div>
 
         {/* VIGÊNCIA DA CADEIRA (#19): fora dela, aulas e avaliações não aparecem no calendário */}
-        <div className="painel-vigencia">
-          <span className="subtle painel-vigencia-rotulo">Vigência</span>
-          <div className="painel-vigencia-campos">
-            {[
-              ["inicio", "De"],
-              ["fim", "Até"],
-            ].map(([campo, rotulo]) => (
-              <label key={campo} className="painel-vigencia-campo">
-                <span className="subtle">{rotulo}</span>
-                <input
-                  type="date"
-                  className="input"
-                  value={vigencia[campo]}
-                  max={campo === "inicio" ? vigencia.fim || undefined : undefined}
-                  min={campo === "fim" ? vigencia.inicio || undefined : undefined}
-                  onChange={(e) => alterarVigencia(campo, e.target.value)}
-                />
-                {vigencia[campo] && (
-                  <button
-                    type="button"
-                    className="icon-btn-ghost"
-                    title={`Limpar data de ${campo === "inicio" ? "início" : "fim"}`}
-                    onClick={() => alterarVigencia(campo, "")}
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </label>
-            ))}
-          </div>
-          {erroVigencia ? (
-            <span className="painel-vigencia-erro">{erroVigencia}</span>
-          ) : (
-            <span className="subtle painel-vigencia-dica">
-              {vigencia.inicio || vigencia.fim
-                ? "Fora dessas datas, as aulas e avaliações não aparecem no calendário."
-                : "Sem datas: as aulas aparecem em todas as semanas."}
-            </span>
-          )}
-        </div>
+        <CampoVigencia
+          key={cadeira.id}
+          item={cadeira}
+          onAtualizar={onAtualizar}
+          dicaComDatas="Fora dessas datas, as aulas e avaliações não aparecem no calendário."
+          dicaSemDatas="Sem datas: as aulas aparecem em todas as semanas."
+        />
 
         <div className="painel-secoes">
           <Secao

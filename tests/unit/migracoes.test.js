@@ -428,3 +428,103 @@ describe("v4 → v5: rotinas, compromissos pontuais e data de fim (Fase 5)", () 
     expect(diasEstudo).toEqual(["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20"]);
   });
 });
+
+describe("v5 → v6: rotina sem período, com vigência herdada (#56)", () => {
+  const migrar = (d) => MIGRACOES[6](d);
+  const doPeriodo = (periodoId, dataInicio, dataFim) =>
+    cadeira({ periodoId, ...(dataInicio ? { dataInicio } : {}), ...(dataFim ? { dataFim } : {}) });
+
+  it("tira periodoId e herda menor início / maior fim das cadeiras do período", () => {
+    const d = migrar(
+      appData({
+        versao: 5,
+        cadeiras: [
+          doPeriodo("p", "2026-08-10", "2026-12-01"),
+          doPeriodo("p", "2026-08-03", "2026-12-15"),
+          doPeriodo("p"), // sem datas: não conta
+          doPeriodo("outro", "2020-01-01", "2030-01-01"),
+        ],
+        rotinas: [{ id: "r", periodoId: "p", nome: "Academia", cor: "#fff", horarios: [] }],
+      }),
+    );
+    expect(d.rotinas[0]).toEqual({
+      id: "r",
+      nome: "Academia",
+      cor: "#fff",
+      horarios: [],
+      dataInicio: "2026-08-03",
+      dataFim: "2026-12-15",
+    });
+  });
+
+  it("período sem datas, sumido ou rotina sem período ⇒ sem limites", () => {
+    const d = migrar(
+      appData({
+        cadeiras: [doPeriodo("p")],
+        rotinas: [
+          { id: "a", periodoId: "p", horarios: [] },
+          { id: "b", periodoId: "sumiu", horarios: [] },
+          { id: "c", horarios: [] },
+        ],
+      }),
+    );
+    d.rotinas.forEach((r) => {
+      expect("periodoId" in r).toBe(false);
+      expect("dataInicio" in r || "dataFim" in r).toBe(false);
+    });
+  });
+
+  it("só um dos lados ⇒ herda só ele; datas incoerentes ⇒ nenhuma", () => {
+    const so = migrar(appData({ cadeiras: [doPeriodo("p", "2026-08-03")], rotinas: [{ id: "a", periodoId: "p" }] }));
+    expect(so.rotinas[0]).toEqual({ id: "a", dataInicio: "2026-08-03" });
+    const incoerente = migrar(
+      appData({
+        cadeiras: [doPeriodo("p", null, "2026-03-01"), doPeriodo("p", "2026-05-01")],
+        rotinas: [{ id: "a", periodoId: "p" }],
+      }),
+    );
+    expect(incoerente.rotinas[0]).toEqual({ id: "a" });
+  });
+
+  it("não sobrescreve datas que a rotina já tenha", () => {
+    const d = migrar(
+      appData({
+        cadeiras: [doPeriodo("p", "2026-08-03", "2026-12-15")],
+        rotinas: [{ id: "a", periodoId: "p", dataFim: "2026-10-01" }],
+      }),
+    );
+    expect(d.rotinas[0]).toEqual({ id: "a", dataInicio: "2026-08-03", dataFim: "2026-10-01" });
+  });
+
+  it("é pura e tolera rotinas ausentes ou com lixo", () => {
+    const entrada = congelar(
+      appData({ cadeiras: [doPeriodo("p", "2026-08-03")], rotinas: [{ id: "a", periodoId: "p" }] }),
+    );
+    expect(() => migrar(entrada)).not.toThrow();
+    expect(migrar({ periodos: [] }).rotinas).toBeUndefined();
+    expect(migrar(appData({ rotinas: [null, 5] })).rotinas).toEqual([null, 5]);
+  });
+
+  it("ponta a ponta: rotina de período antigo não reaparece fora da vigência", () => {
+    const antes = appData({
+      versao: 5,
+      periodos: [periodo({ id: "velho" }), periodo({ id: "per-x" })],
+      cadeiras: [doPeriodo("velho", "2026-03-01", "2026-07-15")],
+      rotinas: [{ id: "r", periodoId: "velho", nome: "Inglês", cor: "#fff", horarios: [horario({ dia: 4 })] }],
+    });
+    const novo = sanitizarDados(antes);
+    expect(novo.versao).toBe(VERSAO_ATUAL);
+    const nov = projetarEventos({ inicioISO: "2026-11-01", fimISO: "2026-11-30", rotinas: novo.rotinas });
+    expect(
+      Object.values(nov)
+        .flat()
+        .filter((e) => e.tipo === "rotinas"),
+    ).toEqual([]);
+    const jun = projetarEventos({ inicioISO: "2026-06-01", fimISO: "2026-06-30", rotinas: novo.rotinas });
+    expect(
+      Object.values(jun)
+        .flat()
+        .filter((e) => e.tipo === "rotinas").length,
+    ).toBe(4);
+  });
+});

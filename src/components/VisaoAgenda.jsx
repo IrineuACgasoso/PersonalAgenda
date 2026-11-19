@@ -4,6 +4,7 @@ import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+import { horariosNaSemana } from "../utils/rotinas.js";
 
 const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
 
@@ -42,6 +43,9 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
     });
   };
 
+  // Data LOCAL (#13): com toISOString() (UTC), depois das 21h as datas de hoje já apareciam como passadas.
+  const hojeStr = toISO(new Date());
+
   const blocos = [];
   if (filtros.cadeiras) {
     cadeiras.forEach((c) => {
@@ -51,8 +55,9 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
     });
   }
   if (filtros.rotinas) {
+    // Só os horários que valem nesta semana (vigência da rotina, #56).
     rotinas.forEach((r) => {
-      r.horarios.forEach((h) => {
+      horariosNaSemana(r, hojeStr).forEach((h) => {
         blocos.push({ ...h, tipo: "rotina", origemId: r.id, origemNome: r.nome, cor: r.cor });
       });
     });
@@ -62,8 +67,6 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
     .flatMap((c) => c.datas.map((d) => ({ ...d, cadeiraNome: c.nome, cor: c.cor, cadeiraId: c.id })))
     .sort((a, b) => `${a.data}T${a.hora || "00:00"}`.localeCompare(`${b.data}T${b.hora || "00:00"}`));
 
-  // Data LOCAL (#13): com toISOString() (UTC), depois das 21h as datas de hoje já apareciam como passadas.
-  const hojeStr = toISO(new Date());
   const totalHoras = HORA_FIM - HORA_INICIO;
 
   return (
