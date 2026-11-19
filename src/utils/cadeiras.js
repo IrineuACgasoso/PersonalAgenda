@@ -62,16 +62,22 @@ export function proximaAula(cadeira, agora = new Date(), eventosExcluidos = []) 
   return null;
 }
 
+// Avaliação a até 7 dias fica em destaque no resumo.
+export const DIAS_DESTAQUE_AVALIACAO = 7;
+
 /**
- * Próxima avaliação (datas importantes) de hoje em diante, dentro da
- * vigência. Devolve { avaliacao, dias } (dias = 0 hoje, 1 amanhã…) ou null.
+ * Avaliações (datas importantes) de hoje em diante, dentro da vigência,
+ * da mais próxima para a mais distante. Cada item: { avaliacao, dias,
+ * destaque } (dias = 0 hoje, 1 amanhã…; destaque = até 7 dias).
  */
-export function proximaAvaliacao(cadeira, hojeISO) {
-  const futuras = (cadeira?.datas || [])
+export function proximasAvaliacoes(cadeira, hojeISO) {
+  return (cadeira?.datas || [])
     .filter((d) => d && d.data && d.data >= hojeISO && cadeiraEstaAtivaNaData(cadeira, d.data))
-    .sort((a, b) => a.data.localeCompare(b.data) || (a.hora || "").localeCompare(b.hora || ""));
-  if (futuras.length === 0) return null;
-  return { avaliacao: futuras[0], dias: diasEntre(hojeISO, futuras[0].data) };
+    .sort((a, b) => a.data.localeCompare(b.data) || (a.hora || "").localeCompare(b.hora || ""))
+    .map((avaliacao) => {
+      const dias = diasEntre(hojeISO, avaliacao.data);
+      return { avaliacao, dias, destaque: dias <= DIAS_DESTAQUE_AVALIACAO };
+    });
 }
 
 /**
@@ -108,10 +114,7 @@ export function textoProximaAula(prox, hojeISO) {
   return horario.local ? `${quando} · ${horario.local}` : quando;
 }
 
-// Texto da próxima avaliação: "P2 · 27/11 (em 8d)".
-export function textoProximaAvaliacao(prox) {
-  if (!prox) return "";
-  const { avaliacao, dias } = prox;
-  const data = `${avaliacao.data.slice(8, 10)}/${avaliacao.data.slice(5, 7)}`;
-  return `${avaliacao.titulo} · ${data} (${rotuloDias(dias)})`;
+// Quando é a avaliação: "26/11 · em 8d" / "18/11 · hoje".
+export function textoQuandoAvaliacao({ avaliacao, dias }) {
+  return `${avaliacao.data.slice(8, 10)}/${avaliacao.data.slice(5, 7)} · ${rotuloDias(dias)}`;
 }

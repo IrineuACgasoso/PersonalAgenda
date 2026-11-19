@@ -92,7 +92,7 @@ export default function PainelCadeira({ cadeira, eventosExcluidos = [], onFechar
 
         {/* Resumo no cabeçalho (#21): mesma informação do card. */}
         <div className="painel-resumo">
-          <ResumoCadeira cadeira={cadeira} eventosExcluidos={eventosExcluidos} />
+          <ResumoCadeira cadeira={cadeira} eventosExcluidos={eventosExcluidos} maxAvaliacoes={5} />
         </div>
 
         {/* SELETOR DE COR (HEXADECIMAL LIVRE) */}

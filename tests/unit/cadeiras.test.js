@@ -4,11 +4,11 @@ import { describe, it, expect } from "vitest";
 import {
   diasEntre,
   proximaAula,
-  proximaAvaliacao,
+  proximasAvaliacoes,
   progressoVigencia,
   rotuloDias,
   textoProximaAula,
-  textoProximaAvaliacao,
+  textoQuandoAvaliacao,
 } from "../../src/utils/cadeiras.js";
 import { cadeira, horario } from "../fixtures/fabricas.js";
 
@@ -61,23 +61,35 @@ describe("proximaAula", () => {
   });
 });
 
-describe("proximaAvaliacao", () => {
+describe("proximasAvaliacoes", () => {
   const c = cadeira({
     datas: [
       { id: "a", titulo: "P1", data: "2026-10-10" },
       { id: "b", titulo: "P2", data: "2026-11-26" },
       { id: "c", titulo: "Lista", data: "2026-11-18", hora: "23:59" },
+      { id: "d", titulo: "Final", data: "2026-12-10" },
     ],
   });
-  it("a mais próxima de hoje em diante (hoje conta)", () => {
-    expect(proximaAvaliacao(c, HOJE)).toMatchObject({ avaliacao: { titulo: "Lista" }, dias: 0 });
+  it("todas de hoje em diante, da mais próxima para a mais distante", () => {
+    expect(proximasAvaliacoes(c, HOJE).map((x) => [x.avaliacao.titulo, x.dias])).toEqual([
+      ["Lista", 0],
+      ["P2", 8],
+      ["Final", 22],
+    ]);
+  });
+  it("destaque só para as de até 7 dias", () => {
+    const comMeio = { ...c, datas: [...c.datas, { id: "e", titulo: "Seminário", data: "2026-11-25" }] };
+    const destaque = Object.fromEntries(proximasAvaliacoes(comMeio, HOJE).map((x) => [x.avaliacao.titulo, x.destaque]));
+    expect(destaque).toEqual({ Lista: true, Seminário: true, P2: false, Final: false });
   });
   it("ignora as que estão fora da vigência", () => {
-    const comFim = { ...c, dataFim: "2026-11-17" };
-    expect(proximaAvaliacao(comFim, HOJE)).toBeNull();
+    expect(proximasAvaliacoes({ ...c, dataFim: "2026-11-30" }, HOJE).map((x) => x.avaliacao.titulo)).toEqual([
+      "Lista",
+      "P2",
+    ]);
   });
-  it("sem futuras ⇒ null", () => {
-    expect(proximaAvaliacao(cadeira({ datas: [{ id: "x", titulo: "P1", data: "2026-01-01" }] }), HOJE)).toBeNull();
+  it("sem futuras ⇒ lista vazia", () => {
+    expect(proximasAvaliacoes(cadeira({ datas: [{ id: "x", titulo: "P1", data: "2026-01-01" }] }), HOJE)).toEqual([]);
   });
 });
 
@@ -109,9 +121,8 @@ describe("textos do resumo", () => {
     expect(textoProximaAula({ data: "2026-12-02", horario: { ...h, local: "" } }, HOJE)).toBe("02/12 14:00");
     expect(textoProximaAula(null, HOJE)).toBe("");
   });
-  it("textoProximaAvaliacao", () => {
-    expect(textoProximaAvaliacao({ avaliacao: { titulo: "P2", data: "2026-11-26" }, dias: 8 })).toBe(
-      "P2 · 26/11 (em 8d)",
-    );
+  it("textoQuandoAvaliacao", () => {
+    expect(textoQuandoAvaliacao({ avaliacao: { titulo: "P2", data: "2026-11-26" }, dias: 8 })).toBe("26/11 · em 8d");
+    expect(textoQuandoAvaliacao({ avaliacao: { titulo: "L", data: "2026-11-18" }, dias: 0 })).toBe("18/11 · hoje");
   });
 });

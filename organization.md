@@ -170,8 +170,8 @@ UFPE/
     │   │                         ROTINAS_COM_DATA_BASE/dataAoSalvarAfazer/rotinaSemDataBase (#40), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
     │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, vigência da cadeira (#19): vigenciaDaCadeira,
     │   │                         cadeiraEstaAtivaNaData, textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
-    │   ├── cadeiras.js           PURO (#21): diasEntre, proximaAula (vigência + excluídas), proximaAvaliacao, progressoVigencia,
-    │   │                         rotuloDias, textoProximaAula, textoProximaAvaliacao — usados por ui/ResumoCadeira.jsx
+    │   ├── cadeiras.js           PURO (#21): diasEntre, proximaAula (vigência + excluídas), proximasAvaliacoes (destaque ≤7 dias), progressoVigencia,
+    │   │                         rotuloDias, textoProximaAula, textoQuandoAvaliacao — usados por ui/ResumoCadeira.jsx
     │   ├── projecao.js           PURO: projeta eventos de uma janela [inicioISO, fimISO] — avaliações, aulas (vigência),
     │   │                         compromissos, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
     │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto)
@@ -206,7 +206,7 @@ UFPE/
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período), sobre a casca `Modal`
     │       ├── ModalRestaurarNuvem.jsx  Lista de backups da nuvem (data + resumo); confirmação/gravação no App
 │       ├── TelaErroCarga.jsx   Erro da carga inicial (#7): "Tentar de novo" + "Usar sem login" (estilos no fim de painel.css)
-    │       ├── ResumoCadeira.jsx   Próx. aula · próx. avaliação · barra da vigência (card e cabeçalho do drawer, #21)
+    │       ├── ResumoCadeira.jsx   Caixas "Próx. aula"/"Próx. avaliações" (cor da cadeira; vazia = tracejada compacta; até 3 avaliações no card, 5 no drawer, + "+N") · barra da vigência + % (#21)
     │       ├── SeletorCor.jsx      Color picker nativo + campo hex; arrastar só muda a prévia, onChange no `change`/blur/400ms
     │       │                       (`adiarMs={0}` p/ estado local; drawers passam `key` = id do item)
     │       └── SeletorPeriodo.jsx  Título-dropdown: trocar/criar/renomear/excluir período

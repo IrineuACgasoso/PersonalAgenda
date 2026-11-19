@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-11-19 (8) — Ajustes do resumo da cadeira (#21) pedidos pelo usuário
+- **Causa das "caixas cinzas":** a linha vazia usava a classe `vazio`, que colidia com o `.vazio` global do `EstadoVazio` (`base.css`: tracejado + 50px de padding). O usuário gostou do visual, então virou estilo próprio: `.resumo-caixa` / `.resumo-caixa-vazia` (`cadeiras.css`). **Não reutilizar `vazio` como modificador.**
+- Caixa vazia: tracejada, cinza, centrada e **compacta** (padding 5px). Caixa com conteúdo: preenchimento leve na cor da cadeira (`--cor-rgb` inline via `hexParaRgb`).
+- Avaliações: `proximasAvaliacoes` (lista, substitui `proximaAvaliacao`) — card mostra até 3, drawer até 5, o resto vira "+N outras"; título com "…" para não deformar; **≤7 dias em destaque âmbar** (`DIAS_DESTAQUE_AVALIACAO`). `textoProximaAvaliacao` → `textoQuandoAvaliacao` ("26/11 · em 8d").
+- Vigência: `%` concluído ao lado da barra; as datas vão para o lado (descem de linha em card estreito).
+- **Testes:** 224 ✅ (`cadeiras.test.js` reescrito para a lista/destaque). `npm run check` ✅.
+- **Testar no app:** cadeira encerrada → caixas cinzas pequenas; cadeira ativa → caixas na cor dela; cadeira com 4+ avaliações → 3 no card + "+N outras", 5 no drawer; avaliação a ≤7 dias em âmbar; "52%" ao lado da barra.
+
+---
+
 ## 2026-11-19 (7) — Barra de tempo do Desfazer + Fase 4 completa: #19 vigência por cadeira, #20 sem "Duração do período", #21 card e drawer novos
 - **Toast (#18):** barrinha embaixo do toast que esvazia em `duracaoMs` (6s), para saber quanto tempo resta para "Desfazer" (`.toast-progresso` em `modal.css`; duração passada inline pelo `Toast`, mesma do timer).
 - **#19:** `cadeira.dataInicio/dataFim` opcionais. Regra em `utils/calendario.js` (`vigenciaDaCadeira`, `cadeiraEstaAtivaNaData` agora **sem** `periodos`, `erroDeVigencia`, `dataCompleta`, `textoVigencia`, `vigenciaPadraoParaNovaCadeira`). Drawer da cadeira ganhou bloco "Vigência" (De/Até, limpar, erro inline se fim < início; grava a cada data completa — ignora os anos 0002/0020… ao digitar no desktop). Calendário geral: `projetarMarcosVigencia` → bandeirinha (Flag/FlagOff na cor da cadeira) na célula + linha "Início/Fim de X" no topo do dia; seguem o filtro **Aulas**; não são eventos (sem check/lixeira/ponto). `useEventosCalendario` agora devolve `{ eventosPorDia, marcosVigencia }`. Card da cadeira mostra a vigência. `criarCadeira` herda a vigência da última cadeira do período com datas (mantém o comportamento de antes do #20). `sanitizarCadeira` só deixa passar `YYYY-MM-DD`. `.calendario-celula` ganhou `position: relative` (o `zIndex` inline da célula selecionada passou a valer).
