@@ -1,8 +1,8 @@
 // Decisões do persist(): src/utils/persistencia.js (usePersistedData.js usa).
-// #6 (updater funcional sem race) e #39 (status só "sincronizado" com o
-// servidor confirmando).
+// #6 (updater funcional sem race), #39 (status só "sincronizado" com o
+// servidor confirmando), #54 (gravações despachadas na hora, sem fila).
 import { describe, it, expect } from "vitest";
-import { resolverGravacao, statusDoSnapshot } from "../../src/utils/persistencia.js";
+import { resolverGravacao, statusDoSnapshot, criarDespachante } from "../../src/utils/persistencia.js";
 import { sanitizarDados } from "../../src/utils/sanitizarDados.js";
 import { VERSAO_ATUAL } from "../../src/utils/migracoes.js";
 import { appData, cadeira, horario, afazer } from "../fixtures/fabricas.js";
@@ -101,5 +101,66 @@ describe("statusDoSnapshot (#39)", () => {
       status: "offline",
       sincronizado: false,
     });
+  });
+});
+
+describe("criarDespachante (#54)", () => {
+  // Simula o setDoc offline: só resolve quando "o servidor confirma".
+  function gravacaoPendente() {
+    let resolver, rejeitar;
+    const promessa = new Promise((res, rej) => {
+      resolver = res;
+      rejeitar = rej;
+    });
+    return { gravar: () => promessa, resolver, rejeitar };
+  }
+
+  it("dispara cada gravação na hora, mesmo com a anterior pendente (offline)", () => {
+    const d = criarDespachante();
+    const chamadas = [];
+    d.enviar(() => { chamadas.push(1); return new Promise(() => {}); }); // nunca confirma
+    d.enviar(() => { chamadas.push(2); return new Promise(() => {}); });
+    d.enviar(() => { chamadas.push(3); return new Promise(() => {}); });
+    // Antes do #54, só a 1ª chegava ao Firestore; as outras ficavam na memória.
+    expect(chamadas).toEqual([1, 2, 3]);
+    expect(d.pendentes).toBe(3);
+  });
+
+  it("conta pendentes até cada gravação terminar (sucesso ou erro)", async () => {
+    const d = criarDespachante();
+    const a = gravacaoPendente();
+    const b = gravacaoPendente();
+    const pa = d.enviar(a.gravar);
+    const pb = d.enviar(b.gravar);
+    expect(d.pendentes).toBe(2);
+    a.resolver();
+    await pa;
+    expect(d.pendentes).toBe(1);
+    b.rejeitar(new Error("permission-denied"));
+    await pb;
+    expect(d.pendentes).toBe(0);
+  });
+
+  it("só a gravação mais recente é marcada como `ultima`", async () => {
+    const d = criarDespachante();
+    const r1 = d.enviar(() => Promise.resolve());
+    const r2 = d.enviar(() => Promise.resolve());
+    expect(await r1).toMatchObject({ ok: true, ultima: false });
+    expect(await r2).toMatchObject({ ok: true, ultima: true });
+  });
+
+  it("nunca rejeita: erro (inclusive síncrono, ex. localStorage cheio) vira ok=false", async () => {
+    const d = criarDespachante();
+    const erro = new Error("QuotaExceededError");
+    const r1 = await d.enviar(() => { throw erro; });
+    expect(r1).toEqual({ ok: false, erro, ultima: true });
+    const r2 = await d.enviar(() => Promise.reject(erro));
+    expect(r2).toEqual({ ok: false, erro, ultima: true });
+    expect(d.pendentes).toBe(0);
+  });
+
+  it("gravação síncrona (deslogado, localStorage) também conta como ok", async () => {
+    const d = criarDespachante();
+    expect(await d.enviar(() => undefined)).toEqual({ ok: true, erro: null, ultima: true });
   });
 });

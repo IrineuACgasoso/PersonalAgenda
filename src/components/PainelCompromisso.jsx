@@ -58,7 +58,7 @@ export default function PainelCompromisso({
         </div>
 
         <div style={{ marginTop: 10 }}>
-          <SeletorCor valor={compromisso.cor} onChange={(cor) => onAtualizar({ cor })} />
+          <SeletorCor key={compromisso.id} valor={compromisso.cor} onChange={(cor) => onAtualizar({ cor })} />
         </div>
 
         <div style={{ marginTop: 14 }}>

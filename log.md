@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-11-19 (3) — #54 gravações offline sem fila + #41 seletor de cor
+- **Commit** do trabalho da sessão (2) (`e3cb26b`), que estava pendente.
+- **#54:** a fila serializada do `persist()` saiu. `criarDespachante()` (`utils/persistencia.js`) chama `setDoc` **na hora**; cada edição entra logo na fila persistente do Firestore (IndexedDB, sobrevive a fechar o app offline) e o SDK garante a ordem das escritas. A promise só serve para o status (`ultima` = só a mais recente muda a bolinha) e para `pendentes` (o `onSnapshot` segue ignorado enquanto > 0). Erro síncrono (localStorage cheio, deslogado) vira `ok=false` em vez de exceção.
+- **#41:** `SeletorCor` mantém a prévia local enquanto arrasta; `onChange` só sai no `change` nativo (fechar o seletor), no blur do swatch, ao desmontar ou 400ms parado, sem regravar o mesmo valor (`utils/confirmacaoAdiada.js`). O campo hex continua gravando na hora. Drawers passam `key={id}` (trocar de item confirma a cor pendente no item anterior); o formulário de afazer usa `adiarMs={0}` (é só estado local).
+- **Testes:** +5 em `persistencia.test.js` (despacho imediato com anterior pendente = regressão do #54), +6 em `confirmacaoAdiada.test.js`. Total 110 (108 ✅ + 2 `it.fails` conhecidos). `npm run check` ✅.
+- **Docs:** `todo.md`, `organization.md`, `tests/README.md`.
+- **➡ Próximo passo recomendado:** **#43** (`undefined` no estado trava todas as gravações: `ignoreUndefinedProperties` + `sanitizarDados` removendo `undefined`), depois **#7** (loop de reload offline).
+- **Testar no app:** (1) no drawer de uma cadeira, arrastar na roda de cores e soltar → a bolinha de status deve ir para "salvando" só uma vez; (2) offline (DevTools → Network → Offline), fazer 2–3 edições, recarregar a página ainda offline → as edições devem continuar lá; voltar a rede → "sincronizado".
+
+---
+
 ## 2026-11-19 (2) — #6 persist(updater) + #39 status de sync
 - **Feito:** `persist()` aceita updater `(d) => novo` que lê um `dataRef` (estado mais recente, atualizado de forma síncrona em todo `setData`) — duas ações no mesmo tick não se sobrescrevem mais. Todas as ações do `App.jsx` migradas para a forma de updater. Lógica pura nova em `src/utils/persistencia.js`: `resolverGravacao` (versão futura, sanitiza, trava `pareceVazio`, `"sem-mudanca"` quando o updater devolve o próprio estado) e `statusDoSnapshot`. `persist()` agora devolve `{ ok, motivo }` na hora (pronto pro #44); "Restaurar da nuvem" usa isso para não anunciar sucesso falso.
 - **#39:** snapshot só marca `saved`/`marcarSincronizado()` com `!fromCache && !hasPendingWrites` (escrita pendente → `saving`/`offline`); o `setDoc` resolvido também marca sincronizado. `pendentesRef`: enquanto há `persist()` na fila, o `onSnapshot` é ignorado (antes a confirmação do 1º write fazia a tela voltar ao estado anterior até o 2º sair da fila).

@@ -129,7 +129,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
       />
 
       <div style={{ marginTop: 12, marginBottom: 12 }}>
-        <SeletorCor valor={cor} onChange={setCor} label="Cor de identificação:" />
+        <SeletorCor valor={cor} onChange={setCor} adiarMs={0} label="Cor de identificação:" />
       </div>
 
       <label className="checkbox-linha">

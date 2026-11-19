@@ -82,7 +82,7 @@ export default function PainelCadeira({
 
         {/* SELETOR DE COR (HEXADECIMAL LIVRE) */}
         <div style={{ marginTop: 10 }}>
-          <SeletorCor valor={cadeira.cor} onChange={(cor) => onAtualizar({ cor })} />
+          <SeletorCor key={cadeira.id} valor={cadeira.cor} onChange={(cor) => onAtualizar({ cor })} />
         </div>
 
         <div className="painel-tabs">

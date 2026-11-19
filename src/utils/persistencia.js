@@ -53,3 +53,51 @@ export function statusDoSnapshot(metadata, online) {
   if (metadata.hasPendingWrites) return { status: online ? "saving" : "offline", sincronizado: false };
   return { status: "saved", sincronizado: true };
 }
+
+/**
+ * Despachante das gravações do persist() (#54).
+ *
+ * Cada `enviar(gravar)` chama `gravar()` NA HORA — não espera a gravação
+ * anterior terminar. Antes havia uma fila que só mandava o próximo `setDoc`
+ * depois do anterior resolver; offline, o `setDoc` só resolve quando o
+ * servidor confirma, então da 2ª edição em diante tudo ficava preso na
+ * memória e era perdido se o app fechasse sem rede. Chamando na hora, cada
+ * escrita entra logo na fila persistente do próprio Firestore (IndexedDB),
+ * que sobrevive a reload e já garante a ordem: as escritas de um cliente são
+ * aplicadas no servidor na mesma ordem em que foram feitas.
+ *
+ * A promise de cada envio serve só para status/contagem:
+ *  - `pendentes`: quantos envios ainda não terminaram (o onSnapshot é
+ *    ignorado enquanto > 0 — o estado local está à frente do snapshot);
+ *  - `ultima`: true só para o envio mais recente — só ele decide o status
+ *    mostrado na tela, para uma resposta antiga não sobrescrever a nova.
+ *
+ * Nunca rejeita: devolve `{ ok, erro, ultima }`.
+ */
+export function criarDespachante() {
+  let versao = 0;
+  let pendentes = 0;
+  return {
+    get pendentes() {
+      return pendentes;
+    },
+    enviar(gravar) {
+      const minha = ++versao;
+      pendentes += 1;
+      let promessa;
+      try {
+        promessa = Promise.resolve(gravar());
+      } catch (erro) {
+        // ex: localStorage cheio (deslogado) lança de forma síncrona
+        promessa = Promise.reject(erro);
+      }
+      return promessa.then(
+        () => ({ ok: true, erro: null }),
+        (erro) => ({ ok: false, erro })
+      ).then((r) => {
+        pendentes -= 1;
+        return { ...r, ultima: minha === versao };
+      });
+    },
+  };
+}

@@ -6,7 +6,7 @@ import { db, auth, loginComGoogle, fazerLogout, EMAIL_PERMITIDO } from "../fireb
 import { STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY } from "../constants";
 import { DADOS_PADRAO, sanitizarDados } from "../utils/sanitizarDados";
 import { ehVersaoFutura } from "../utils/migracoes";
-import { resolverGravacao, statusDoSnapshot } from "../utils/persistencia";
+import { resolverGravacao, statusDoSnapshot, criarDespachante } from "../utils/persistencia";
 
 // Tempo máximo de espera pela confirmação do servidor na checagem inicial.
 // Numa rede instável (ex: wifi caindo bem nessa hora) a chamada pode nunca
@@ -75,19 +75,15 @@ export default function usePersistedData() {
   // Trava dupla contra escrita prematura / sobre dados ainda não confirmados.
   const carregadoRef = useRef(false);
 
-  // Fila de escrita: garante que os `setDoc` cheguem ao Firestore na MESMA
-  // ordem em que foram chamados. Sem isso, duas chamadas de persist() em
-  // sequência rápida podem ter suas respostas de rede fora de ordem e a
-  // mais antiga "vence" por último, apagando a alteração mais nova.
-  const filaRef = useRef(Promise.resolve());
-  // Só o resultado da chamada mais recente deve atualizar o status na tela.
-  const versaoRef = useRef(0);
-  // Quantos persist() ainda não foram confirmados. Enquanto houver algum, o
-  // estado local está À FRENTE do que o onSnapshot entrega (a fila só manda
-  // o próximo setDoc depois do anterior confirmar), então aplicar o snapshot
-  // faria a tela "voltar no tempo" e o próximo updater partiria do estado
-  // velho — perdendo a edição que ainda está na fila.
-  const pendentesRef = useRef(0);
+  // Despacha cada gravação NA HORA (#54) e conta as que ainda não foram
+  // confirmadas (`pendentes`) — ver criarDespachante em utils/persistencia.js.
+  // A ordem das escritas é garantida pelo próprio SDK do Firestore.
+  // Enquanto houver pendentes, o estado local está À FRENTE do servidor e o
+  // onSnapshot é ignorado: um snapshot intermediário (confirmação do 1º
+  // write com o 2º ainda pendente) faria a tela "voltar no tempo" e o
+  // próximo updater partiria do estado velho.
+  const despachanteRef = useRef(null);
+  if (!despachanteRef.current) despachanteRef.current = criarDespachante();
 
   // 1. Escuta Autenticação
   useEffect(() => {
@@ -195,7 +191,7 @@ export default function usePersistedData() {
       { includeMetadataChanges: true },
       (docSnap) => {
         if (!carregadoRef.current) return; // ainda na checagem inicial acima
-        if (pendentesRef.current > 0) return; // persist() na fila: local está à frente (ver pendentesRef)
+        if (despachanteRef.current.pendentes > 0) return; // persist() pendente: local está à frente (ver despachanteRef)
         if (docSnap.exists()) {
           setData(sanitizarDados(docSnap.data()));
           // #39: escrita local gera snapshot com fromCache=false mas
@@ -217,7 +213,7 @@ export default function usePersistedData() {
     };
   }, [user]);
 
-  // 3. Persistência segura, serializada e sem race conditions.
+  // 3. Persistência segura e sem race conditions (updater + despacho imediato, #6/#54).
   //
   // Uso preferido: persist((atual) => ({ ...atual, campo })) — o updater
   // recebe sempre o estado mais recente (dataRef), não o do closure de quem
@@ -249,40 +245,29 @@ export default function usePersistedData() {
     setData(dataSanitizada);
     setStatus(navigator.onLine ? "saving" : "offline");
 
-    const minhaVersao = ++versaoRef.current;
-    pendentesRef.current += 1;
-
-    // Encadeia a escrita na fila em vez de disparar em paralelo. Isso é o
-    // que garante ORDEM: a próxima escrita só começa depois que a anterior
-    // terminou (com sucesso ou erro), então a resposta de rede não pode
-    // chegar fora de ordem e sobrescrever um dado mais novo com um antigo.
-    //
-    // Offline, `setDoc` grava no cache local (IndexedDB) e só resolve de
-    // verdade quando o Firestore consegue confirmar com o servidor — então
-    // esta fila também segura writes offline sem travar a UI (o `await`
-    // aqui dentro é só pra manter a ordem da fila, não trava quem chamou
-    // persist(), que não fica esperando isso).
-    filaRef.current = filaRef.current.then(async () => {
-      try {
-        if (user) {
-          const userDocRef = doc(db, "users", user.uid);
-          await setDoc(userDocRef, dataSanitizada);
-        } else {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(dataSanitizada));
-        }
-        // Só atualiza o status se ninguém mais recente já respondeu.
-        if (minhaVersao === versaoRef.current) {
+    // Dispara o setDoc AGORA, sem esperar o anterior (#54). O setDoc grava
+    // na hora no cache persistente do Firestore (IndexedDB) — offline, a
+    // edição já sobrevive a fechar o app — e o SDK envia as escritas ao
+    // servidor na ordem em que foram feitas. A promise só resolve quando o
+    // servidor confirma; ela serve apenas para o status, ninguém a espera.
+    despachanteRef.current
+      .enviar(() =>
+        user
+          ? setDoc(doc(db, "users", user.uid), dataSanitizada)
+          : localStorage.setItem(STORAGE_KEY, JSON.stringify(dataSanitizada))
+      )
+      .then(({ ok, erro, ultima }) => {
+        if (!ok) console.error("Erro ao salvar dados:", erro);
+        // Só a gravação mais recente decide o status na tela.
+        if (!ultima) return;
+        if (ok) {
           setStatus(navigator.onLine ? "saved" : "offline");
           // setDoc só resolve depois que o servidor confirma (#39).
           if (user) marcarSincronizado();
+        } else {
+          setStatus(navigator.onLine ? "error" : "offline");
         }
-      } catch (err) {
-        console.error("Erro ao salvar dados:", err);
-        if (minhaVersao === versaoRef.current) setStatus(navigator.onLine ? "error" : "offline");
-      } finally {
-        pendentesRef.current -= 1;
-      }
-    });
+      });
 
     return { ok: true, motivo: null };
   };

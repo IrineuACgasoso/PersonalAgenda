@@ -28,6 +28,7 @@
 | Grade semanal 06h–23h | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css` |
 | Menu lateral, backup, login, indicador de status | `src/components/Sidebar.jsx` + `src/styles/sidebar.css` |
 | Backup na nuvem (snapshots a cada 3h) | `src/hooks/useCloudBackup.js` |
+| Seletor de cor (prévia local, grava ao soltar/fechar) | `src/components/ui/SeletorCor.jsx` + `src/utils/confirmacaoAdiada.js` |
 | Exportar/importar `.json`, restaurar da nuvem | `src/App.jsx` → `exportarBackup` ~260, `importarBackup` ~275, `restaurarBackupNuvem` ~306 |
 | Navegação por Enter em formulários | `src/hooks/useNavegacaoEnter.js` |
 | Constantes (cores, dias, rotinas, urgência, chaves de storage) | `src/constants.js` |
@@ -93,7 +94,8 @@ UFPE/
 │       ├── afazeres.test.js       Recorrência (todos os tipos, limite, exceções de drag)
 │       ├── calendario.test.js     Grade do mês, intervalo, vigência, hexParaRgb, formatarData
 │       ├── sanitizarDados.test.js Preservação de campos, retrocompat, pareceVazio
-│       ├── persistencia.test.js   resolverGravacao (updater sem race #6, travas) e statusDoSnapshot (#39)
+│       ├── persistencia.test.js   resolverGravacao (updater sem race #6, travas), statusDoSnapshot (#39), criarDespachante (#54)
+│       ├── confirmacaoAdiada.test.js  Seletor de cor: 1 gravação por arrasto, dedupe, confirmar/cancelar (#41)
 │       ├── migracoes.test.js      Registro de migrações completo, v0→atual, não muta, versão futura intocada
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação
 │       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
@@ -135,7 +137,9 @@ UFPE/
     │   │                         (horarios/links/datas) e compromisso (horarios) sempre arrays de objetos),
     │   │                         pareceVazio() (trava anti-sobrescrita)
     │   ├── persistencia.js       resolverGravacao(atual, entrada) → { ok, motivo, dados } (versão futura,
-    │   │                         sanitiza, trava pareceVazio, "sem-mudanca"); statusDoSnapshot(metadata, online)
+    │   │                         sanitiza, trava pareceVazio, "sem-mudanca"); statusDoSnapshot(metadata, online);
+    │   │                         criarDespachante() → { enviar(gravar), pendentes } (setDoc na hora, sem fila — #54)
+    │   ├── confirmacaoAdiada.js  criarConfirmacaoAdiada(aoConfirmar, ms) → mudar/confirmar/cancelar/sincronizar (#41)
     │   ├── migracoes.js          VERSAO_ATUAL, MIGRACOES{n: fn pura}, versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, ocorrenciasNoIntervalo(afazer, ini, fim) → [{data, dataOriginal}],
     │   │                         gerarOcorrenciasComData (interno), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
@@ -169,7 +173,8 @@ UFPE/
     │       ├── CarregandoPainel.jsx Tela de loading (capacete + órbitas CSS)
     │       ├── EstadoVazio.jsx     Mensagem de vazio + botão opcional
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período)
-    │       ├── SeletorCor.jsx      Color picker nativo + campo hex
+    │       ├── SeletorCor.jsx      Color picker nativo + campo hex; arrastar só muda a prévia, onChange no `change`/blur/400ms
+    │       │                       (`adiarMs={0}` p/ estado local; drawers passam `key` = id do item)
     │       └── SeletorPeriodo.jsx  Título-dropdown: trocar/criar/renomear/excluir período
     └── styles/
         ├── app.css             Só @imports (ordem importa; mobile.css por último)
