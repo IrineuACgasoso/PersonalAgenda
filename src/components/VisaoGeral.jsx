@@ -128,7 +128,8 @@ export default function VisaoGeral({
     if (ev.tipo === "afazeres") {
       // Se for um afazer rotineiro, checa se a data desta ocorrência específica está marcada
       if (ev.rotina && ev.rotina.tipo !== "nenhuma") {
-        return Array.isArray(ev.datasConcluidas) && ev.datasConcluidas.includes(ev.data);
+        // Pela data natural da ocorrência (#14), a mesma usada no drag.
+        return Array.isArray(ev.datasConcluidas) && ev.datasConcluidas.includes(ev.dataOriginal ?? ev.data);
       }
       return !!ev.feito;
     }
@@ -139,7 +140,7 @@ export default function VisaoGeral({
     if (ev.tipo === "afazeres") {
       if (onAlternarFeitoAfazer) {
         // Passa a data específica da ocorrência para alterar apenas aquele dia
-        onAlternarFeitoAfazer(ev.id, ev.data);
+        onAlternarFeitoAfazer(ev.id, ev.dataOriginal ?? ev.data);
       }
     } else if (onAlternarEventoConcluido) {
       onAlternarEventoConcluido(ev.chave);

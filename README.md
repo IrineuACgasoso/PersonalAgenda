@@ -89,10 +89,9 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 ### ☁️ Sincronização e backup
 - **Sem login:** dados salvos em `localStorage`.
 - **Com login Google:** sincronização em tempo real entre dispositivos via Firestore, com indicador de status (salvo, salvando, offline, erro) e horário da última sincronização.
-- **Backups em 3 camadas:**
-  - Exportar/importar `.json` manual.
-  - Backup automático diário (download `.json` + histórico local dos últimos 10).
+- **Backups em 2 camadas:**
   - Snapshots na nuvem a cada 3h (últimos 10), com restauração pela Sidebar.
+  - Exportar/importar `.json` manual.
 
 <p align="center">
   <img src="docs/screenshots/sidebar.jpeg" alt="Sidebar" width="300" />
@@ -246,7 +245,6 @@ src/
 │   ├── usePersistedData.js  # Persistência híbrida (local / Firestore), fila de escrita, offline
 │   ├── useEventosCalendario.js  # Projeção de aulas, avaliações, compromissos e afazeres por mês
 │   ├── useFiltrosCalendario.js  # Filtros do calendário (persistidos)
-│   ├── useAutoBackup.js     # Backup diário (.json + histórico local)
 │   ├── useCloudBackup.js    # Snapshots no Firestore a cada 3h
 │   └── useNavegacaoEnter.js # Navegação por Enter em formulários
 ├── utils/

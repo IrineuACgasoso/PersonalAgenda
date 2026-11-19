@@ -117,10 +117,15 @@ function gerarOcorrenciasComData(afazer, tipo, inicioBase, inicioRange, fimRange
     ? Number(afazer.rotina.totalRepeticoes)
     : null;
 
+  // Mensal (#12): a n-ésima ocorrência é calculada a partir da data-base, e
+  // não do cursor anterior, limitada ao último dia do mês. Antes,
+  // `new Date(ano, mes + 1, 31)` transbordava (31/jan → 03/mar → 01/mai) e o
+  // erro se acumulava. Agora: 31/jan → 28/fev → 31/mar → 30/abr.
+  let mesesAvancados = 0;
   const avancarData = (date) => {
     if (tipo === "mensal") {
-      const diaFixo = inicioBase.getDate();
-      return new Date(date.getFullYear(), date.getMonth() + 1, diaFixo);
+      mesesAvancados += 1;
+      return mesmoDiaMesesDepois(inicioBase, mesesAvancados);
     }
     let passoDias = 1;
     if (tipo === "diaria") passoDias = 1;
@@ -160,6 +165,59 @@ function gerarOcorrenciasComData(afazer, tipo, inicioBase, inicioRange, fimRange
     cursor = avancarData(cursor);
     guarda++;
   }
+}
+
+export function ehRotina(afazer) {
+  return !!afazer?.rotina?.tipo && afazer.rotina.tipo !== "nenhuma";
+}
+
+// "Concluído" como um todo (aba Afazeres, "Apagar concluídos"): só afazeres
+// comuns. Rotina nunca é concluída inteira — a conclusão é por ocorrência,
+// em `datasConcluidas` (#11). Antes, o check da aba marcava `feito` na
+// rotina e "Apagar concluídos" apagava a rotina toda. Um `feito: true`
+// antigo numa rotina passa a ser ignorado.
+export function afazerConcluido(afazer) {
+  return !ehRotina(afazer) && !!afazer?.feito;
+}
+
+// Ocorrência a que o check da aba Afazeres se refere numa rotina (#11): a de
+// hoje, se houver; senão, a próxima (procura até ~2 anos à frente). Devolve
+// { data, dataOriginal, concluida } ou null (rotina sem ocorrências futuras).
+// A conclusão é guardada pela `dataOriginal` (#14), igual ao calendário.
+export function ocorrenciaAtual(afazer, hojeISO, diasAFrente = 731) {
+  const fim = parseISO(hojeISO);
+  fim.setDate(fim.getDate() + diasAFrente);
+  const [primeira] = ocorrenciasNoIntervalo(afazer, hojeISO, toISO(fim));
+  if (!primeira) return null;
+  const concluidas = Array.isArray(afazer.datasConcluidas) ? afazer.datasConcluidas : [];
+  return { ...primeira, concluida: concluidas.includes(primeira.dataOriginal) };
+}
+
+// Rotinas que só existem a partir de uma data-base (ocorrenciasNoIntervalo
+// devolve [] sem ela). "Dias específicos" funciona sem data.
+export const ROTINAS_COM_DATA_BASE = ["diaria", "semanal", "quinzenal", "mensal", "personalizada"];
+
+// Data gravada ao salvar o formulário de afazer (#40). Uma rotina dessas
+// salva SEM "Definir dia/hora" nunca aparecia no calendário (nem na
+// projeção de "sem data", que exclui rotinas); agora ela começa hoje.
+export function dataAoSalvarAfazer({ rotinaTipo, temData, data }, hojeISO) {
+  if (temData && data) return data;
+  return ROTINAS_COM_DATA_BASE.includes(rotinaTipo) ? hojeISO : "";
+}
+
+// Rotina antiga gravada sem data-base (antes do #40): a lista avisa para
+// editar e salvar de novo.
+export function rotinaSemDataBase(afazer) {
+  return ROTINAS_COM_DATA_BASE.includes(afazer?.rotina?.tipo) && !afazer.data;
+}
+
+// Mesmo dia do mês `meses` meses depois de `base`; se o mês de destino for
+// mais curto, cai no último dia dele (dia 31 → 30/abr, 28 ou 29/fev).
+export function mesmoDiaMesesDepois(base, meses) {
+  const ano = base.getFullYear();
+  const mes = base.getMonth() + meses;
+  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+  return new Date(ano, mes, Math.min(base.getDate(), ultimoDia));
 }
 
 export function primeiroDiaDoMes(ano, mes) {

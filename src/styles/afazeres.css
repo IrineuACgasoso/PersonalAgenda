@@ -142,6 +142,17 @@
   border-color: #10b981;
 }
 
+/* Rotina sem ocorrências (ex: terminou o limite de repetições) */
+.check-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Rotina antiga sem data de início (#40) */
+.afazer-aviso {
+  color: #f87171;
+}
+
 .afazer-meta {
   display: flex;
   flex-wrap: wrap;

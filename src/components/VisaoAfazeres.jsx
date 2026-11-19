@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Check, Trash, Repeat, Clock, Edit2, X } from "lucide-react";
 import { ROTINA_OPCOES, URGENCIA_CORES, DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
+import { toISO, ehRotina, afazerConcluido, ocorrenciaAtual, dataAoSalvarAfazer, rotinaSemDataBase } from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import BarraUrgencia from "./ui/BarraUrgencia.jsx";
@@ -34,7 +35,7 @@ function rotinaLabel(rotina) {
   return labelBase;
 }
 
-function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNovaData }) {
+function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNovaData, onGatilhoConsumido }) {
   const [nome, setNome] = useState("");
   const [temData, setTemData] = useState(false);
   const [data, setData] = useState("");
@@ -73,6 +74,10 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
     setTemData(true);
     setData(gatilhoNovaData.data);
     nomeRef.current?.focus();
+    // Consumido: o App limpa o gatilho (#42). Antes ele ficava guardado e
+    // TODA visita seguinte à aba Afazeres reabria o formulário com aquela
+    // data antiga (o efeito roda de novo a cada montagem).
+    onGatilhoConsumido?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gatilhoNovaData?.ts]);
 
@@ -100,7 +105,8 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
 
     onSalvar({
       nome: n,
-      data: temData ? data : "",
+      // Rotina diária/semanal/... sem data marcada começa hoje (#40).
+      data: dataAoSalvarAfazer({ rotinaTipo, temData, data }, toISO(new Date())),
       hora: temData ? hora : "",
       rotina: {
         tipo: rotinaTipo,
@@ -238,6 +244,7 @@ export default function VisaoAfazeres({
   onExcluir,
   onLimparConcluidos,
   gatilhoNovaData,
+  onGatilhoConsumido,
 }) {
   const [itemEmEdicao, setItemEmEdicao] = useState(null);
 
@@ -255,8 +262,11 @@ export default function VisaoAfazeres({
     }
   };
 
-  const pendentes = afazeres.filter((a) => !a.feito);
-  const concluidos = afazeres.filter((a) => a.feito);
+  // Rotinas ficam sempre entre os pendentes: o check delas conclui só a
+  // ocorrência de hoje/próxima (#11), nunca a rotina inteira.
+  const pendentes = afazeres.filter((a) => !afazerConcluido(a));
+  const concluidos = afazeres.filter(afazerConcluido);
+  const hoje = toISO(new Date());
 
   const pendentesOrdenados = [...pendentes].sort((a, b) => {
     if (a.data && b.data) return `${a.data}T${a.hora || "00:00"}`.localeCompare(`${b.data}T${b.hora || "00:00"}`);
@@ -292,6 +302,7 @@ export default function VisaoAfazeres({
         itemEmEdicao={itemEmEdicao}
         onCancelarEdicao={() => setItemEmEdicao(null)}
         gatilhoNovaData={gatilhoNovaData}
+        onGatilhoConsumido={onGatilhoConsumido}
       />
 
       {ordenados.length === 0 ? (
@@ -300,18 +311,34 @@ export default function VisaoAfazeres({
         <div className="lista-itens lista-afazeres" style={{ marginTop: 20 }}>
           {ordenados.map((a) => {
             const corAfazer = a.cor || "#8b5cf6";
+            const rotina = ehRotina(a);
+            const ocorrencia = rotina ? ocorrenciaAtual(a, hoje) : null;
+            const marcado = rotina ? !!ocorrencia?.concluida : !!a.feito;
+            const quandoOcorrencia = ocorrencia
+              ? ocorrencia.data === hoje
+                ? "hoje"
+                : formatarData(ocorrencia.data).slice(0, 5)
+              : null;
             return (
               <div
                 key={a.id}
-                className={`item-afazer${a.feito ? " feito" : ""}`}
+                className={`item-afazer${afazerConcluido(a) ? " feito" : ""}`}
                 style={{ borderLeft: `4px solid ${corAfazer}`, paddingLeft: 12 }}
               >
                 <button
-                  className={`check-btn${a.feito ? " marcado" : ""}`}
-                  onClick={() => onAlternarFeito(a.id)}
-                  style={{ borderColor: a.feito ? "transparent" : corAfazer }}
+                  className={`check-btn${marcado ? " marcado" : ""}`}
+                  onClick={() => (rotina ? onAlternarFeito(a.id, ocorrencia.dataOriginal) : onAlternarFeito(a.id))}
+                  disabled={rotina && !ocorrencia}
+                  title={
+                    rotina
+                      ? ocorrencia
+                        ? `Concluir só a ocorrência de ${quandoOcorrencia}`
+                        : "Esta rotina não tem próximas ocorrências"
+                      : undefined
+                  }
+                  style={{ borderColor: marcado ? "transparent" : corAfazer }}
                 >
-                  {a.feito && <Check size={13} />}
+                  {marcado && <Check size={13} />}
                 </button>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -329,6 +356,18 @@ export default function VisaoAfazeres({
                       <span>
                         <Repeat size={11} style={{ verticalAlign: "-1px", margin: "0 3px 0 8px" }} />
                         {rotinaLabel(a.rotina)}
+                      </span>
+                    )}
+                    {rotina && rotinaSemDataBase(a) && (
+                      <span className="afazer-aviso">
+                        {" · sem data de início: edite e salve para aparecer no calendário"}
+                      </span>
+                    )}
+                    {quandoOcorrencia && (
+                      <span>
+                        {" · "}
+                        {ocorrencia.concluida ? "✓ " : ""}
+                        {quandoOcorrencia === "hoje" ? "hoje" : `próx.: ${quandoOcorrencia}`}
                       </span>
                     )}
                   </div>

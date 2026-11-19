@@ -17,6 +17,7 @@ import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
 import TelaErroCarga from "./components/ui/TelaErroCarga.jsx";
 import { useCloudBackup, listarBackupsCloud } from "./hooks/useCloudBackup";
 import { ehVersaoFutura } from "./utils/migracoes";
+import { toISO, ehRotina, afazerConcluido } from "./utils/afazeres";
 import {
   TEMPO_LIMITE_CARREGAMENTO_MS,
   CHAVE_WATCHDOG_RECARREGOU,
@@ -247,8 +248,11 @@ export default function App() {
       afazeres: (d.afazeres || []).map((a) => {
         if (a.id !== id) return a;
 
-        const ehRotina = a.rotina && a.rotina.tipo !== "nenhuma";
-        if (ehRotina && dataOcorrencia) {
+        // Rotina: conclui só a ocorrência (pela data natural, #14). Sem a
+        // data da ocorrência não faz nada — nunca marcar a rotina inteira
+        // como `feito` (#11: "Apagar concluídos" apagava a rotina toda).
+        if (ehRotina(a)) {
+          if (!dataOcorrencia) return a;
           const datasConcluidas = a.datasConcluidas || [];
           const jaConcluido = datasConcluidas.includes(dataOcorrencia);
           const novasDatas = jaConcluido
@@ -324,7 +328,8 @@ export default function App() {
   };
 
   const limparAfazeresConcluidos = () => {
-    const concluidos = afazeres.filter((a) => a.feito);
+    // Rotinas nunca entram aqui (#11), mesmo com um `feito` antigo.
+    const concluidos = afazeres.filter(afazerConcluido);
     if (concluidos.length === 0) return;
     if (
       !window.confirm(
@@ -332,7 +337,7 @@ export default function App() {
       )
     )
       return;
-    persist((d) => ({ ...d, afazeres: (d.afazeres || []).filter((a) => !a.feito) }));
+    persist((d) => ({ ...d, afazeres: (d.afazeres || []).filter((a) => !afazerConcluido(a)) }));
   };
 
   /* ---- backup: exportar / importar ---- */
@@ -342,7 +347,8 @@ export default function App() {
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const hoje = new Date().toISOString().slice(0, 10);
+    // Data LOCAL (#13): toISOString() é UTC e, depois das 21h no Recife, já dava o dia seguinte.
+    const hoje = toISO(new Date());
     a.href = url;
     a.download = `agenda-backup-${hoje}.json`;
     document.body.appendChild(a);
@@ -464,6 +470,7 @@ export default function App() {
             onExcluir={excluirAfazer}
             onLimparConcluidos={limparAfazeresConcluidos}
             gatilhoNovaData={gatilhoNovoAfazer}
+            onGatilhoConsumido={() => setGatilhoNovoAfazer(null)}
           />
         ) : aba === "visaogeral" ? (
             <VisaoGeral

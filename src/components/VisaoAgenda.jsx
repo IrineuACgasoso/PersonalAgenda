@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { BookOpen, CalendarClock } from "lucide-react";
 import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
+import { toISO } from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 
 const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
@@ -56,7 +57,8 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
     .flatMap((c) => c.datas.map((d) => ({ ...d, cadeiraNome: c.nome, cor: c.cor, cadeiraId: c.id })))
     .sort((a, b) => `${a.data}T${a.hora || "00:00"}`.localeCompare(`${b.data}T${b.hora || "00:00"}`));
 
-  const hojeStr = new Date().toISOString().slice(0, 10);
+  // Data LOCAL (#13): com toISOString() (UTC), depois das 21h as datas de hoje já apareciam como passadas.
+  const hojeStr = toISO(new Date());
   const totalHoras = HORA_FIM - HORA_INICIO;
 
   return (

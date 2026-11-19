@@ -13,15 +13,17 @@ npm run check     # testes + build — rodar SEMPRE antes de dar uma tarefa como
 |---|---|
 | `setup.js` | Relógio fixo em **18/11/2026 10:00 (quarta)**, fuso `America/Recife` (definido em `vitest.config.js`) |
 | `fixtures/fabricas.js` | Construtores `periodo/cadeira/horario/compromisso/afazer/appData/backupAntigo` no formato real do `AppData` |
-| `unit/afazeres.test.js` | Recorrência: todos os tipos de rotina, limite de repetições, exceções de drag |
+| `unit/afazeres.test.js` | Recorrência: todos os tipos de rotina, limite de repetições, exceções de drag, mensal no fim do mês (#12), check de rotina por ocorrência (#11), rotina sem data-base (#40) |
 | `unit/calendario.test.js` | Grade do mês, intervalo do mês, vigência, `hexParaRgb`, `formatarData` |
 | `unit/sanitizarDados.test.js` | Proteção contra perda de dados: campos preservados, retrocompatibilidade, `pareceVazio` |
 | `unit/persistencia.test.js` | Decisões do `persist()`: updater sem race (#6), travas, status do snapshot (#39), despacho imediato sem fila (#54) |
 | `unit/backupNuvem.test.js` | Backup na nuvem: intervalo pelo último backup no servidor, nada offline, estado vazio fora da rotação (#8) |
 | `unit/carregamento.test.js` | Tela inicial e watchdog: erro de carga vira tela de erro, no máximo 1 reload por sessão (#7) |
 | `unit/confirmacaoAdiada.test.js` | Seletor de cor: arrastar gera 1 gravação, sem regravar o mesmo valor (#41) |
-| `unit/projecao.test.js` | O que aparece em cada dia do calendário geral (`src/utils/projecao.js`) e a ordenação |
-| `unit/integridade.test.js` | Checagens estáticas: ícones do PWA, ordem do CSS, `@media` só no `mobile.css`, `.env` ignorado, regressões de UI |
+| `unit/projecao.test.js` | O que aparece em cada dia do calendário geral (`src/utils/projecao.js`), a ordenação e as chaves de evento por id (#10) / data natural (#14) |
+| `unit/migracoes.test.js` | Registro de migrações, v0→atual, v1→v2 (chaves por id, #10), v2→v3 (data natural, #14), ponta a ponta com a projeção |
+| `unit/links.test.js` | `normalizarUrl` e `hrefSeguro` (só http(s) vira link, #50) |
+| `unit/integridade.test.js` | Checagens estáticas: ícones do PWA (#15), ordem do CSS, `@media` só no `mobile.css`, `.env` ignorado, regressões de UI (#42, #50, sem `toISOString()` em `src/` #13) |
 
 ## Convenções
 - **`it.fails(...)` = bug conhecido, documentado no `todo.md`.** O teste descreve o comportamento CORRETO e hoje falha. Quando o bug for corrigido o Vitest acusa erro: troque `it.fails` por `it`.

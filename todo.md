@@ -26,16 +26,16 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#43 `undefined` no estado travava todas as gravações** (2026-11-19). `removerUndefined` (profundo) no fim do `sanitizarDados` + `ignoreUndefinedProperties: true` no `initializeFirestore`; a causa concreta (`alternarFeitoAfazer` gravando `concluidoEm: undefined` ao desmarcar) corrigida na origem. +6 testes.
 - [x] **#7 Loop de reload offline** (2026-11-19). Erro de carga sem base local (`erroCarga` no `usePersistedData`) → `TelaErroCarga` com "Tentar de novo" (nova leitura sem reload; automática no evento `online` e a cada 30s) e "Usar sem login" (dados só do aparelho, com aviso). O watchdog do `App` recarrega no máximo 1× por sessão (sessionStorage); na 2ª vez mostra a tela de erro. Decisões puras em `utils/carregamento.js` + 8 testes.
 - [x] **#8 `useCloudBackup` fazia snapshot a cada abertura / um por edição offline** (2026-11-19). O intervalo de 3h agora conta a partir do backup mais recente **no servidor** (`getDocsFromServer`), o timer não é recriado a cada mudança de `data` (lê de um ref), `emAndamento` é marcado antes do 1º `await` (nunca 2 ao mesmo tempo) e offline nem tenta. Estado vazio (`pareceVazio`) não entra na rotação. Decisões puras em `utils/backupNuvem.js` + 12 testes.
-- [ ] **#9 `useAutoBackup` não está ligado** (o README promete backup diário em .json + histórico local). Decidir com o usuário: religar em `App.jsx` ou remover o hook e o trecho do README.
-- [ ] **#10 Chaves de evento por nome em vez de id** (aulas/compromissos por `c.nome`, avaliações por `titulo`). Renomear perde concluídos/excluídos, e nomes iguais colidem. Migrar para `id` com migração das chaves salvas. _Depende de #4._
-- [ ] **#11 Concluir rotina na aba Afazeres marca a rotina inteira como `feito`** → "Apagar concluídos" apaga a rotina toda. Correção mínima agora: na aba, o check de uma rotina conclui só a ocorrência de hoje. A semântica final é definida em #22.
-- [ ] **#12 Rotina mensal em dia 29–31 pula meses** (hoje gera 31/jan → 03/mar → 01/mai). Limitar ao último dia do mês. _Teste `it.fails` já existe em `afazeres.test.js`._
-- [ ] **#40 Rotina sem data some do calendário:** um afazer "Diariamente/Semanalmente/A cada 15 dias/Mensalmente/Intervalo personalizado" criado **sem** marcar "Definir dia/hora" nunca aparece no calendário: `ocorrenciasNoIntervalo` devolve `[]` sem `data` e `projetarAfazeresSemData` exclui rotinas. O formulário aceita sem avisar. Correção: exigir a data-base nesses tipos (ou usar hoje como padrão ao salvar) + decidir o que fazer com os que já existem (ex.: na projeção, tratar como começando hoje). Teste novo em `afazeres.test.js`/`projecao.test.js`. _Logo após #12._
-- [ ] **#13 "Hoje" em UTC na `VisaoAgenda`** (`toISOString()`): depois das 21h os itens de hoje aparecem como passados. Usar `toISO(new Date())`. Mesmo padrão no nome do arquivo de `exportarBackup`. _Review:_ confirmados só esses dois lugares (`VisaoAgenda.jsx` ~59 `hojeStr` e `App.jsx` ~270).
-- [ ] **#14 `datasConcluidas` usa a data já movida** (`ev.data`), enquanto o drag usa `dataOriginal` → mover uma ocorrência concluída perde o check. Padronizar em `dataOriginal`, com migração.
-- [ ] **#15 Ícone maskable inexistente:** `icon-maskable-512.png` é citado em `vite.config.js` e `site.webmanifest`. Apontar para `web-app-manifest-512x512.png` e remover o `site.webmanifest` não usado. _Teste `it.fails` já existe em `integridade.test.js`._
-- [ ] **#42 "Novo afazer nesta data" fica preso:** o `+` do calendário guarda `gatilhoNovoAfazer` no `App` para sempre. Como o efeito do `FormularioAfazer` roda de novo a cada montagem, **toda** visita posterior à aba Afazeres abre o formulário com "Definir dia/hora" marcado e aquela data antiga. Correção: o `App` limpa o gatilho depois de consumido (callback `onGatilhoConsumido`) ou o formulário ignora gatilhos já vistos.
-- [ ] **#50 Links salvos viram `href` sem validar o esquema** (`AbaLinks.jsx` ~214): a digitação passa por `normalizarUrl`, mas um backup `.json` adulterado/importado pode trazer `url: "javascript:..."`, que o React 18 renderiza (só avisa no console) e executa no clique. Risco baixo (app de 1 usuário), mas é cibersegurança: só renderizar `href` se for `http(s):`, senão mostrar como texto.
+- [x] **#9 `useAutoBackup` removido** (2026-11-19). Decisão do usuário: o backup na nuvem já cobre; hook apagado e README atualizado (backup em 2 camadas: nuvem + exportar/importar `.json`).
+- [x] **#10 Chaves de evento por id** (2026-11-19). Aulas `aulas|ISO|idCadeira|idHorario`, compromissos `compromissos|ISO|idComp|idHorario`, avaliações `avaliacoes|idCadeira|idAvaliacao` (sem data: mudar a data da prova mantém o check). Migração **v2** converte as chaves salvas (nome repetido vira uma chave por item; órfãs descartadas).
+- [x] **#11 Check de rotina na aba Afazeres** (2026-11-19). Conclui só a ocorrência de hoje (ou a próxima), mostrada na linha ("hoje" / "próx.: DD/MM"). Rotina nunca entra em "concluídos" nem em "Apagar concluídos" (`afazerConcluido`), mesmo com `feito` antigo. A semântica final continua no #22.
+- [x] **#12 Rotina mensal em dia 29–31** (2026-11-19). `mesmoDiaMesesDepois`: n-ésima ocorrência calculada da data-base, limitada ao último dia do mês.
+- [x] **#40 Rotina sem data sumia do calendário** (2026-11-19). Diária/semanal/quinzenal/mensal/personalizada salva sem data começa hoje (`dataAoSalvarAfazer`). As antigas sem data mostram aviso na lista ("edite e salve"); não foram migradas (a data teria de ser inventada).
+- [x] **#13 "Hoje" em UTC** (2026-11-19). `VisaoAgenda` e nome do arquivo de `exportarBackup` usam `toISO(new Date())`. Teste estático: nenhum `.toISOString()` em `src/`.
+- [x] **#14 Conclusão/exclusão de ocorrência pela data natural** (2026-11-19). `datasConcluidas` e a chave `afazeres|id|data` usam `dataOriginal`. Migração **v3** adiciona a origem de cada ocorrência arrastada (mantendo o destino, para nada mudar na tela).
+- [x] **#15 Ícone maskable** (2026-11-19). `vite.config.js` aponta para `web-app-manifest-512x512.png`; `public/site.webmanifest` (não usado) removido.
+- [x] **#42 "Novo afazer nesta data" preso** (2026-11-19). O formulário chama `onGatilhoConsumido` e o `App` limpa o gatilho.
+- [x] **#50 Links sem validar o esquema** (2026-11-19). `hrefSeguro` (`utils/links.js`): só `http(s)://` vira `href`; o resto aparece sem abrir.
 
 ---
 
@@ -73,7 +73,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ## 🟢 BAIXO
 
 ### Limpeza técnica
-- [ ] **#26** Remover código morto: `utils/data.js`, `primeiroDiaDoMes/ultimoDiaDoMes`, `SIDEBAR_STATE_KEY`, `.calendario-celula.vazia`. _Review (varredura de CSS):_ também sem uso `.loading-text` e `.vidro` (`base.css` ~50/~78) e `.chevron-btn` (`sidebar.css` ~151). O `useAutoBackup` depende da decisão do #9.
+- [ ] **#26** Remover código morto: `utils/data.js`, `primeiroDiaDoMes/ultimoDiaDoMes`, `SIDEBAR_STATE_KEY`, `.calendario-celula.vazia`. _Review (varredura de CSS):_ também sem uso `.loading-text` e `.vidro` (`base.css` ~50/~78) e `.chevron-btn` (`sidebar.css` ~151). (`useAutoBackup` já removido no #9.)
 - [ ] **#27** `.gitignore`: `node_modules` duplicado; `.zip` → `*.zip`.
 - [ ] **#28** `AbaLinks`: tratar o erro de `navigator.clipboard.writeText`.
 - [ ] **#29** `uid()` → `crypto.randomUUID()` (mantendo os ids antigos).
@@ -98,6 +98,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] #9 autobackup removido · #10 chaves por id (migração v2) · #11 check de rotina por ocorrência · #12 mensal no fim do mês · #13 hoje local · #14 data natural (migração v3) · #15 ícone maskable · #40 rotina sem data · #42 gatilho preso · #50 href seguro (2026-11-19).
 - [x] #8 backup na nuvem sem snapshot por abertura/edição offline (2026-11-19).
 - [x] #7 tela de erro no lugar do loop de reload offline (2026-11-19).
 - [x] #43 `undefined` no estado não trava mais as gravações (2026-11-19).

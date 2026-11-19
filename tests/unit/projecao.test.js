@@ -7,7 +7,7 @@ const NOV = { inicioISO: "2026-11-01", fimISO: "2026-11-30", hojeISO: "2026-11-1
 const titulos = (mapa, dia) => (mapa[dia] || []).map((e) => e.titulo);
 
 describe("aulas", () => {
-  const c = cadeira({ id: "c1", periodoId: "p", nome: "IP", horarios: [horario({ dia: 0, inicio: "08:00" })] });
+  const c = cadeira({ id: "c1", periodoId: "p", nome: "IP", horarios: [horario({ id: "h1", dia: 0, inicio: "08:00" })] });
 
   it("aparecem só no dia da semana do horário (segundas de novembro)", () => {
     const m = projetarEventos({ ...NOV, cadeiras: [c], periodos: [periodo({ id: "p" })] });
@@ -23,7 +23,7 @@ describe("aulas", () => {
   });
 
   it("ocorrência excluída some só naquele dia", () => {
-    const m = projetarEventos({ ...NOV, cadeiras: [c], periodos: [], eventosExcluidos: ["aulas|2026-11-09|IP|08:00"] });
+    const m = projetarEventos({ ...NOV, cadeiras: [c], periodos: [], eventosExcluidos: ["aulas|2026-11-09|c1|h1"] });
     expect(titulos(m, "2026-11-09")).toEqual([]);
     expect(titulos(m, "2026-11-16")).toEqual(["IP"]);
   });
@@ -73,10 +73,64 @@ describe("afazeres", () => {
     expect(m["2026-11-11"][0].feito).toBe(true);
     expect(m["2026-11-18"][0].feito).toBe(false);
   });
+  it("ocorrência concluída e depois arrastada continua concluída (#14)", () => {
+    const af = afazer({
+      id: "r1",
+      rotina: { tipo: "dias_especificos", diasSemana: [2] },
+      datasConcluidas: ["2026-11-11"],
+      excecoesData: { "2026-11-11": "2026-11-12" },
+    });
+    const [ev] = projetarEventos({ ...NOV, afazeres: [af] })["2026-11-12"];
+    expect(ev).toMatchObject({ feito: true, dataOriginal: "2026-11-11", chave: "afazeres|r1|2026-11-11" });
+  });
+  it("ocorrência excluída não volta ao ser arrastada: a chave usa a data natural (#14)", () => {
+    const af = afazer({ id: "r1", rotina: { tipo: "dias_especificos", diasSemana: [2] }, excecoesData: { "2026-11-11": "2026-11-12" } });
+    const m = projetarEventos({ ...NOV, afazeres: [af], eventosExcluidos: ["afazeres|r1|2026-11-11"] });
+    expect(m["2026-11-12"]).toBeUndefined();
+    expect(titulos(m, "2026-11-18")).toHaveLength(1);
+  });
   it("chave estável usada para excluir instância", () => {
     const af = afazer({ id: "a1", data: "2026-11-05" });
     const m = projetarEventos({ ...NOV, afazeres: [af], eventosExcluidos: ["afazeres|a1|2026-11-05"] });
     expect(m["2026-11-05"]).toBeUndefined();
+  });
+});
+
+describe("chaves de evento por id (#10)", () => {
+  const chavesDoDia = (m, dia) => (m[dia] || []).map((e) => e.chave);
+
+  it("renomear a cadeira não muda a chave (concluídos/excluídos continuam valendo)", () => {
+    const h = horario({ id: "h1", dia: 0, inicio: "08:00" });
+    const antes = projetarEventos({ ...NOV, cadeiras: [cadeira({ id: "c1", nome: "IP", horarios: [h] })] });
+    const depois = projetarEventos({ ...NOV, cadeiras: [cadeira({ id: "c1", nome: "Introdução à Prog.", horarios: [h] })] });
+    expect(chavesDoDia(depois, "2026-11-09")).toEqual(chavesDoDia(antes, "2026-11-09"));
+  });
+
+  it("duas cadeiras com o mesmo nome e horário não compartilham a chave", () => {
+    const a = cadeira({ id: "ca", nome: "IP", horarios: [horario({ id: "ha", dia: 0, inicio: "08:00" })] });
+    const b = cadeira({ id: "cb", nome: "IP", horarios: [horario({ id: "hb", dia: 0, inicio: "08:00" })] });
+    const m = projetarEventos({ ...NOV, cadeiras: [a, b], eventosExcluidos: ["aulas|2026-11-09|ca|ha"] });
+    expect(chavesDoDia(m, "2026-11-09")).toEqual(["aulas|2026-11-09|cb|hb"]);
+  });
+
+  it("compromissos: chave por id do compromisso e do horário", () => {
+    const comp = compromisso({ id: "k1", nome: "Academia", horarios: [horario({ id: "hk", dia: 4, inicio: "18:00" })] });
+    const m = projetarEventos({ ...NOV, compromissos: [comp] });
+    expect(chavesDoDia(m, "2026-11-06")).toEqual(["compromissos|2026-11-06|k1|hk"]);
+  });
+
+  it("avaliação: mudar data ou título mantém a chave", () => {
+    const prova = { id: "d1", titulo: "Prova 1", data: "2026-11-20", hora: "10:00" };
+    const c1 = cadeira({ id: "c1", datas: [prova] });
+    const c2 = cadeira({ id: "c1", datas: [{ ...prova, titulo: "P1", data: "2026-11-25" }] });
+    expect(chavesDoDia(projetarEventos({ ...NOV, cadeiras: [c1] }), "2026-11-20")).toEqual(["avaliacoes|c1|d1"]);
+    expect(chavesDoDia(projetarEventos({ ...NOV, cadeiras: [c2] }), "2026-11-25")).toEqual(["avaliacoes|c1|d1"]);
+  });
+
+  it("horários sem id (dado antigo) ainda geram chaves distintas", () => {
+    const c = cadeira({ id: "c1", horarios: [{ dia: 0, inicio: "08:00" }, { dia: 0, inicio: "14:00" }] });
+    const chaves = chavesDoDia(projetarEventos({ ...NOV, cadeiras: [c] }), "2026-11-09");
+    expect(new Set(chaves).size).toBe(2);
   });
 });
 

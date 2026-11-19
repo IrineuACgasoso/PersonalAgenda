@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon-192.png", "icon-512.png", "icon-maskable-512.png"],
+      includeAssets: ["icon-192.png", "icon-512.png", "web-app-manifest-512x512.png"],
       manifest: {
         name: "Minha Agenda Pessoal",
         short_name: "Minha Agenda",
@@ -30,7 +30,7 @@ export default defineConfig({
             type: "image/png",
           },
           {
-            src: "icon-maskable-512.png",
+            src: "web-app-manifest-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

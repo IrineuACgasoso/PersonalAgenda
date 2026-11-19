@@ -2,8 +2,7 @@
 import React, { useState } from "react";
 import { Plus, Trash2, Edit2, Link as LinkIcon, ExternalLink, Copy, Check, X, KeyRound } from "lucide-react";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
-
-const normalizarUrl = (u) => (/^https?:\/\//i.test(u) ? u : `https://${u}`);
+import { normalizarUrl, hrefSeguro } from "../../utils/links.js";
 
 export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
   const [tipo, setTipo] = useState("link"); // "link" | "classroom"
@@ -211,7 +210,7 @@ export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
           }
 
           return (
-            <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer" className="link-item">
+            <a key={l.id} href={hrefSeguro(l.url)} target="_blank" rel="noopener noreferrer" className="link-item">
               <LinkIcon size={14} style={{ opacity: 0.6, flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="item-linha-titulo">{l.titulo}</div>

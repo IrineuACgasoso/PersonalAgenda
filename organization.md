@@ -13,7 +13,8 @@
 | Mudança estrutural no schema (renomear/mover dados) | `src/utils/migracoes.js` → `VERSAO_ATUAL` + `MIGRACOES[n]` + teste em `tests/unit/migracoes.test.js` |
 | Regras de segurança do Firestore | `firestore.rules` (deploy: `firebase deploy --only firestore:rules`, feito pelo usuário) |
 | Status "App desatualizado" (dados de versão mais nova) | `usePersistedData.js` (efeito + trava em `persist()`), `Sidebar.jsx` |
-| Lógica de recorrência de afazeres (diária, semanal, dias específicos…) | `src/utils/afazeres.js` → `ocorrenciasNoIntervalo()` ~26, `gerarOcorrenciasComData()` ~115 |
+| Lógica de recorrência de afazeres (diária, semanal, dias específicos…) | `src/utils/afazeres.js` → `ocorrenciasNoIntervalo()` ~26, `gerarOcorrenciasComData()` ~115; check de rotina na aba (`ocorrenciaAtual`) |
+| Formato das chaves de evento (concluído/excluído no calendário) | `src/utils/projecao.js` → `chaveAula/chaveCompromisso/chaveAvaliacao`; mudar formato ⇒ migração |
 | O que aparece em cada dia do calendário geral | `src/utils/projecao.js` (puro): `projetarAvaliacoes/Aulas/Compromissos/Afazeres/AfazeresSemData`, `compararEventosDoDia` (ordenação), `agruparPorDia`, `projetarEventos` (tudo de uma vez). O hook `useEventosCalendario.js` só memoiza |
 | Rodar/escrever testes | `tests/README.md`; dados de exemplo em `tests/fixtures/fabricas.js` |
 | Vigência de cadeira/período no calendário | `src/utils/calendario.js` → `cadeiraEstaAtivaNaData()` ~68 |
@@ -40,7 +41,7 @@
 ## Modelo de dados (`AppData`, um único documento `users/{uid}` ou `localStorage["painel-academico-data"]`)
 
 ```
-versao            int — versão do schema (atual: 1; ausente = 0). Ver utils/migracoes.js
+versao            int — versão do schema (atual: 3; ausente = 0). Ver utils/migracoes.js
 periodos[]        { id, nome, dataInicio?, dataFim? }
 periodoAtivoId    string | null
 cadeiras[]        { id, periodoId, nome, cor, horarios[], links[], datas[] }
@@ -50,12 +51,12 @@ cadeiras[]        { id, periodoId, nome, cor, horarios[], links[], datas[] }
 compromissos[]    { id, periodoId, nome, cor, horarios[] }       ← semanais (viram "rotinas" no todo)
 afazeres[]        { id, nome, data?, hora?, cor?, urgencia 1|2|3, feito, concluidoEm?,
                     rotina{ tipo, intervaloDias, totalRepeticoes, diasSemana[] },
-                    datasConcluidas[] (por ocorrência), excecoesData{ origem: destino } (drag) }
-eventosConcluidos[]  chaves "tipo|data|nome|hora" (aulas/avaliações/compromissos)
+                    datasConcluidas[] (por ocorrência, pela data NATURAL = origem), excecoesData{ origem: destino } (drag) }
+eventosConcluidos[]  chaves de evento (aulas/avaliações/compromissos), por id — ver abaixo
 eventosExcluidos[]   chaves de ocorrências removidas (todas as fontes)
 ```
 `rotina.tipo`: `nenhuma | diaria | semanal | quinzenal | mensal | dias_especificos | personalizada`.
-Chaves de evento — aulas: `aulas|ISO|nomeCadeira|inicio`; avaliações: `avaliacoes|ISO|titulo|hora`; compromissos: `compromissos|ISO|nome|inicio`; afazeres: `afazeres|id|ISO` ou `afazeres-semdata|id`.
+Chaves de evento (v2+, montadas em `utils/projecao.js` → `chaveAula/chaveCompromisso/chaveAvaliacao`) — aulas: `aulas|ISO|idCadeira|idHorario`; compromissos: `compromissos|ISO|idCompromisso|idHorario`; avaliações: `avaliacoes|idCadeira|idAvaliacao` (sem data); afazeres: `afazeres|id|dataOriginal` (v3) ou `afazeres-semdata|id`.
 
 ## Fluxo de dados
 ```
@@ -77,7 +78,6 @@ UFPE/
 ├── README.md            Doc pública (portfólio) com screenshots — atualizar quando features mudarem
 ├── index.html           Shell HTML, metas iOS/PWA, favicons; título "Painel acadêmico"
 ├── vite.config.js       Vite + React + VitePWA (manifest, workbox precache, navigateFallback)
-│                        ⚠ referencia public/icon-maskable-512.png, que NÃO existe
 ├── package.json         scripts: dev, build, preview, test (vitest run), test:watch, check (test + build). Sem lint ainda.
 │                        overrides: @grpc/grpc-js ^1.14.7 (o firebase fixa ~1.9 vulnerável; só usado no Node)
 ├── firestore.rules      Security Rules: uid + e-mail permitido + email_verified, formato mínimo do AppData,
@@ -99,14 +99,14 @@ UFPE/
 │       ├── backupNuvem.test.js    Backup na nuvem: sem snapshot por reabertura/offline, sem estado vazio, rotação (#8)
 │       ├── carregamento.test.js   Tela inicial (app/erro/travado/carregando) e watchdog sem loop (#7)
 │       ├── confirmacaoAdiada.test.js  Seletor de cor: 1 gravação por arrasto, dedupe, confirmar/cancelar (#41)
-│       ├── migracoes.test.js      Registro de migrações completo, v0→atual, não muta, versão futura intocada
+│       ├── migracoes.test.js      Registro de migrações completo, v0→atual, v1→v2 (#10), v2→v3 (#14), não muta, versão futura intocada
+│       ├── links.test.js          normalizarUrl / hrefSeguro (#50)
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação
 │       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
 │                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO)
 ├── public/
 │   ├── capacete-carregando.png   Imagem da tela de loading
-│   ├── icon-192/512.png, web-app-manifest-192/512.png (maskable), favicon.*, apple-touch-icon.png
-│   └── site.webmanifest          Manifest antigo, não referenciado (o VitePWA gera o seu)
+│   └── icon-192/512.png, web-app-manifest-192/512.png (maskable; o 512 é o do manifest), favicon.*, apple-touch-icon.png
 └── src/
     ├── main.jsx         Monta <App/> em StrictMode e importa styles/app.css
     ├── App.jsx          Raiz: estado de UI (aba, drawer aberto, modal período, gatilho novo afazer),
@@ -135,7 +135,6 @@ UFPE/
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h contadas do backup mais
     │   │                         recente NO SERVIDOR (checa a cada 15min; timer não depende de `data`; 1 por vez;
     │   │                         offline não tenta — #8), mantém 10. listarBackupsCloud(uid)
-    │   ├── useAutoBackup.js      ⚠ NÃO USADO em lugar nenhum. Backup diário (download .json + 10 em localStorage)
     │   └── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
     ├── utils/
     │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1", versao atual), sanitizarDados() (1º migra, depois
@@ -149,14 +148,18 @@ UFPE/
     │   ├── backupNuvem.js        deveFazerBackup({agora, ultimoBackup, online, dados}) → {fazer, motivo}, backupsParaApagar (#8)
 │   ├── carregamento.js       telaInicial({temDados, erroCarga, travou}), acaoDoWatchdog (1 reload/sessão), constantes (#7)
 │   ├── confirmacaoAdiada.js  criarConfirmacaoAdiada(aoConfirmar, ms) → mudar/confirmar/cancelar/sincronizar (#41)
-    │   ├── migracoes.js          VERSAO_ATUAL, MIGRACOES{n: fn pura}, versaoDos, ehVersaoFutura, migrarDados
+    │   ├── migracoes.js          VERSAO_ATUAL (3), MIGRACOES{n: fn pura}: 1 baseline, 2 chaves por id (#10), 3 data natural
+    │   │                         das ocorrências movidas (#14); versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, ocorrenciasNoIntervalo(afazer, ini, fim) → [{data, dataOriginal}],
-    │   │                         gerarOcorrenciasComData (interno), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
+    │   │                         gerarOcorrenciasComData (interno), mesmoDiaMesesDepois (mensal, #12), ehRotina,
+    │   │                         afazerConcluido (rotina nunca, #11), ocorrenciaAtual (check da aba, #11),
+    │   │                         ROTINAS_COM_DATA_BASE/dataAoSalvarAfazer/rotinaSemDataBase (#40), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
     │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, cadeiraEstaAtivaNaData
     │   ├── projecao.js           PURO: projeta eventos de uma janela [inicioISO, fimISO] — avaliações, aulas (vigência),
     │   │                         compromissos, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
     │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto)
     │   ├── formatarData.js       "YYYY-MM-DD" → "DD/MM/YYYY"
+    │   ├── links.js              normalizarUrl, hrefSeguro (só http(s) vira href, #50)
     │   ├── id.js                 uid() — 8 chars aleatórios
     │   └── data.js               ⚠ dadosVazios() + doc de schema DESATUALIZADO, sem uso
     ├── components/

@@ -9,8 +9,8 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const ler = (rel) => readFileSync(join(RAIZ, rel), "utf8");
 
 describe("PWA", () => {
-  // BUG CONHECIDO (todo.md): icon-maskable-512.png referenciado mas inexistente.
-  it.fails("todo ícone citado no vite.config.js existe em public/", () => {
+  // Regressão do #15: icon-maskable-512.png era referenciado mas não existia.
+  it("todo ícone citado no vite.config.js existe em public/", () => {
     const cfg = ler("vite.config.js");
     const arquivos = [...cfg.matchAll(/["']([\w-]+\.(?:png|svg|ico))["']/g)].map((m) => m[1]);
     const faltando = arquivos.filter((f) => !existsSync(join(RAIZ, "public", f)));
@@ -47,6 +47,31 @@ describe("Regressões de UI", () => {
     const regra = ler("src/styles/agenda.css").match(/\.data-item-titulo-quebra\s*\{([^}]*)\}/);
     expect(regra?.[1]).toMatch(/white-space:\s*normal/);
     expect(regra?.[1]).toMatch(/overflow-wrap:\s*anywhere/);
+  });
+
+  // Regressão do #42: o gatilho "novo afazer nesta data" ficava guardado no
+  // App e reabria o formulário com a data antiga em toda visita à aba.
+  it("gatilho de novo afazer é limpo depois de consumido", () => {
+    expect(ler("src/App.jsx")).toMatch(/onGatilhoConsumido=\{\(\) => setGatilhoNovoAfazer\(null\)\}/);
+    expect(ler("src/components/VisaoAfazeres.jsx")).toMatch(/onGatilhoConsumido\?\.\(\)/);
+  });
+
+  // Regressão do #50: links só viram href se forem http(s).
+  it("AbaLinks não usa a URL crua no href", () => {
+    const jsx = ler("src/components/abas/AbaLinks.jsx");
+    expect(jsx).not.toMatch(/href=\{l\.url\}/);
+    expect(jsx).toContain("hrefSeguro(");
+  });
+
+  // Regressão do #13: `new Date().toISOString()` é UTC; no Recife (UTC-3),
+  // depois das 21h já é "amanhã". Datas locais usam toISO() de utils/afazeres.
+  it("nenhum arquivo de src/ usa toISOString() (usar toISO para datas locais)", () => {
+    const arquivos = (dir) =>
+      readdirSync(join(RAIZ, dir), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? arquivos(`${dir}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${dir}/${e.name}`] : []
+      );
+    const comUTC = arquivos("src").filter((f) => /\.toISOString\(\)/.test(ler(f)));
+    expect(comUTC).toEqual([]);
   });
 });
 

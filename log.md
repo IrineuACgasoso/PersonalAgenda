@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-11-19 (5) — #9 removido, #10 chaves por id, #11 #12 #13 #14 #15 #40 #42 #50
+- **Processo:** usuário pediu **1 commit por prompt** (listando as etapas), em vez de 1 por item. Memória atualizada.
+- **#9:** decisão do usuário: sem backup manual automático. `useAutoBackup.js` apagado; README fala em backup em 2 camadas (nuvem + exportar/importar).
+- **#10 (schema v2):** chaves por id montadas em `projecao.js` (`chaveAula/chaveCompromisso/chaveAvaliacao`); avaliação sem data na chave. `MIGRACOES[2]` converte `eventosConcluidos/eventosExcluidos` (título com `|` ok, usa o dia da semana p/ achar o horário, nome repetido ⇒ uma chave por item, órfãs descartadas). O formato está **copiado** na migração de propósito (não importa da projeção).
+- **#14 (schema v3):** `datasConcluidas` e a chave `afazeres|id|…` usam `dataOriginal` (projeção + `VisaoGeral`). `MIGRACOES[3]` adiciona a origem das ocorrências arrastadas (mantém o destino ⇒ nada muda na tela).
+- **#11:** check de rotina na aba Afazeres conclui só a ocorrência de hoje/próxima (`ocorrenciaAtual`), linha mostra "hoje"/"próx.: DD/MM"; `afazerConcluido` tira rotinas de "concluídos"/"Apagar concluídos"; `alternarFeitoAfazer` sem data numa rotina não faz nada.
+- **#12:** `mesmoDiaMesesDepois` (31/jan → 28/fev → 31/mar → 30/abr). `it.fails` virou `it` + 2 testes.
+- **#13:** `toISO(new Date())` em `VisaoAgenda` e no nome do backup exportado; teste estático contra `.toISOString()` em `src/`.
+- **#15:** maskable → `web-app-manifest-512x512.png`; `public/site.webmanifest` apagado. `it.fails` virou `it`.
+- **#40:** rotina com data-base salva sem data começa hoje (`dataAoSalvarAfazer`); antigas sem data ganham aviso vermelho na lista (`.afazer-aviso`).
+- **#42:** `onGatilhoConsumido` (App limpa o gatilho depois que o formulário usa).
+- **#50:** `utils/links.js` (`normalizarUrl` movido p/ cá + `hrefSeguro`).
+- **Testes:** 174 ✅, **nenhum `it.fails` restante**. Novo `tests/unit/links.test.js`. `npm run check` ✅.
+- **Docs:** `todo.md`, `organization.md`, `tests/README.md`, `README.md`.
+- **⚠ Schema subiu para v3:** um aparelho com o PWA antigo em cache mostra "desatualizado" e não grava até atualizar (comportamento esperado do #4).
+- **➡ Próximo passo recomendado:** Fase 3 — **#16** (ESLint + Prettier) e **#17** (modais no lugar de `alert/confirm/prompt`), depois **#44**. Alternativa leve: limpezas do 🟢 (#26, #27, #28).
+- **Testar no app:** (1) marcar uma aula como concluída, renomear a cadeira → continua marcada; (2) aba Afazeres: check numa rotina marca só "hoje" (o calendário mostra só o dia de hoje marcado) e "Apagar concluídos" não a apaga; (3) concluir uma ocorrência de rotina no calendário e arrastar para outro dia → continua concluída; (4) criar rotina semanal sem marcar "Definir dia/hora" → aparece no calendário a partir de hoje; (5) "+" no calendário → aba Afazeres com a data; sair e voltar à aba → formulário limpo; (6) concluídos/excluídos antigos de aulas e provas continuam iguais depois de abrir o app.
+
+---
+
 ## 2026-11-19 (4) — #43 undefined, #7 tela de erro de carga, #8 backup na nuvem
 - **Processo:** usuário liberou **commit + push direto na main** para itens não críticos com `npm run check` verde (memória atualizada). Cada item abaixo foi um commit + push separado.
 - **#43 (`9dc3b6c`):** `removerUndefined()` (profundo, não muta) no fim do `sanitizarDados` + `ignoreUndefinedProperties: true` no `initializeFirestore` (`src/firebase.js`). Causa concreta corrigida na origem: `alternarFeitoAfazer` não grava mais `concluidoEm: undefined` ao desmarcar. +6 testes (`sanitizarDados`, `persistencia`).
