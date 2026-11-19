@@ -130,14 +130,34 @@
     flex: 1;
   }
 
-  /* ---------- afazeres ----------
-     Lista de afazeres: em vez de esticar a página inteira, rola por
-     dentro de uma área com altura limitada (só no mobile) */
-  .lista-afazeres {
-    max-height: 55vh;
-    max-height: 55dvh;
-    overflow-y: auto;
-    padding-right: 4px;
+  /* ---------- afazeres / compromissos (Fase 5) ---------- */
+  .form-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .form-card {
+    padding: 14px;
+  }
+
+  /* Popover do seletor de data: largura da tela menos as margens. */
+  .seletor-data-popover {
+    width: min(300px, calc(100vw - 48px));
+  }
+
+  .item-lista {
+    gap: 8px;
+    padding: 10px 10px 10px 12px;
+  }
+
+  /* Marcadores da célula: menores para caber com o número do dia. */
+  .calendario-marcos {
+    top: 3px;
+    right: 2px;
+  }
+
+  .calendario-marcos svg {
+    width: 9px;
+    height: 9px;
   }
 
   /* ---------- agenda semanal ---------- */

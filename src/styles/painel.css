@@ -126,6 +126,11 @@
   cursor: pointer;
 }
 
+/* Cabeçalho de seção que não recolhe (drawer da rotina: só "Horários"). */
+.painel-secao-cabecalho.painel-secao-fixo {
+  cursor: default;
+}
+
 .painel-secao-seta {
   flex-shrink: 0;
   color: var(--texto-fraco);

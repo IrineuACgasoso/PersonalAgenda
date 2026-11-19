@@ -22,8 +22,11 @@ const idDoHorario = (h) => h.id || `@${h.inicio || ""}`;
 const idDaAvaliacao = (d) => d.id || `@${d.data}|${d.hora || ""}|${d.titulo}`;
 
 export const chaveAula = (dataISO, cadeira, horario) => `aulas|${dataISO}|${cadeira.id}|${idDoHorario(horario)}`;
-export const chaveCompromisso = (dataISO, compromisso, horario) =>
-  `compromissos|${dataISO}|${compromisso.id}|${idDoHorario(horario)}`;
+// Rotinas (ex-"compromissos" semanais, migração v5).
+export const chaveRotina = (dataISO, rotina, horario) => `rotinas|${dataISO}|${rotina.id}|${idDoHorario(horario)}`;
+// Compromisso pontual (v5): acontece uma vez, a chave é só o id. A conclusão
+// fica no próprio item (`feito`), não em eventosConcluidos.
+export const chaveCompromisso = (compromisso) => `compromissos|${compromisso.id}`;
 // Avaliação acontece uma vez só: a chave não leva a data, então mudar a data
 // da prova mantém o "concluído"/"removido da agenda".
 export const chaveAvaliacao = (cadeira, avaliacao) => `avaliacoes|${cadeira.id}|${idDaAvaliacao(avaliacao)}`;
@@ -98,27 +101,45 @@ export function projetarMarcosVigencia(cadeiras, inicioISO, fimISO) {
   return mapa;
 }
 
-// 3. Compromissos (horários semanais, sem checagem de vigência)
-export function projetarCompromissos(compromissos, inicioISO, fimISO) {
+// 3. Rotinas (horários semanais, sem checagem de vigência)
+export function projetarRotinas(rotinas, inicioISO, fimISO) {
   const lista = [];
   paraCadaDia(inicioISO, fimISO, (dataISO, diaSemana) => {
-    compromissos.forEach((c) => {
-      (c.horarios || [])
+    rotinas.forEach((r) => {
+      (r.horarios || [])
         .filter((h) => h.dia === diaSemana)
         .forEach((h) => {
           lista.push({
-            tipo: "compromissos",
+            tipo: "rotinas",
             data: dataISO,
             hora: h.inicio,
-            titulo: c.nome,
-            cor: c.cor,
-            origem: h.local || DIAS_FULL[diaSemana],
-            chave: chaveCompromisso(dataISO, c, h),
+            titulo: r.nome,
+            cor: r.cor,
+            origem: h.local || `Rotina · até ${h.fim}`,
+            chave: chaveRotina(dataISO, r, h),
           });
         });
     });
   });
   return lista;
+}
+
+// 3b. Compromissos pontuais (v5): um evento na data, com início e fim opcional.
+export function projetarCompromissos(compromissos, inicioISO, fimISO) {
+  return compromissos
+    .filter((c) => c.data && c.data >= inicioISO && c.data <= fimISO)
+    .map((c) => ({
+      tipo: "compromissos",
+      data: c.data,
+      hora: c.inicio || "",
+      fim: c.fim || "",
+      titulo: c.nome,
+      cor: c.cor || COR_PADRAO_AFAZER_CALENDARIO,
+      origem: c.fim ? `Compromisso · até ${c.fim}` : "Compromisso",
+      feito: !!c.feito,
+      id: c.id,
+      chave: chaveCompromisso(c),
+    }));
 }
 
 // 4. Afazeres com data e/ou rotina (uma entrada por ocorrência)
@@ -140,7 +161,6 @@ export function projetarAfazeres(afazeres, inicioISO, fimISO) {
         // que identifica a instância de forma estável para mover/excluir
         // só ela, sem afetar as outras ocorrências da rotina.
         dataOriginal,
-        hora: a.hora,
         titulo: a.nome,
         cor: a.cor || COR_PADRAO_AFAZER_CALENDARIO,
         origem: concluido ? "concluído" : "pendente",
@@ -174,7 +194,6 @@ export function projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) {
         tipo: "afazeres",
         data: hojeISO,
         dataOriginal: hojeISO,
-        hora: a.hora,
         titulo: a.nome,
         cor: a.cor || COR_PADRAO_AFAZER_CALENDARIO,
         origem: "pendente",
@@ -222,21 +241,53 @@ export function agruparPorDia(eventos, eventosExcluidos = []) {
   return mapa;
 }
 
+// Marcadores no canto da célula do calendário (Fase 5): ★ compromisso,
+// livro = avaliação (data importante de cadeira), bandeiras = início/fim de
+// vigência. Um marcador por TIPO (vários do mesmo tipo = 1 ícone com
+// `quantidade`), na cor do primeiro item do dia, nesta ordem de importância.
+export const ORDEM_MARCADORES = ["compromisso", "avaliacao", "inicio", "fim"];
+
+export function marcadoresDoDia(eventos = [], marcos = []) {
+  const grupos = {};
+  const adicionar = (tipo, cor, titulo) => {
+    const g = (grupos[tipo] ||= { tipo, cor, quantidade: 0, titulos: [] });
+    g.quantidade += 1;
+    g.titulos.push(titulo);
+  };
+  eventos.forEach((ev) => {
+    if (ev.tipo === "compromissos") adicionar("compromisso", ev.cor, ev.titulo);
+    else if (ev.tipo === "avaliacoes") adicionar("avaliacao", ev.cor, ev.titulo);
+  });
+  marcos.forEach((m) => adicionar(m.tipo, m.cor, m.nome));
+  return ORDEM_MARCADORES.filter((t) => grupos[t]).map((t) => grupos[t]);
+}
+
+// Cabem `max` ícones na célula. Passou disso, mostra os max-1 mais
+// importantes + "+N" (N = tipos escondidos), para o "+" caber no lugar do último.
+export function resumirMarcadores(marcadores, max = 3) {
+  if (marcadores.length <= max) return { visiveis: marcadores, ocultos: 0 };
+  return { visiveis: marcadores.slice(0, max - 1), ocultos: marcadores.length - (max - 1) };
+}
+
 // Atalho que monta o mapa completo de uma janela — usado nos testes e útil
 // para futuras telas (ex: "Hoje"). `filtros` ausente = tudo ligado.
+export const FILTROS_TODOS = { aulas: true, avaliacoes: true, rotinas: true, compromissos: true, afazeres: true };
+
 export function projetarEventos({
   cadeiras = [],
+  rotinas = [],
   compromissos = [],
   afazeres = [],
   eventosExcluidos = [],
   inicioISO,
   fimISO,
   hojeISO = toISO(new Date()),
-  filtros = { aulas: true, avaliacoes: true, compromissos: true, afazeres: true },
+  filtros = FILTROS_TODOS,
 }) {
   const eventos = [
     ...(filtros.aulas ? projetarAulas(cadeiras, inicioISO, fimISO) : []),
     ...(filtros.avaliacoes ? projetarAvaliacoes(cadeiras, inicioISO, fimISO) : []),
+    ...(filtros.rotinas ? projetarRotinas(rotinas, inicioISO, fimISO) : []),
     ...(filtros.compromissos ? projetarCompromissos(compromissos, inicioISO, fimISO) : []),
     ...(filtros.afazeres ? projetarAfazeres(afazeres, inicioISO, fimISO) : []),
     ...(filtros.afazeres ? projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) : []),

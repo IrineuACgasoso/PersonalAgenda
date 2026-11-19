@@ -1,0 +1,144 @@
+/* seletor-data.css
+   ui/SeletorData.jsx (Fase 5): campo + popover com o mês. Dias que não
+   podem ser escolhidos (ex.: fora da repetição do afazer) ficam apagados. */
+
+.seletor-data {
+  position: relative;
+  min-width: 0;
+}
+
+.seletor-data-linha {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.seletor-data-campo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.seletor-data-campo > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seletor-data-campo > svg {
+  flex-shrink: 0;
+  color: var(--texto-fraco);
+}
+
+.seletor-data-campo.sem-valor {
+  color: var(--texto-fraco);
+}
+
+.seletor-data-campo.invalido {
+  border-color: #f87171;
+}
+
+.seletor-data-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  width: 290px;
+  padding: 10px;
+  border-radius: var(--raio-md);
+  border: 1px solid var(--vidro-borda-forte);
+  /* Cor sólida: com alpha, o texto de baixo aparecia através do popover
+     (o card do formulário tem backdrop-filter). */
+  background: var(--vidro-grad), #14161b;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+.seletor-data-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.seletor-data-grade {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.seletor-data-semana {
+  padding: 4px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--texto-fraco);
+}
+
+.seletor-data-dia {
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--texto);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+
+.seletor-data-dia:hover:not(:disabled) {
+  background: rgba(129, 140, 248, 0.22);
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+.seletor-data-dia.fora {
+  opacity: 0.45;
+}
+
+.seletor-data-dia:disabled {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.18);
+  cursor: default;
+}
+
+.seletor-data-dia.hoje {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Data de referência (ex.: início da repetição). */
+.seletor-data-dia.marcada {
+  box-shadow: inset 0 -2px 0 #34d399;
+}
+
+.seletor-data-dia.escolhido {
+  background: var(--accent);
+  border-color: var(--accent-2);
+  color: #fff;
+  font-weight: 700;
+}
+
+.seletor-data-aviso {
+  margin: 8px 0 0;
+  font-size: 12px;
+  text-align: center;
+  color: var(--texto-fraco);
+}
+
+.seletor-data-rodape {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.seletor-data-rodape > .btn-secundario {
+  padding: 5px 10px;
+  font-size: 12px;
+}

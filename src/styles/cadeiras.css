@@ -1,5 +1,5 @@
 /* cadeiras.css
-   Grid de cards usado por VisaoCadeiras.jsx e VisaoCompromissos.jsx
+   Grid de cards usado por VisaoCadeiras.jsx e VisaoRotinas.jsx
    (mesma estrutura visual para ambos).
 
    Cada card recebe a variável CSS --cor-card (setada inline no JSX a

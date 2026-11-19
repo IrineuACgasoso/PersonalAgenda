@@ -3,8 +3,9 @@ import { useState, useRef } from "react";
 import {
   BookOpen,
   Calendar,
-  CalendarClock,
   ListChecks,
+  Repeat,
+  Star,
   LayoutGrid,
   Menu,
   Download,
@@ -72,8 +73,11 @@ export default function Sidebar({
           <button className={`nav-btn${aba === "cadeiras" ? " ativo" : ""}`} onClick={() => irPara("cadeiras")}>
             <BookOpen size={15} /> Cadeiras
           </button>
+          <button className={`nav-btn${aba === "rotinas" ? " ativo" : ""}`} onClick={() => irPara("rotinas")}>
+            <Repeat size={15} /> Rotinas
+          </button>
           <button className={`nav-btn${aba === "compromissos" ? " ativo" : ""}`} onClick={() => irPara("compromissos")}>
-            <CalendarClock size={15} /> Compromissos
+            <Star size={15} /> Compromissos
           </button>
           <button className={`nav-btn${aba === "afazeres" ? " ativo" : ""}`} onClick={() => irPara("afazeres")}>
             <ListChecks size={15} /> Afazeres

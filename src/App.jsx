@@ -5,12 +5,13 @@ import { uid } from "./utils/id";
 import usePersistedData from "./hooks/usePersistedData";
 import Sidebar from "./components/Sidebar";
 import VisaoCadeiras from "./components/VisaoCadeiras";
+import VisaoRotinas from "./components/VisaoRotinas";
 import VisaoCompromissos from "./components/VisaoCompromissos";
 import VisaoAgenda from "./components/VisaoAgenda";
 import VisaoAfazeres from "./components/VisaoAfazeres";
 import VisaoGeral from "./components/VisaoGeral";
 import PainelCadeira from "./components/PainelCadeira";
-import PainelCompromisso from "./components/PainelCompromisso";
+import PainelRotina from "./components/PainelRotina";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 import ModalRestaurarNuvem from "./components/ui/ModalRestaurarNuvem";
@@ -60,9 +61,10 @@ export default function App() {
   useCloudBackup(user, data, !!data && status !== "loading");
   const [aba, setAba] = useState("visaogeral");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
-  const [compromissoAbertoId, setCompromissoAbertoId] = useState(null);
+  const [rotinaAbertaId, setRotinaAbertaId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
   const [gatilhoNovoAfazer, setGatilhoNovoAfazer] = useState(null);
+  const [gatilhoNovoCompromisso, setGatilhoNovoCompromisso] = useState(null);
   const [cargaTravada, setCargaTravada] = useState(false);
   const [restaurandoNuvem, setRestaurandoNuvem] = useState(false);
   const { avisar, confirmar, notificar } = useDialogos();
@@ -110,9 +112,12 @@ export default function App() {
   const periodoAtivo = data.periodos.find((p) => p.id === data.periodoAtivoId) || data.periodos[0];
   const cadeirasDoPeriodo = data.cadeiras.filter((c) => c.periodoId === periodoAtivo?.id);
   const cadeiraAberta = data.cadeiras.find((c) => c.id === cadeiraAbertaId);
+  // Rotinas (ex-"compromissos" semanais, v5) são do período; compromissos
+  // pontuais não (têm data própria).
+  const rotinas = data.rotinas || [];
+  const rotinasDoPeriodo = rotinas.filter((r) => r.periodoId === periodoAtivo?.id);
+  const rotinaAberta = rotinas.find((r) => r.id === rotinaAbertaId);
   const compromissos = data.compromissos || [];
-  const compromissosDoPeriodo = compromissos.filter((c) => c.periodoId === periodoAtivo?.id);
-  const compromissoAberto = compromissos.find((c) => c.id === compromissoAbertoId);
 
   /* Toda ação grava por aqui. Ela usa persist((d) => ...): o updater recebe
      o estado MAIS RECENTE, não o `data` deste render — duas ações seguidas
@@ -158,10 +163,10 @@ export default function App() {
     }));
   };
 
-  // Período leva junto as cadeiras e os compromissos dele: continua pedindo
+  // Período leva junto as cadeiras e as rotinas dele: continua pedindo
   // confirmação, e ainda dá para desfazer (#18).
   const excluirPeriodo = async (id) => {
-    const ok = await confirmar("Excluir este período? As cadeiras e compromissos dele também serão removidos.", {
+    const ok = await confirmar("Excluir este período? As cadeiras e rotinas dele também serão removidas.", {
       titulo: "Excluir período",
       textoConfirmar: "Excluir",
       perigo: true,
@@ -172,36 +177,36 @@ export default function App() {
       const p = separarRemovidos(d.periodos, (x) => x.id === id);
       if (p.removidos.length === 0) return d;
       const c = separarRemovidos(d.cadeiras, (x) => x.periodoId === id);
-      const comp = separarRemovidos(d.compromissos || [], (x) => x.periodoId === id);
+      const rot = separarRemovidos(d.rotinas || [], (x) => x.periodoId === id);
       removido = {
         periodos: p.removidos,
         cadeiras: c.removidos,
-        compromissos: comp.removidos,
+        rotinas: rot.removidos,
         eraAtivo: d.periodoAtivoId === id,
       };
       return {
         ...d,
         periodos: p.restantes,
         cadeiras: c.restantes,
-        compromissos: comp.restantes,
+        rotinas: rot.restantes,
         periodoAtivoId: d.periodoAtivoId === id ? (p.restantes[0]?.id ?? null) : d.periodoAtivoId,
       };
     });
-    if (compromissoAberto?.periodoId === id) setCompromissoAbertoId(null);
+    if (rotinaAberta?.periodoId === id) setRotinaAbertaId(null);
     if (cadeiraAberta?.periodoId === id) setCadeiraAbertaId(null);
     if (!gravouAlgo(r) || !removido) return;
-    const { periodos, cadeiras, compromissos: comps, eraAtivo } = removido;
+    const { periodos, cadeiras, rotinas: rots, eraAtivo } = removido;
     avisarComDesfazer(`Período "${periodos[0].item.nome}" excluído`, (d) => ({
       ...d,
       periodos: reinserirVarios(d.periodos, periodos),
       cadeiras: reinserirVarios(d.cadeiras, cadeiras),
-      compromissos: reinserirVarios(d.compromissos || [], comps),
+      rotinas: reinserirVarios(d.rotinas || [], rots),
       periodoAtivoId: eraAtivo ? id : d.periodoAtivoId,
     }));
   };
 
-  // Exclui um item de uma lista de primeiro nível (cadeiras, compromissos,
-  // afazeres) com "Desfazer" no lugar do confirm() (#18). O item e a posição
+  // Exclui um item de uma lista de primeiro nível (cadeiras, rotinas,
+  // compromissos, afazeres) com "Desfazer" no lugar do confirm() (#18). O item e a posição
   // são lidos DENTRO do updater (estado mais recente), e o desfazer o
   // devolve no mesmo lugar sem duplicar.
   const excluirComDesfazer = (campo, id, textoExcluido) => {
@@ -252,32 +257,82 @@ export default function App() {
     if (cadeiraAbertaId === id) setCadeiraAbertaId(null);
   };
 
-  /* ---- ações compromissos ---- */
-  const criarCompromisso = (nome) => {
+  /* ---- ações rotinas (ex-"compromissos" semanais, v5) ---- */
+  const criarRotina = (nome) => {
     if (!periodoAtivo) return;
-    const novo = {
+    const nova = {
       id: uid(),
       nome,
       periodoId: periodoAtivo.id,
-      cor: CORES[compromissos.length % CORES.length],
+      cor: CORES[rotinas.length % CORES.length],
       horarios: [],
     };
-    gravar((d) => ({ ...d, compromissos: [...(d.compromissos || []), novo] }));
-    setCompromissoAbertoId(novo.id);
+    gravar((d) => ({ ...d, rotinas: [...(d.rotinas || []), nova] }));
+    setRotinaAbertaId(nova.id);
   };
 
-  // `patch`: objeto ou função (compromissoAtual) => patch (ver atualizarCadeira).
+  // `patch`: objeto ou função (rotinaAtual) => patch (ver atualizarCadeira).
+  const atualizarRotina = (id, patch) =>
+    gravar((d) => ({
+      ...d,
+      rotinas: (d.rotinas || []).map((r) =>
+        r.id === id ? { ...r, ...(typeof patch === "function" ? patch(r) : patch) } : r,
+      ),
+    }));
+
+  const excluirRotina = (id) => {
+    excluirComDesfazer("rotinas", id, (r) => `Rotina "${r.nome}" excluída`);
+    if (rotinaAbertaId === id) setRotinaAbertaId(null);
+  };
+
+  /* ---- ações compromissos (pontuais, v5) ---- */
+  const criarCompromisso = (dados) => {
+    const novo = { id: uid(), feito: false, ...dados };
+    gravar((d) => ({ ...d, compromissos: [...(d.compromissos || []), novo] }));
+  };
+
   const atualizarCompromisso = (id, patch) =>
     gravar((d) => ({
       ...d,
-      compromissos: (d.compromissos || []).map((c) =>
-        c.id === id ? { ...c, ...(typeof patch === "function" ? patch(c) : patch) } : c,
-      ),
+      compromissos: (d.compromissos || []).map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+
+  // Mesmo cuidado do afazer (#43): desmarcar nunca grava `concluidoEm: undefined`.
+  const alternarFeitoCompromisso = (id) =>
+    gravar((d) => ({
+      ...d,
+      compromissos: (d.compromissos || []).map((c) => {
+        if (c.id !== id) return c;
+        return c.feito ? { ...c, feito: false } : { ...c, feito: true, concluidoEm: Date.now() };
+      }),
     }));
 
   const excluirCompromisso = (id) => {
     excluirComDesfazer("compromissos", id, (c) => `Compromisso "${c.nome}" excluído`);
-    if (compromissoAbertoId === id) setCompromissoAbertoId(null);
+  };
+
+  // "Apagar passados" da aba Compromissos, com Desfazer (#18).
+  const limparCompromissosPassados = () => {
+    const hoje = toISO(new Date());
+    let removidos = [];
+    const r = gravar((d) => {
+      const sep = separarRemovidos(d.compromissos || [], (c) => !c.data || c.data < hoje);
+      if (sep.removidos.length === 0) return d;
+      removidos = sep.removidos;
+      return { ...d, compromissos: sep.restantes };
+    });
+    if (!gravouAlgo(r) || removidos.length === 0) return;
+    const n = removidos.length;
+    const s = n !== 1 ? "s" : "";
+    avisarComDesfazer(`${n} compromisso${s} passado${s} apagado${s}`, (d) => ({
+      ...d,
+      compromissos: reinserirVarios(d.compromissos || [], removidos),
+    }));
+  };
+
+  const abrirNovoCompromissoNaData = (dataISO) => {
+    setGatilhoNovoCompromisso({ data: dataISO, ts: Date.now() });
+    setAba("compromissos");
   };
 
   /* ---- ações afazeres ---- */
@@ -365,7 +420,7 @@ export default function App() {
 
   // Remove só esta ocorrência (dia) de um evento da agenda — usado quando
   // algo foi cancelado e não faz sentido continuar aparecendo naquele dia.
-  // Para itens recorrentes (aula, compromisso, afazer com rotina), a chave
+  // Para itens recorrentes (aula, rotina, afazer com repetição), a chave
   // já carrega a data específica dessa ocorrência, então isso NÃO apaga o
   // horário/afazer em si — só esconde esse dia; as outras ocorrências
   // continuam normalmente.
@@ -452,6 +507,9 @@ export default function App() {
         versao: importado.versao,
         periodos: importado.periodos ?? [],
         cadeiras: importado.cadeiras ?? [],
+        // Backup v5+ tem `rotinas`; num anterior os semanais ainda estão em
+        // `compromissos` e a migração v5 os move para `rotinas`.
+        ...(Array.isArray(importado.rotinas) ? { rotinas: importado.rotinas } : {}),
         compromissos: importado.compromissos ?? [],
         afazeres: importado.afazeres ?? [],
         eventosConcluidos: importado.eventosConcluidos ?? [],
@@ -525,10 +583,22 @@ export default function App() {
             gatilhoNovaData={gatilhoNovoAfazer}
             onGatilhoConsumido={() => setGatilhoNovoAfazer(null)}
           />
+        ) : aba === "compromissos" ? (
+          <VisaoCompromissos
+            compromissos={compromissos}
+            onCriar={criarCompromisso}
+            onEditar={atualizarCompromisso}
+            onAlternarFeito={alternarFeitoCompromisso}
+            onExcluir={excluirCompromisso}
+            onLimparPassados={limparCompromissosPassados}
+            gatilhoNovaData={gatilhoNovoCompromisso}
+            onGatilhoConsumido={() => setGatilhoNovoCompromisso(null)}
+          />
         ) : aba === "visaogeral" ? (
           <VisaoGeral
             cadeiras={data.cadeiras}
-            compromissos={compromissosDoPeriodo}
+            rotinas={rotinasDoPeriodo}
+            compromissos={compromissos}
             afazeres={afazeres}
             eventosConcluidos={eventosConcluidos}
             eventosExcluidos={eventosExcluidos}
@@ -537,7 +607,12 @@ export default function App() {
             onAlternarFeitoAfazer={alternarFeitoAfazer}
             onAtualizarAfazer={atualizarAfazer}
             onMoverInstanciaAfazer={moverInstanciaAfazer}
+            onExcluirAfazer={excluirAfazer}
+            onAlternarFeitoCompromisso={alternarFeitoCompromisso}
+            onAtualizarCompromisso={atualizarCompromisso}
+            onExcluirCompromisso={excluirCompromisso}
             onNovoAfazer={abrirNovoAfazerNaData}
+            onNovoCompromisso={abrirNovoCompromissoNaData}
           />
         ) : !periodoAtivo ? (
           <EstadoVazio
@@ -545,13 +620,14 @@ export default function App() {
             onAcao={() => setModalPeriodo(true)}
             acaoTexto="Novo período"
           />
-        ) : aba === "compromissos" ? (
-          <VisaoCompromissos
+        ) : aba === "rotinas" ? (
+          <VisaoRotinas
             periodoAtivo={periodoAtivo}
-            compromissos={compromissosDoPeriodo}
-            onCriar={criarCompromisso}
-            onAbrir={setCompromissoAbertoId}
-            onExcluir={excluirCompromisso}
+            rotinas={rotinasDoPeriodo}
+            eventosExcluidos={eventosExcluidos}
+            onCriar={criarRotina}
+            onAbrir={setRotinaAbertaId}
+            onExcluir={excluirRotina}
           />
         ) : aba === "cadeiras" ? (
           <VisaoCadeiras
@@ -570,9 +646,9 @@ export default function App() {
         ) : (
           <VisaoAgenda
             cadeiras={cadeirasDoPeriodo}
-            compromissos={compromissosDoPeriodo}
+            rotinas={rotinasDoPeriodo}
             onAbrirCadeira={setCadeiraAbertaId}
-            onAbrirCompromisso={setCompromissoAbertoId}
+            onAbrirRotina={setRotinaAbertaId}
           />
         )}
       </main>
@@ -587,13 +663,14 @@ export default function App() {
         />
       )}
 
-      {compromissoAberto && (
-        <PainelCompromisso
-          compromisso={compromissoAberto}
+      {rotinaAberta && (
+        <PainelRotina
+          rotina={rotinaAberta}
           periodos={data.periodos}
-          onFechar={() => setCompromissoAbertoId(null)}
-          onAtualizar={(patch) => atualizarCompromisso(compromissoAberto.id, patch)}
-          onExcluir={() => excluirCompromisso(compromissoAberto.id)}
+          eventosExcluidos={eventosExcluidos}
+          onFechar={() => setRotinaAbertaId(null)}
+          onAtualizar={(patch) => atualizarRotina(rotinaAberta.id, patch)}
+          onExcluir={() => excluirRotina(rotinaAberta.id)}
         />
       )}
 

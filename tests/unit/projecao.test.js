@@ -1,7 +1,13 @@
 // O que aparece em cada dia do calendário geral: src/utils/projecao.js
 import { describe, it, expect } from "vitest";
-import { projetarEventos, compararEventosDoDia, projetarMarcosVigencia } from "../../src/utils/projecao.js";
-import { cadeira, compromisso, afazer, horario } from "../fixtures/fabricas.js";
+import {
+  projetarEventos,
+  compararEventosDoDia,
+  projetarMarcosVigencia,
+  marcadoresDoDia,
+  resumirMarcadores,
+} from "../../src/utils/projecao.js";
+import { cadeira, rotina, compromisso, afazer, horario } from "../fixtures/fabricas.js";
 
 const NOV = { inicioISO: "2026-11-01", fimISO: "2026-11-30", hojeISO: "2026-11-18" };
 const titulos = (mapa, dia) => (mapa[dia] || []).map((e) => e.titulo);
@@ -38,7 +44,7 @@ describe("aulas", () => {
     const m = projetarEventos({
       ...NOV,
       cadeiras: [c],
-      filtros: { aulas: false, avaliacoes: true, compromissos: true, afazeres: true },
+      filtros: { aulas: false, avaliacoes: true, rotinas: true, compromissos: true, afazeres: true },
     });
     expect(titulos(m, "2026-11-02")).toEqual([]);
   });
@@ -82,12 +88,56 @@ describe("avaliações", () => {
   });
 });
 
-describe("compromissos", () => {
-  it("projetados semanalmente", () => {
-    const comp = compromisso({ nome: "Academia", horarios: [horario({ dia: 4, inicio: "18:00" })] });
-    const m = projetarEventos({ ...NOV, compromissos: [comp] });
+describe("rotinas (ex-compromissos semanais, v5)", () => {
+  it("projetadas semanalmente", () => {
+    const r = rotina({ nome: "Academia", horarios: [horario({ dia: 4, inicio: "18:00" })] });
+    const m = projetarEventos({ ...NOV, rotinas: [r] });
     expect(titulos(m, "2026-11-06")).toEqual(["Academia"]);
     expect(titulos(m, "2026-11-07")).toEqual([]);
+    expect(m["2026-11-06"][0]).toMatchObject({ tipo: "rotinas", hora: "18:00" });
+  });
+  it("filtro de rotinas desliga só elas", () => {
+    const r = rotina({ horarios: [horario({ dia: 4 })] });
+    const c = compromisso({ data: "2026-11-06" });
+    const m = projetarEventos({
+      ...NOV,
+      rotinas: [r],
+      compromissos: [c],
+      filtros: { rotinas: false, compromissos: true },
+    });
+    expect(m["2026-11-06"].map((e) => e.tipo)).toEqual(["compromissos"]);
+  });
+});
+
+describe("compromissos pontuais (v5)", () => {
+  it("aparecem só na data, com hora de início e conclusão do próprio item", () => {
+    const c = compromisso({
+      id: "k1",
+      nome: "Dentista",
+      data: "2026-11-20",
+      inicio: "14:00",
+      fim: "15:00",
+      feito: true,
+    });
+    const m = projetarEventos({ ...NOV, compromissos: [c] });
+    expect(m["2026-11-20"]).toHaveLength(1);
+    expect(m["2026-11-20"][0]).toMatchObject({
+      tipo: "compromissos",
+      hora: "14:00",
+      titulo: "Dentista",
+      feito: true,
+      id: "k1",
+      chave: "compromissos|k1",
+      origem: "Compromisso · até 15:00",
+    });
+    expect(Object.keys(m)).toEqual(["2026-11-20"]);
+  });
+  it("fora da janela ou sem data não aparece", () => {
+    const m = projetarEventos({
+      ...NOV,
+      compromissos: [compromisso({ data: "2026-12-01" }), compromisso({ data: "" })],
+    });
+    expect(m).toEqual({});
   });
 });
 
@@ -160,14 +210,14 @@ describe("chaves de evento por id (#10)", () => {
     expect(chavesDoDia(m, "2026-11-09")).toEqual(["aulas|2026-11-09|cb|hb"]);
   });
 
-  it("compromissos: chave por id do compromisso e do horário", () => {
-    const comp = compromisso({
+  it("rotinas: chave por id da rotina e do horário", () => {
+    const r = rotina({
       id: "k1",
       nome: "Academia",
       horarios: [horario({ id: "hk", dia: 4, inicio: "18:00" })],
     });
-    const m = projetarEventos({ ...NOV, compromissos: [comp] });
-    expect(chavesDoDia(m, "2026-11-06")).toEqual(["compromissos|2026-11-06|k1|hk"]);
+    const m = projetarEventos({ ...NOV, rotinas: [r] });
+    expect(chavesDoDia(m, "2026-11-06")).toEqual(["rotinas|2026-11-06|k1|hk"]);
   });
 
   it("avaliação: mudar data ou título mantém a chave", () => {
@@ -207,5 +257,45 @@ describe("ordenação dentro do dia", () => {
       "semdata-alta",
       "media",
     ]);
+  });
+});
+
+// Fase 5: ★ compromisso, livro = avaliação, bandeiras = vigência.
+describe("marcadores da célula (marcadoresDoDia / resumirMarcadores)", () => {
+  const ev = (tipo, cor, titulo) => ({ tipo, cor, titulo });
+  const marco = (tipo, cor, nome) => ({ tipo, cor, nome });
+
+  it("um marcador por tipo, com quantidade e cor do primeiro, na ordem de importância", () => {
+    const m = marcadoresDoDia(
+      [
+        ev("aulas", "#000", "IP"),
+        ev("avaliacoes", "#00f", "Prova"),
+        ev("compromissos", "#f00", "Dentista"),
+        ev("compromissos", "#0f0", "Reunião"),
+        ev("afazeres", "#999", "Lavar"),
+      ],
+      [marco("fim", "#abc", "Cálculo")],
+    );
+    expect(m.map((x) => [x.tipo, x.quantidade, x.cor])).toEqual([
+      ["compromisso", 2, "#f00"],
+      ["avaliacao", 1, "#00f"],
+      ["fim", 1, "#abc"],
+    ]);
+    expect(m[0].titulos).toEqual(["Dentista", "Reunião"]);
+  });
+
+  it("dia sem compromisso/avaliação/vigência não tem marcador", () => {
+    expect(marcadoresDoDia([ev("aulas", "#000", "IP"), ev("rotinas", "#111", "Academia")], [])).toEqual([]);
+  });
+
+  it("até 3 cabem; com 4, mostra os 2 mais importantes + '+2'", () => {
+    const quatro = marcadoresDoDia(
+      [ev("avaliacoes", "#00f", "Prova"), ev("compromissos", "#f00", "Dentista")],
+      [marco("inicio", "#111", "A"), marco("fim", "#222", "B")],
+    );
+    const r = resumirMarcadores(quatro);
+    expect(r.visiveis.map((x) => x.tipo)).toEqual(["compromisso", "avaliacao"]);
+    expect(r.ocultos).toBe(2);
+    expect(resumirMarcadores(quatro.slice(0, 3))).toEqual({ visiveis: quatro.slice(0, 3), ocultos: 0 });
   });
 });

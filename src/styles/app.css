@@ -15,7 +15,10 @@
 @import "./painel.css";
 @import "./periodo-seletor.css";
 @import "./agenda.css";
+@import "./listas.css";
 @import "./afazeres.css";
+@import "./rotinas.css";
+@import "./seletor-data.css";
 @import "./calendario.css";
 @import "./modal.css";
 @import "./mobile.css";

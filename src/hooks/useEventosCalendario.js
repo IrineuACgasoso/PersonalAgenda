@@ -9,6 +9,7 @@ import { getIntervaloMes } from "../utils/calendario.js";
 import {
   projetarAvaliacoes,
   projetarAulas,
+  projetarRotinas,
   projetarCompromissos,
   projetarAfazeres,
   projetarAfazeresSemData,
@@ -18,6 +19,7 @@ import {
 
 export function useEventosCalendario({
   cadeiras = [],
+  rotinas = [],
   compromissos = [],
   afazeres = [],
   ano,
@@ -35,6 +37,11 @@ export function useEventosCalendario({
   const aulas = useMemo(
     () => (filtros.aulas ? projetarAulas(cadeiras, inicioISO, fimISO) : []),
     [cadeiras, filtros.aulas, inicioISO, fimISO],
+  );
+
+  const eventosRotinas = useMemo(
+    () => (filtros.rotinas ? projetarRotinas(rotinas, inicioISO, fimISO) : []),
+    [rotinas, filtros.rotinas, inicioISO, fimISO],
   );
 
   const eventosCompromissos = useMemo(
@@ -61,10 +68,17 @@ export function useEventosCalendario({
   const eventosPorDia = useMemo(
     () =>
       agruparPorDia(
-        [...aulas, ...avaliacoes, ...eventosCompromissos, ...eventosAfazeres, ...eventosAfazeresSemData],
+        [
+          ...aulas,
+          ...avaliacoes,
+          ...eventosRotinas,
+          ...eventosCompromissos,
+          ...eventosAfazeres,
+          ...eventosAfazeresSemData,
+        ],
         eventosExcluidos,
       ),
-    [aulas, avaliacoes, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData, eventosExcluidos],
+    [aulas, avaliacoes, eventosRotinas, eventosCompromissos, eventosAfazeres, eventosAfazeresSemData, eventosExcluidos],
   );
 
   return { eventosPorDia, marcosVigencia };

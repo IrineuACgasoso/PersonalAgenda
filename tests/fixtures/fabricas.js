@@ -30,8 +30,22 @@ export function cadeira(overrides = {}) {
   };
 }
 
+// Rotina = bloco semanal com horários (era o "compromisso" até a v4).
+export function rotina(overrides = {}) {
+  return { id: id("rot"), periodoId: "per-x", nome: "Academia", cor: "#10b981", horarios: [], ...overrides };
+}
+
+// Compromisso pontual (v5): data + início (fim opcional).
 export function compromisso(overrides = {}) {
-  return { id: id("comp"), periodoId: "per-x", nome: "Academia", cor: "#10b981", horarios: [], ...overrides };
+  return {
+    id: id("comp"),
+    nome: "Dentista",
+    cor: "#f59e0b",
+    data: "2026-11-20",
+    inicio: "14:00",
+    feito: false,
+    ...overrides,
+  };
 }
 
 export function afazer(overrides = {}) {
@@ -40,13 +54,12 @@ export function afazer(overrides = {}) {
     id: id("af"),
     nome: "Afazer",
     data: "",
-    hora: "",
     cor: "#221e1e",
     urgencia: 1,
     feito: false,
     datasConcluidas: [],
     excecoesData: {},
-    rotina: { tipo: "nenhuma", intervaloDias: 1, totalRepeticoes: "", diasSemana: [], ...(rotina || {}) },
+    rotina: { tipo: "nenhuma", intervaloDias: 1, dataFim: "", diasSemana: [], ...(rotina || {}) },
     ...resto,
   };
 }
@@ -57,6 +70,7 @@ export function appData(overrides = {}) {
     periodos: [p],
     periodoAtivoId: p.id,
     cadeiras: [],
+    rotinas: [],
     compromissos: [],
     afazeres: [],
     eventosConcluidos: [],
@@ -65,7 +79,7 @@ export function appData(overrides = {}) {
   };
 }
 
-// Backup .json no formato antigo (antes de compromissos/eventos* existirem).
+// Backup .json no formato antigo (antes de compromissos/rotinas/eventos* existirem).
 export function backupAntigo() {
   return {
     periodos: [{ id: "a1", nome: "2025.2" }],

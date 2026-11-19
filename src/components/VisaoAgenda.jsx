@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, CalendarClock } from "lucide-react";
+import { BookOpen, Repeat } from "lucide-react";
 import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
@@ -7,12 +7,17 @@ import EstadoVazio from "./ui/EstadoVazio.jsx";
 
 const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
 
+// "rotinas" herda o filtro salvo do antigo "compromissos" (semanais até a v5).
 function lerFiltrosAgendaIniciais() {
+  const padrao = { cadeiras: true, rotinas: true };
   try {
     const raw = localStorage.getItem(FILTROS_AGENDA_KEY);
-    return raw ? { cadeiras: true, compromissos: true, ...JSON.parse(raw) } : { cadeiras: true, compromissos: true };
+    if (!raw) return padrao;
+    const salvos = JSON.parse(raw);
+    const herdado = "rotinas" in salvos || !("compromissos" in salvos) ? {} : { rotinas: salvos.compromissos };
+    return { ...padrao, ...herdado, ...salvos };
   } catch {
-    return { cadeiras: true, compromissos: true };
+    return padrao;
   }
 }
 
@@ -22,7 +27,7 @@ function minutosParaTopo(hhmm, totalHoras) {
   return Math.max(0, Math.min(1, frac)) * 100;
 }
 
-export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeira, onAbrirCompromisso }) {
+export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, onAbrirRotina }) {
   const [filtros, setFiltros] = useState(lerFiltrosAgendaIniciais);
 
   const alternarFiltro = (chave) => {
@@ -45,10 +50,10 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
       });
     });
   }
-  if (filtros.compromissos) {
-    compromissos.forEach((c) => {
-      c.horarios.forEach((h) => {
-        blocos.push({ ...h, tipo: "compromisso", origemId: c.id, origemNome: c.nome, cor: c.cor });
+  if (filtros.rotinas) {
+    rotinas.forEach((r) => {
+      r.horarios.forEach((h) => {
+        blocos.push({ ...h, tipo: "rotina", origemId: r.id, origemNome: r.nome, cor: r.cor });
       });
     });
   }
@@ -74,16 +79,13 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
         <button className={`filtro-chip${filtros.cadeiras ? " ativo" : ""}`} onClick={() => alternarFiltro("cadeiras")}>
           <BookOpen size={13} /> Cadeiras
         </button>
-        <button
-          className={`filtro-chip${filtros.compromissos ? " ativo" : ""}`}
-          onClick={() => alternarFiltro("compromissos")}
-        >
-          <CalendarClock size={13} /> Compromissos
+        <button className={`filtro-chip${filtros.rotinas ? " ativo" : ""}`} onClick={() => alternarFiltro("rotinas")}>
+          <Repeat size={13} /> Rotinas
         </button>
       </div>
 
       {blocos.length === 0 ? (
-        <EstadoVazio texto="Cadastre horários nas cadeiras ou compromissos para ver a agenda" />
+        <EstadoVazio texto="Cadastre horários nas cadeiras ou rotinas para ver a agenda" />
       ) : (
         <div className="agenda-wrap">
           <div className="agenda-grid-head">
@@ -122,9 +124,7 @@ export default function VisaoAgenda({ cadeiras, compromissos = [], onAbrirCadeir
                           background: b.cor + "22",
                           borderLeft: `3px solid ${b.cor}`,
                         }}
-                        onClick={() =>
-                          b.tipo === "compromisso" ? onAbrirCompromisso(b.origemId) : onAbrirCadeira(b.origemId)
-                        }
+                        onClick={() => (b.tipo === "rotina" ? onAbrirRotina(b.origemId) : onAbrirCadeira(b.origemId))}
                         title={`${b.origemNome} · ${b.inicio}–${b.fim}`}
                       >
                         <span className="agenda-bloco-titulo" style={{ color: b.cor }}>

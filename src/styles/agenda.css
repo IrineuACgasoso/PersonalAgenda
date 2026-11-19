@@ -194,6 +194,12 @@
 }
 
 /* Nome do evento quebra em várias linhas em vez de ser cortado com "...". */
+/* ★ / livro antes do título (compromisso / avaliação) na lista do dia. */
+.data-item-icone {
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+
 .data-item-titulo-quebra {
   white-space: normal;
   overflow-wrap: anywhere;

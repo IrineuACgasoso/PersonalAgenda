@@ -58,13 +58,18 @@ describe("mensagemDeRecusa (#44)", () => {
 });
 
 describe("resumoDoBackup (lista de Restaurar da nuvem)", () => {
-  it("conta cadeiras, compromissos e afazeres com plural certo", () => {
-    const payload = appData({ cadeiras: [cadeira(), cadeira()], afazeres: [afazer()] });
-    expect(resumoDoBackup(payload)).toBe("2 cadeiras · 0 compromissos · 1 afazer");
+  it("conta cadeiras, rotinas, compromissos e afazeres com plural certo", () => {
+    const payload = appData({ versao: 5, cadeiras: [cadeira(), cadeira()], afazeres: [afazer()] });
+    expect(resumoDoBackup(payload)).toBe("2 cadeiras · 0 rotinas · 0 compromissos · 1 afazer");
+  });
+
+  it("backup anterior à v5: os compromissos semanais contam como rotinas", () => {
+    const payload = appData({ versao: 4, compromissos: [{ id: "x", nome: "Academia", horarios: [] }] });
+    expect(resumoDoBackup(payload)).toBe("0 cadeiras · 1 rotina · 0 compromissos · 0 afazeres");
   });
 
   it("aguenta payload ausente ou malformado", () => {
-    expect(resumoDoBackup(undefined)).toBe("0 cadeiras · 0 compromissos · 0 afazeres");
-    expect(resumoDoBackup({ cadeiras: "x" })).toBe("0 cadeiras · 0 compromissos · 0 afazeres");
+    expect(resumoDoBackup(undefined)).toBe("0 cadeiras · 0 rotinas · 0 compromissos · 0 afazeres");
+    expect(resumoDoBackup({ cadeiras: "x" })).toBe("0 cadeiras · 0 rotinas · 0 compromissos · 0 afazeres");
   });
 });

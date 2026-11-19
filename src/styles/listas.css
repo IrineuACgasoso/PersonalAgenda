@@ -1,0 +1,235 @@
+/* listas.css
+   Formulário em card + lista em seções, compartilhados pelas abas Afazeres
+   e Compromissos (Fase 5): .form-card, .form-campo, .secao-lista,
+   .item-lista, .chip-meta. O que é só de afazer (urgência, dias da semana,
+   check) fica em afazeres.css. */
+
+.pagina-descricao {
+  margin: -6px 0 0;
+  font-size: 13px;
+}
+
+/* ---------- formulário ---------- */
+.form-card {
+  /* position + z-index: o popover do seletor de data precisa ficar ACIMA
+     dos itens da lista, que também têm backdrop-filter (cada um vira um
+     contexto de empilhamento próprio e pintaria por cima). */
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--vidro-grad), var(--vidro-cor);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-md);
+  padding: 16px;
+  margin: 16px 0 22px;
+  box-shadow: var(--vidro-sombra);
+  scroll-margin-top: 16px;
+}
+
+.form-card-titulo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.form-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+/* Campo que ocupa a linha inteira (ex.: dias da semana). */
+.form-campo.form-campo-largo {
+  grid-column: 1 / -1;
+}
+
+.form-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.form-campo-rotulo {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+/* Início + fim lado a lado (compromisso). */
+.form-campo.form-campo-horas {
+  flex-direction: row;
+  gap: 8px;
+}
+
+.form-campo-horas > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.form-erro {
+  font-size: 12px;
+  color: #f87171;
+}
+
+/* Frase que explica o que vai acontecer ("Todo dia, a partir de hoje, até 30/11."). */
+.form-resumo {
+  margin: 0;
+  padding: 8px 11px;
+  border-radius: var(--raio-sm);
+  background: rgba(129, 140, 248, 0.08);
+  border: 1px solid rgba(129, 140, 248, 0.2);
+  font-size: 13px;
+  color: #c7cbf9;
+}
+
+.form-acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-secundario.btn-pequeno {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+/* ---------- lista em seções ---------- */
+.secoes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.secao-lista-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.secao-lista-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secao-lista-seta {
+  color: var(--texto-fraco);
+  transition: transform 0.15s;
+}
+
+.secao-lista-seta.fechada {
+  transform: rotate(-90deg);
+}
+
+.secao-lista-contagem {
+  padding: 0 7px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--texto-fraco);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.secao-lista-cabecalho > .btn-secundario {
+  margin-left: auto;
+}
+
+/* Seção "Atrasados": título em vermelho. */
+.secao-lista.secao-alerta .secao-lista-titulo {
+  color: #f87171;
+}
+
+/* ---------- item ---------- */
+.item-lista {
+  --cor-item: #8b5cf6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 14px;
+  border: 1px solid var(--vidro-borda);
+  border-left: 4px solid var(--cor-item);
+  border-radius: var(--raio-sm);
+  background: var(--vidro-grad), var(--vidro-cor);
+  backdrop-filter: var(--vidro-blur);
+  -webkit-backdrop-filter: var(--vidro-blur);
+  transition: border-color 0.15s;
+}
+
+.item-lista:hover {
+  border-color: var(--vidro-borda-forte);
+  border-left-color: var(--cor-item);
+}
+
+.item-lista.feito,
+.item-lista.encerrado {
+  opacity: 0.5;
+}
+
+.item-lista.feito .item-lista-titulo {
+  text-decoration: line-through;
+}
+
+.item-lista-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-lista-titulo {
+  font-size: 14.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.item-lista-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 4px;
+}
+
+.item-lista-hora {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto);
+}
+
+.chip-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--texto-fraco);
+  font-size: 11.5px;
+}
+
+.chip-meta.hoje {
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+}
+
+.chip-meta.atrasado {
+  background: rgba(248, 113, 113, 0.14);
+  color: #f87171;
+}

@@ -1,29 +1,39 @@
-// src/components/PainelCompromisso.jsx
+// src/components/PainelRotina.jsx
+// Drawer da rotina (Fase 5, ex-PainelCompromisso): nome, resumo (faixa da
+// semana, próxima, horas/semana), cor, período e a seção de horários.
 import { useState, useEffect, useRef } from "react";
 import { Trash2, X } from "lucide-react";
 import useListaInterna from "../hooks/useListaInterna";
 import { DIAS_FULL } from "../constants";
 import AbaHorarios from "./abas/AbaHorarios";
 import SeletorCor from "./ui/SeletorCor.jsx";
+import ResumoRotina from "./ui/ResumoRotina.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
 
-export default function PainelCompromisso({ compromisso, periodos = [], onFechar, onAtualizar, onExcluir }) {
-  const [nomeEdit, setNomeEdit] = useState(compromisso.nome);
+export default function PainelRotina({
+  rotina,
+  periodos = [],
+  eventosExcluidos = [],
+  onFechar,
+  onAtualizar,
+  onExcluir,
+}) {
+  const [nomeEdit, setNomeEdit] = useState(rotina.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
 
-  // Só ao trocar de compromisso (mesmo motivo do PainelCadeira).
+  // Só ao trocar de rotina (mesmo motivo do PainelCadeira).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => setNomeEdit(compromisso.nome), [compromisso.id]);
+  useEffect(() => setNomeEdit(rotina.nome), [rotina.id]);
 
   const salvarNome = () => {
     const v = nomeEdit.trim();
-    if (v && v !== compromisso.nome) onAtualizar({ nome: v });
+    if (v && v !== rotina.nome) onAtualizar({ nome: v });
   };
 
-  /* horários: leem o compromisso mais recente; excluir tem "Desfazer" (#18) */
+  /* horários: leem a rotina mais recente; excluir tem "Desfazer" (#18) */
   const {
     adicionar: addHorario,
     remover: rmHorario,
@@ -34,32 +44,34 @@ export default function PainelCompromisso({ compromisso, periodos = [], onFechar
     <div className="overlay" onClick={onFechar}>
       <div className="painel-lateral" ref={painelRef} onClick={(e) => e.stopPropagation()}>
         <div className="painel-header">
-          <span className="cor-dot" style={{ background: compromisso.cor }} />
+          <span className="cor-dot" style={{ background: rotina.cor }} />
           <input
             className="painel-title-input"
             value={nomeEdit}
             onChange={(e) => setNomeEdit(e.target.value)}
             onBlur={salvarNome}
           />
-          <button className="icon-btn-ghost" onClick={onExcluir} title="Excluir compromisso">
+          <button className="icon-btn-ghost" onClick={onExcluir} title="Excluir rotina">
             <Trash2 size={15} />
           </button>
-          <button className="icon-btn-ghost" onClick={onFechar}>
+          <button className="icon-btn-ghost" onClick={onFechar} title="Fechar">
             <X size={17} />
           </button>
         </div>
 
-        <div style={{ marginTop: 10 }}>
-          <SeletorCor key={compromisso.id} valor={compromisso.cor} onChange={(cor) => onAtualizar({ cor })} />
+        <div className="painel-resumo">
+          <ResumoRotina rotina={rotina} eventosExcluidos={eventosExcluidos} />
         </div>
 
-        <div style={{ marginTop: 14 }}>
-          <span className="subtle" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
-            Período (obrigatório):
-          </span>
+        <div style={{ marginTop: 10 }}>
+          <SeletorCor key={rotina.id} valor={rotina.cor} onChange={(cor) => onAtualizar({ cor })} />
+        </div>
+
+        <div className="painel-vigencia">
+          <span className="subtle painel-vigencia-rotulo">Período</span>
           <select
             className="input"
-            value={compromisso.periodoId || ""}
+            value={rotina.periodoId || ""}
             onChange={(e) => {
               if (e.target.value) onAtualizar({ periodoId: e.target.value });
             }}
@@ -70,21 +82,21 @@ export default function PainelCompromisso({ compromisso, periodos = [], onFechar
               </option>
             ))}
           </select>
-          <span className="subtle" style={{ fontSize: 11, display: "block", marginTop: 4 }}>
+          <span className="subtle painel-vigencia-dica">
             Só aparece na agenda e no calendário quando este período estiver selecionado.
           </span>
         </div>
 
-        <div className="painel-conteudo" style={{ paddingTop: 18 }}>
-          <h2 className="titulo-secao" style={{ marginBottom: 4 }}>
-            Horários
-          </h2>
-          <AbaHorarios
-            horarios={compromisso.horarios}
-            onAdd={addHorario}
-            onRemover={rmHorario}
-            onEditar={editHorario}
-          />
+        <div className="painel-secoes">
+          <section className="painel-secao">
+            <div className="painel-secao-cabecalho painel-secao-fixo">
+              <span>Horários</span>
+              <span className="painel-secao-contagem">{rotina.horarios.length}</span>
+            </div>
+            <div className="painel-secao-corpo">
+              <AbaHorarios horarios={rotina.horarios} onAdd={addHorario} onRemover={rmHorario} onEditar={editHorario} />
+            </div>
+          </section>
         </div>
       </div>
     </div>

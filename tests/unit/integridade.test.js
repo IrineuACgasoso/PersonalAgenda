@@ -125,6 +125,15 @@ describe("Firestore Rules (firestore.rules)", () => {
     expect(obrigatorios.filter((c) => !(c in DADOS_PADRAO))).toEqual([]);
   });
 
+  // Fase 5 (rotinas): lista nova no AppData tem que ser exigida pelas Rules,
+  // senão uma gravação com bug sem ela apagaria a lista inteira no servidor.
+  it("toda lista do DADOS_PADRAO é obrigatória nas Rules", async () => {
+    const { DADOS_PADRAO } = await import("../../src/utils/sanitizarDados.js");
+    const obrigatorios = JSON.parse(rules.match(/hasAll\((\[[^\]]+\])\)/)[1]);
+    const listas = Object.keys(DADOS_PADRAO).filter((c) => Array.isArray(DADOS_PADRAO[c]));
+    expect(listas.filter((c) => !obrigatorios.includes(c))).toEqual([]);
+  });
+
   it("documento principal não pode ser apagado e o resto do banco é negado", () => {
     expect(rules).toMatch(/match \/users\/\{uid\}[\s\S]*?allow delete: if false;/);
     expect(rules).toMatch(/match \/\{document=\*\*\}\s*\{\s*allow read, write: if false;/);

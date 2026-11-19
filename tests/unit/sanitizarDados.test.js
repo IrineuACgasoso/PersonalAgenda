@@ -2,7 +2,7 @@
 // Estes testes protegem contra PERDA DE DADOS — não afrouxe sem motivo.
 import { describe, it, expect } from "vitest";
 import { sanitizarDados, pareceVazio, DADOS_PADRAO, removerUndefined } from "../../src/utils/sanitizarDados.js";
-import { appData, afazer, cadeira, compromisso, horario, backupAntigo } from "../fixtures/fabricas.js";
+import { appData, afazer, cadeira, rotina, compromisso, horario, backupAntigo } from "../fixtures/fabricas.js";
 
 describe("sanitizarDados", () => {
   it("entrada nula/inválida vira o padrão", () => {
@@ -63,18 +63,35 @@ describe("sanitizarDados", () => {
     expect(d.cadeiras[1]).toMatchObject({ horarios: [], links: [], datas: [] });
   });
 
-  it("normaliza horarios ausentes/inválidos nos compromissos", () => {
-    const d = sanitizarDados(appData({ compromissos: [{ id: "x", nome: "Academia", horarios: "lixo" }] }));
-    expect(d.compromissos[0].horarios).toEqual([]);
+  it("normaliza horarios ausentes/inválidos nas rotinas", () => {
+    const d = sanitizarDados(appData({ versao: 5, rotinas: [{ id: "x", nome: "Academia", horarios: "lixo" }] }));
+    expect(d.rotinas[0].horarios).toEqual([]);
   });
 
-  it("preserva o conteúdo e os campos extras de cadeiras/compromissos", () => {
+  it("preserva o conteúdo e os campos extras de cadeiras/rotinas/compromissos", () => {
     const h = horario();
     const c = cadeira({ horarios: [h], links: [{ id: "l1", url: "https://x.com" }], extra: 7 });
-    const comp = compromisso({ horarios: [h], extra: 8 });
-    const d = sanitizarDados(appData({ cadeiras: [c], compromissos: [comp] }));
+    const r = rotina({ horarios: [h], extra: 8 });
+    const comp = compromisso({ fim: "15:00", concluidoEm: 5, extra: 9 });
+    const d = sanitizarDados(appData({ versao: 5, cadeiras: [c], rotinas: [r], compromissos: [comp] }));
     expect(d.cadeiras[0]).toEqual(c);
+    expect(d.rotinas[0]).toEqual(r);
     expect(d.compromissos[0]).toEqual(comp);
+  });
+
+  it("compromisso com data/hora inválidas não quebra (vira vazio; fim inválido some)", () => {
+    const d = sanitizarDados(
+      appData({ versao: 5, compromissos: [{ id: "k", nome: "X", data: "amanhã", inicio: 9, fim: "x", feito: 1 }] }),
+    );
+    expect(d.compromissos[0]).toEqual({ id: "k", nome: "X", data: "", inicio: "", feito: true });
+  });
+
+  it("data de fim da repetição: só YYYY-MM-DD sobrevive; sem ela = '' (para sempre)", () => {
+    const ok = afazer({ rotina: { tipo: "diaria", dataFim: "2026-12-01" } });
+    const lixo = afazer({ rotina: { tipo: "diaria", dataFim: "logo" } });
+    const d = sanitizarDados(appData({ versao: 5, afazeres: [ok, lixo] }));
+    expect(d.afazeres.map((a) => a.rotina.dataFim)).toEqual(["2026-12-01", ""]);
+    expect("totalRepeticoes" in d.afazeres[0].rotina).toBe(false);
   });
 
   it("descarta itens que não são objetos (null, string) em vez de quebrar", () => {
@@ -90,8 +107,9 @@ describe("sanitizarDados", () => {
 describe("pareceVazio (trava anti-sobrescrita)", () => {
   it("padrão é vazio", () => expect(pareceVazio(DADOS_PADRAO)).toBe(true));
   it("null é vazio", () => expect(pareceVazio(null)).toBe(true));
-  it("qualquer cadeira, compromisso ou afazer = não vazio", () => {
+  it("qualquer cadeira, rotina, compromisso ou afazer = não vazio", () => {
     expect(pareceVazio({ ...DADOS_PADRAO, cadeiras: [cadeira()] })).toBe(false);
+    expect(pareceVazio({ ...DADOS_PADRAO, rotinas: [rotina()] })).toBe(false);
     expect(pareceVazio({ ...DADOS_PADRAO, afazeres: [afazer()] })).toBe(false);
     expect(pareceVazio({ ...DADOS_PADRAO, compromissos: [{ id: "c" }] })).toBe(false);
   });
@@ -127,7 +145,7 @@ describe("removerUndefined / sanitizarDados sem undefined (#43)", () => {
   it("rotina montada pelo formulário com campos undefined sai limpa", () => {
     const af = {
       ...afazer(),
-      rotina: { tipo: "diaria", intervaloDias: undefined, diasSemana: undefined, totalRepeticoes: undefined },
+      rotina: { tipo: "diaria", intervaloDias: undefined, diasSemana: undefined, dataFim: undefined },
     };
     expect(temUndefined(sanitizarDados(appData({ afazeres: [af] })))).toBe(false);
   });

@@ -1,6 +1,6 @@
 # 📅 Minha Agenda Pessoal
 
-Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeiras, compromissos semanais, afazeres e um calendário geral** que cruza tudo isso. Funciona como **PWA** (instalável no celular/desktop), **offline-first** e sincroniza entre dispositivos via **Firebase** quando logado.
+Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeiras, rotinas semanais, compromissos, afazeres e um calendário geral** que cruza tudo isso. Funciona como **PWA** (instalável no celular/desktop), **offline-first** e sincroniza entre dispositivos via **Firebase** quando logado.
 
 <p align="center">
   <img src="docs/screenshots/tela-inicial.jpeg" alt="Tela Inicial" width="300" />
@@ -46,8 +46,13 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 </p>
 <!-- PLACEHOLDER: print do drawer lateral de uma cadeira (abas Horários / Links / Datas) -->
 
-### 🗓️ Compromissos
-- Compromissos recorrentes semanais (academia, reunião fixa etc.), vinculados a um período.
+### 🔁 Rotinas
+- Atividades de toda semana com horário fixo (academia, inglês etc.), vinculadas a um período.
+- Card com a **faixa da semana** (dias ativos acesos na cor da rotina), a **próxima ocorrência** e as horas por semana.
+
+### ⭐ Compromissos
+- Eventos **pontuais com hora marcada** (dentista, reunião): data, início e fim opcional.
+- Marcados com uma **★** no calendário geral; dá para concluir, arrastar para outro dia e apagar os passados.
 - Reaproveitam o mesmo editor de horários das cadeiras.
 
 <p align="center">
@@ -55,8 +60,9 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 </p>
 
 ### ✅ Afazeres
-- Afazeres avulsos com **data/hora opcionais**, **cor livre** (seletor hexadecimal) e **urgência** em 3 níveis (barra de "bateria").
-- **Rotinas:** diária, semanal, quinzenal, mensal, **dias específicos da semana** ou intervalo personalizado, com limite opcional de repetições.
+- Afazeres **sem hora**: com uma data, sem data (aparecem em "hoje" até serem concluídos) ou repetidos; **cor livre** e **urgência** em 3 níveis (barra de "bateria").
+- **Repetição:** diária, semanal, quinzenal, mensal, **dias específicos da semana** ou intervalo personalizado. A **data de fim** é escolhida num calendário que só mostra os dias possíveis da repetição; vazio = para sempre.
+- Lista em seções: Atrasados · Hoje · Próximos · Sem data · Recorrentes · Concluídos.
 - Conclusão **por ocorrência** (concluir só o dia de hoje de um afazer recorrente, sem afetar os outros).
 - Afazeres com data aparecem automaticamente no calendário geral.
 
@@ -66,7 +72,8 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 <!-- PLACEHOLDER: print da aba "Afazeres" mostrando o formulário e a lista com urgência/rotina -->
 
 ### 📆 Calendário geral
-- Visão mensal que **cruza aulas, avaliações, compromissos e afazeres**, com filtros por tipo.
+- Visão mensal que **cruza aulas, avaliações, rotinas, compromissos e afazeres**, com filtros por tipo.
+- **Marcadores** no canto do dia: ★ compromisso, 📖 avaliação, bandeiras de início/fim de cadeira (vários do mesmo tipo = número).
 - Abre com o dia atual selecionado e painel de detalhes do dia.
 - **Arrastar e soltar** ocorrências de afazeres para outro dia (mouse, e toque com *long-press*), com troca automática de mês ao arrastar até a borda.
 - Em afazeres recorrentes, mover uma ocorrência **não altera a regra**: a exceção é guardada só para aquela data.
@@ -78,7 +85,7 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 <!-- PLACEHOLDER: print/GIF do drag-and-drop de um afazer entre dias do calendário -->
 
 ### 🧭 Agenda da semana
-- Grade semanal (06h–23h) combinando horários de cadeiras e compromissos, com filtro por origem.
+- Grade semanal (06h–23h) combinando horários de cadeiras e rotinas, com filtro por origem.
 - Clicar num bloco abre o painel de edição correspondente.
 - Lista de próximas datas importantes.
 
@@ -114,10 +121,12 @@ Todo o estado é um único objeto (`AppData`), persistido como um documento só:
 
 ```ts
 type AppData = {
-  periodos: Periodo[];            // { id, nome, dataInicio?, dataFim? }
-  cadeiras: Cadeira[];            // { id, periodoId, nome, cor, horarios[], links[], datas[] }
-  compromissos: Compromisso[];    // { id, periodoId, nome, cor, horarios[] }
-  afazeres: Afazer[];             // { id, nome, data?, hora?, rotina, urgencia, feito, cor?, ... }
+  versao: number;                 // versão do schema (migrações em utils/migracoes.js)
+  periodos: Periodo[];            // { id, nome }
+  cadeiras: Cadeira[];            // { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[], links[], datas[] }
+  rotinas: Rotina[];              // { id, periodoId, nome, cor, horarios[] }
+  compromissos: Compromisso[];    // { id, nome, cor, data, inicio, fim?, feito }
+  afazeres: Afazer[];             // { id, nome, data?, rotina{ tipo, dataFim?, ... }, urgencia, feito, cor?, ... }
   eventosConcluidos: string[];    // chaves de ocorrências marcadas como concluídas
   eventosExcluidos: string[];     // chaves de ocorrências removidas (ex.: aula cancelada)
   periodoAtivoId: string | null;
@@ -125,7 +134,7 @@ type AppData = {
 ```
 
 ### Recorrência calculada sob demanda
-Ocorrências futuras **nunca são persistidas**. Aulas e compromissos são projetados dia a dia em `useEventosCalendario`; afazeres rotineiros usam `ocorrenciasNoIntervalo()` (`utils/afazeres.js`). Exceções (concluído, excluído, movido) ficam em listas/mapas indexados pela data da ocorrência.
+Ocorrências futuras **nunca são persistidas**. Aulas e rotinas são projetadas dia a dia em `utils/projecao.js` (memoizado por `useEventosCalendario`); afazeres rotineiros usam `ocorrenciasNoIntervalo()` (`utils/afazeres.js`). Exceções (concluído, excluído, movido) ficam em listas/mapas indexados pela data da ocorrência.
 
 ### Camada de persistência (`usePersistedData`)
 Todo write do app passa por `persist()`, que decide o destino:
@@ -245,7 +254,7 @@ src/
 ├── constants.js             # Cores, dias, rotinas, chaves de storage
 ├── hooks/
 │   ├── usePersistedData.js  # Persistência híbrida (local / Firestore), fila de escrita, offline
-│   ├── useEventosCalendario.js  # Projeção de aulas, avaliações, compromissos e afazeres por mês
+│   ├── useEventosCalendario.js  # Memoiza a projeção do mês (utils/projecao.js)
 │   ├── useFiltrosCalendario.js  # Filtros do calendário (persistidos)
 │   ├── useCloudBackup.js    # Snapshots no Firestore a cada 3h
 │   └── useNavegacaoEnter.js # Navegação por Enter em formulários
@@ -258,10 +267,10 @@ src/
     ├── Sidebar.jsx
     ├── VisaoGeral.jsx       # Calendário mensal + drag-and-drop
     ├── VisaoAgenda.jsx      # Grade semanal
-    ├── VisaoCadeiras.jsx / VisaoCompromissos.jsx / VisaoAfazeres.jsx
-    ├── PainelCadeira.jsx / PainelCompromisso.jsx   # Drawers de edição
+    ├── VisaoCadeiras.jsx / VisaoRotinas.jsx / VisaoCompromissos.jsx / VisaoAfazeres.jsx
+    ├── PainelCadeira.jsx / PainelRotina.jsx   # Drawers de edição
     ├── abas/                # Horários, Links, Datas
-    └── ui/                  # SeletorCor, SeletorPeriodo, ModalTexto, ...
+    └── ui/                  # SeletorData, SeletorCor, SecaoLista, ResumoCadeira/Rotina, ...
 ```
 
 ---

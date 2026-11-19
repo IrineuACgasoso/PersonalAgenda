@@ -4,9 +4,10 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
-  GraduationCap,
+  BookMarked,
   ListChecks,
-  CalendarClock,
+  Repeat,
+  Star,
   Check,
   Plus,
   Trash2,
@@ -17,17 +18,39 @@ import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
 import { NOME_MESES, gerarCelulasMes, hexParaRgb } from "../utils/calendario.js";
+import { marcadoresDoDia, resumirMarcadores } from "../utils/projecao.js";
+import useFecharAoClicarFora from "../hooks/useFecharAoClicarFora.js";
 import { useFiltrosCalendario } from "../hooks/useFiltrosCalendario.js";
 import { useEventosCalendario } from "../hooks/useEventosCalendario.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import BarraUrgencia from "./ui/BarraUrgencia.jsx";
 
+// Os ícones dos filtros são os mesmos dos marcadores das células (Fase 5):
+// livro = avaliação, ★ = compromisso.
 const TIPOS = [
   { chave: "aulas", label: "Aulas", icone: BookOpen },
-  { chave: "avaliacoes", label: "Avaliações", icone: GraduationCap },
-  { chave: "compromissos", label: "Compromissos", icone: CalendarClock },
-  { chave: "afazeres", label: "Afazeres/Eventos", icone: ListChecks },
+  { chave: "avaliacoes", label: "Avaliações", icone: BookMarked },
+  { chave: "rotinas", label: "Rotinas", icone: Repeat },
+  { chave: "compromissos", label: "Compromissos", icone: Star },
+  { chave: "afazeres", label: "Afazeres", icone: ListChecks },
 ];
+
+// Ícone de cada marcador da célula (ver marcadoresDoDia em utils/projecao.js).
+const ICONE_MARCADOR = { compromisso: Star, avaliacao: BookMarked, inicio: Flag, fim: FlagOff };
+const TEXTO_MARCADOR = {
+  compromisso: (t) => `Compromisso: ${t}`,
+  avaliacao: (t) => `Avaliação: ${t}`,
+  inicio: (t) => `Início de ${t}`,
+  fim: (t) => `Fim de ${t}`,
+};
+
+// Afazer sem repetição e compromisso acontecem uma vez só: a lixeira do
+// calendário os exclui de verdade (com Desfazer), em vez de só esconder o
+// dia e deixar o item vivo na aba (#45).
+const ehAfazerPontual = (ev) => ev.tipo === "afazeres" && !(ev.rotina && ev.rotina.tipo !== "nenhuma");
+
+// Identidade de um item arrastável (afazer e compromisso podem ter ids iguais).
+const idArrasto = (ev) => `${ev.tipo}|${ev.id}`;
 
 // distância mínima (px) do ponteiro para considerar que o usuário começou a arrastar
 const LIMIAR_ARRASTO = 8;
@@ -37,6 +60,7 @@ const ATRASO_ARRASTO_TOQUE = 350;
 
 export default function VisaoGeral({
   cadeiras = [],
+  rotinas = [],
   compromissos = [],
   afazeres = [],
   eventosConcluidos = [],
@@ -46,7 +70,12 @@ export default function VisaoGeral({
   onAlternarFeitoAfazer,
   onAtualizarAfazer,
   onMoverInstanciaAfazer,
+  onExcluirAfazer,
+  onAlternarFeitoCompromisso,
+  onAtualizarCompromisso,
+  onExcluirCompromisso,
   onNovoAfazer,
+  onNovoCompromisso,
 }) {
   const hoje = new Date();
   const hojeISO = toISO(hoje);
@@ -57,10 +86,15 @@ export default function VisaoGeral({
   const [cursor, setCursor] = useState({ ano: hoje.getFullYear(), mes: hoje.getMonth() });
   const { ano, mes } = cursor;
   const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
+  // Menu do "+" da lista do dia: novo afazer ou novo compromisso nessa data.
+  const [menuNovoAberto, setMenuNovoAberto] = useState(false);
+  const menuNovoRef = useRef(null);
+  useFecharAoClicarFora(menuNovoRef, menuNovoAberto, () => setMenuNovoAberto(false));
 
   const { filtros, alternarFiltro } = useFiltrosCalendario();
   const { eventosPorDia, marcosVigencia } = useEventosCalendario({
     cadeiras,
+    rotinas,
     compromissos,
     afazeres,
     ano,
@@ -86,7 +120,7 @@ export default function VisaoGeral({
   });
   const [itemArrastando, setItemArrastando] = useState(null); // { id, titulo, cor, x, y }
   const [diaAlvo, setDiaAlvo] = useState(null);
-  const [itemPronto, setItemPronto] = useState(null); // id do item "armado" para arrastar (feedback visual no toque)
+  const [itemPronto, setItemPronto] = useState(null); // idArrasto do item "armado" (feedback visual no toque)
 
   const prevBtnRef = useRef(null);
   const nextBtnRef = useRef(null);
@@ -163,6 +197,8 @@ export default function VisaoGeral({
       }
       return !!ev.feito;
     }
+    // Compromisso pontual (v5): a conclusão fica no próprio item.
+    if (ev.tipo === "compromissos") return !!ev.feito;
     return eventosConcluidos.includes(ev.chave);
   };
 
@@ -172,21 +208,31 @@ export default function VisaoGeral({
         // Passa a data específica da ocorrência para alterar apenas aquele dia
         onAlternarFeitoAfazer(ev.id, ev.dataOriginal ?? ev.data);
       }
+    } else if (ev.tipo === "compromissos") {
+      onAlternarFeitoCompromisso?.(ev.id);
     } else if (onAlternarEventoConcluido) {
       onAlternarEventoConcluido(ev.chave);
     }
   };
 
-  // Remove só esta ocorrência do dia (ex: aula cancelada, compromisso que
-  // não vai acontecer) — nunca apaga o horário/afazer recorrente inteiro,
-  // só esconde esse dia específico da agenda. Sem confirm(): o App mostra um
+  // Lixeira da lista do dia. Recorrentes (aula, rotina, afazer que se
+  // repete): remove só esta ocorrência — o resto continua. Avaliação: some
+  // do calendário (a data continua na cadeira). Compromisso e afazer sem
+  // repetição: excluídos de verdade (#45). Sem confirm(): o App mostra um
   // toast com "Desfazer" (#18).
   const excluirInstancia = (ev) => {
+    if (ev.tipo === "compromissos") return onExcluirCompromisso?.(ev.id);
+    if (ehAfazerPontual(ev)) return onExcluirAfazer?.(ev.id);
     if (!onExcluirInstanciaEvento) return;
-    const ehRotina = ev.tipo === "afazeres" && ev.rotina && ev.rotina.tipo !== "nenhuma";
-    const ehRecorrente = ev.tipo === "aulas" || ev.tipo === "compromissos" || ehRotina;
-    const texto = ehRecorrente ? `"${ev.titulo}" removido só deste dia` : `"${ev.titulo}" removido da agenda`;
+    const texto =
+      ev.tipo === "avaliacoes" ? `"${ev.titulo}" removido da agenda` : `"${ev.titulo}" removido só deste dia`;
     onExcluirInstanciaEvento(ev.chave, texto);
+  };
+
+  const tituloLixeira = (ev) => {
+    if (ev.tipo === "compromissos") return "Excluir compromisso";
+    if (ehAfazerPontual(ev)) return "Excluir afazer";
+    return ev.tipo === "avaliacoes" ? "Remover da agenda" : "Remover só este dia";
   };
   // pendentes primeiro (por horário/urgência), concluídos vão para o final —
   // dentro dos pendentes, afazeres de maior urgência sobem para o topo; sort
@@ -222,8 +268,12 @@ export default function VisaoGeral({
     }
   };
 
+  const podeArrastar = (ev) =>
+    (ev.tipo === "afazeres" && (!!onAtualizarAfazer || !!onMoverInstanciaAfazer)) ||
+    (ev.tipo === "compromissos" && !!onAtualizarCompromisso);
+
   const iniciarPossivelArrasto = (e, ev) => {
-    if (ev.tipo !== "afazeres" || (!onAtualizarAfazer && !onMoverInstanciaAfazer)) return;
+    if (!podeArrastar(ev)) return;
     const elemento = e.currentTarget;
     const ehToque = e.pointerType === "touch";
 
@@ -246,7 +296,7 @@ export default function VisaoGeral({
         // só a partir daqui bloqueamos o scroll nativo, já que o dedo ficou
         // parado tempo suficiente pra confirmar que é arrasto e não rolagem
         if (st.elemento) st.elemento.style.touchAction = "none";
-        setItemPronto(ev.id);
+        setItemPronto(idArrasto(ev));
         if (navigator.vibrate) navigator.vibrate(12);
       }, ATRASO_ARRASTO_TOQUE);
     } else {
@@ -284,7 +334,13 @@ export default function VisaoGeral({
           st.elemento.setPointerCapture(e.pointerId);
         } catch {}
       }
-      setItemArrastando({ id: st.evento.id, titulo: st.evento.titulo, cor: st.evento.cor, x: e.clientX, y: e.clientY });
+      setItemArrastando({
+        chave: idArrasto(st.evento),
+        titulo: st.evento.titulo,
+        cor: st.evento.cor,
+        x: e.clientX,
+        y: e.clientY,
+      });
       // começa a checar (em intervalo) autoscroll de borda + troca de mês
       // ao segurar sobre as setas, independente de novos eventos de movimento
       if (!autoScrollTimerRef.current) {
@@ -315,7 +371,11 @@ export default function VisaoGeral({
     if (st.ativo && st.evento && alvo && alvo !== st.evento.data) {
       const ev = st.evento;
       const ehRotina = ev.rotina && ev.rotina.tipo !== "nenhuma";
-      if (ehRotina && onMoverInstanciaAfazer) {
+      if (ev.tipo === "compromissos") {
+        // Compromisso: muda a data, mantém o horário.
+        onAtualizarCompromisso(ev.id, { data: alvo });
+        setDiaSelecionado(alvo);
+      } else if (ehRotina && onMoverInstanciaAfazer) {
         // Afazer com recorrência: move só esta ocorrência (a "quarta que
         // virou quinta"). A regra continua valendo normalmente para as
         // outras semanas — nada é sobrescrito na rotina em si.
@@ -383,15 +443,47 @@ export default function VisaoGeral({
           <h2 className="titulo-secao" style={{ marginBottom: 0 }}>
             {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
           </h2>
-          {diaSelecionado && onNovoAfazer && (
-            <button
-              type="button"
-              className="icon-btn-ghost"
-              onClick={() => onNovoAfazer(diaSelecionado)}
-              title={`Criar afazer em ${formatarData(diaSelecionado)}`}
-            >
-              <Plus size={16} />
-            </button>
+          {diaSelecionado && (onNovoAfazer || onNovoCompromisso) && (
+            <div className="menu-novo" ref={menuNovoRef}>
+              <button
+                type="button"
+                className="icon-btn-ghost"
+                onClick={() => setMenuNovoAberto((v) => !v)}
+                title={`Criar em ${formatarData(diaSelecionado)}`}
+                aria-haspopup="menu"
+                aria-expanded={menuNovoAberto}
+              >
+                <Plus size={16} />
+              </button>
+              {menuNovoAberto && (
+                <div className="menu-novo-opcoes" role="menu">
+                  {onNovoAfazer && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuNovoAberto(false);
+                        onNovoAfazer(diaSelecionado);
+                      }}
+                    >
+                      <ListChecks size={14} /> Afazer
+                    </button>
+                  )}
+                  {onNovoCompromisso && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuNovoAberto(false);
+                        onNovoCompromisso(diaSelecionado);
+                      }}
+                    >
+                      <Star size={14} /> Compromisso
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -426,9 +518,9 @@ export default function VisaoGeral({
             >
               {eventosDoDiaSelecionado.map((ev, i) => {
                 const concluido = eventoEstaConcluido(ev);
-                const arrastavel = ev.tipo === "afazeres" && (!!onAtualizarAfazer || !!onMoverInstanciaAfazer);
-                const sendoArrastado = itemArrastando && itemArrastando.id === ev.id && ev.tipo === "afazeres";
-                const pronto = itemPronto === ev.id && ev.tipo === "afazeres" && !sendoArrastado;
+                const arrastavel = podeArrastar(ev);
+                const sendoArrastado = itemArrastando && itemArrastando.chave === idArrasto(ev);
+                const pronto = itemPronto === idArrasto(ev) && !sendoArrastado;
                 return (
                   <div
                     key={ev.chave || i}
@@ -454,7 +546,15 @@ export default function VisaoGeral({
                         mobile nomes longos ficavam ilegíveis. O item cresce em
                         altura e a faixa colorida acompanha (align-self: stretch). */}
                     <div className="data-item-texto">
-                      <div className="data-item-titulo data-item-titulo-quebra">{ev.titulo}</div>
+                      <div className="data-item-titulo data-item-titulo-quebra">
+                        {ev.tipo === "compromissos" && (
+                          <Star size={12} fill={ev.cor} color={ev.cor} className="data-item-icone" />
+                        )}
+                        {ev.tipo === "avaliacoes" && (
+                          <BookMarked size={12} color={ev.cor} className="data-item-icone" />
+                        )}
+                        {ev.titulo}
+                      </div>
                       <div className="subtle data-item-sub">{ev.origem}</div>
                     </div>
                     <div className="data-item-urgencia">
@@ -467,7 +567,7 @@ export default function VisaoGeral({
                         className="icon-btn-ghost"
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => excluirInstancia(ev)}
-                        title="Remover este dia da agenda"
+                        title={tituloLixeira(ev)}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -480,7 +580,7 @@ export default function VisaoGeral({
         </div>
         {itemArrastando && (
           <div className="subtle" style={{ marginTop: 8, fontSize: 11 }}>
-            Arraste até um dia do calendário para mudar a data do afazer.
+            Arraste até um dia do calendário para mudar a data.
           </div>
         )}
       </div>
@@ -515,9 +615,8 @@ export default function VisaoGeral({
           const ehAlvoDrag = itemArrastando && diaAlvo === dataISO;
           const temAvaliacao = eventos.some((ev) => ev.tipo === "avaliacoes");
           const eventoImportante = eventos.find((ev) => ev.tipo === "avaliacoes");
-          const marcos = marcosVigencia[dataISO] || [];
-          const marcoInicio = marcos.find((m) => m.tipo === "inicio");
-          const marcoFim = marcos.find((m) => m.tipo === "fim");
+          const marcadores = marcadoresDoDia(eventos, marcosVigencia[dataISO] || []);
+          const { visiveis: marcadoresVisiveis, ocultos: marcadoresOcultos } = resumirMarcadores(marcadores);
 
           let celulaStyle = { transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)" };
           if (ehHoje && !selecionada) {
@@ -606,13 +705,24 @@ export default function VisaoGeral({
               >
                 {dia}
               </span>
-              {marcos.length > 0 && (
+              {/* Marcadores (Fase 5): ★ compromisso, livro = avaliação, bandeiras =
+                  vigência. Um ícone por tipo (número = quantos), até 3; passou
+                  disso, 2 + "+N". Só informativos: o clique é da célula. */}
+              {marcadores.length > 0 && (
                 <span
                   className="calendario-marcos"
-                  title={marcos.map((m) => `${m.tipo === "inicio" ? "Início" : "Fim"} de ${m.nome}`).join(", ")}
+                  title={marcadores.flatMap((m) => m.titulos.map(TEXTO_MARCADOR[m.tipo])).join("\n")}
                 >
-                  {marcoInicio && <Flag size={11} color={marcoInicio.cor} />}
-                  {marcoFim && <FlagOff size={11} color={marcoFim.cor} />}
+                  {marcadoresVisiveis.map((m) => {
+                    const Icone = ICONE_MARCADOR[m.tipo];
+                    return (
+                      <span key={m.tipo} className={`calendario-marcador marcador-${m.tipo}`}>
+                        <Icone size={11} color={m.cor} fill={m.tipo === "compromisso" ? m.cor : "none"} />
+                        {m.quantidade > 1 && <sup>{m.quantidade}</sup>}
+                      </span>
+                    );
+                  })}
+                  {marcadoresOcultos > 0 && <span className="calendario-marcos-mais">+{marcadoresOcultos}</span>}
                 </span>
               )}
               <div className="calendario-pontos">

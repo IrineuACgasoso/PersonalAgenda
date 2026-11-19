@@ -2,14 +2,18 @@
 import { useState } from "react";
 
 const FILTROS_KEY = "painel-academico-filtros-calendario";
-const FILTROS_PADRAO = { aulas: true, avaliacoes: true, afazeres: true, compromissos: true };
+const FILTROS_PADRAO = { aulas: true, avaliacoes: true, rotinas: true, compromissos: true, afazeres: true };
 
 function lerFiltrosIniciais() {
   try {
     const raw = localStorage.getItem(FILTROS_KEY);
-    // O merge garante que usuários com filtros salvos antes da adição de
-    // "compromissos" continuem vendo esse filtro ativado por padrão.
-    return raw ? { ...FILTROS_PADRAO, ...JSON.parse(raw) } : { ...FILTROS_PADRAO };
+    // O merge garante que filtros novos (ex.: "rotinas", Fase 5) nasçam
+    // ligados para quem já tinha filtros salvos. "rotinas" herda o valor do
+    // antigo "compromissos", que até a v5 controlava os semanais.
+    if (!raw) return { ...FILTROS_PADRAO };
+    const salvos = JSON.parse(raw);
+    const herdado = "rotinas" in salvos || !("compromissos" in salvos) ? {} : { rotinas: salvos.compromissos };
+    return { ...FILTROS_PADRAO, ...herdado, ...salvos };
   } catch {
     return { ...FILTROS_PADRAO };
   }

@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-11-19 (9) — Fase 5 (#22 + #45): Rotinas, Compromissos pontuais e Afazeres novos — **schema v5**
+- **Decisões do usuário (perguntas da sessão):** afazer pontual com data+hora vira compromisso na migração, recorrente com hora perde a hora; compromisso = nome, cor, data, início obrigatório, fim opcional, sem campos extras, com check e seção "Passados"; afazer sem hora, "intervalo" = repetição + data de fim (não existe pontual com intervalo); pontual atrasado fica na data com selo "atrasado"; seletor de data próprio também no início e no compromisso; lista de afazeres em seções; marcadores em linha (até 3, depois 2 + "+N"); Rotinas com faixa da semana; lixeira exclui de verdade item pontual (#45); extras: arrastar compromisso, "+" com menu, filtro próprio de Rotinas.
+- **Schema v5 (`MIGRACOES[5]`):** `compromissos` semanais → `rotinas` (chaves `compromissos|ISO|id|h` → `rotinas|ISO|id|h`); `compromissos` agora = pontuais `{ id, nome, cor, data, inicio, fim?, feito, concluidoEm? }` (afazeres sem repetição com data + hora viram compromisso, mesmo id); afazer perde `hora`; `rotina.totalRepeticoes` → `rotina.dataFim` (dia da última ocorrência; sem data-base = sem fim, como era). Lógica da v4 copiada dentro da migração (não importa de `afazeres.js`).
+- **`sanitizarDados`:** `rotinas` (horários sempre lista), `sanitizarCompromisso` (data/hora só no formato certo, fim inválido some, `feito` booleano), `rotina.dataFim` ("" = para sempre) no lugar de `totalRepeticoes`; `pareceVazio` conta `rotinas`. **Rules:** `rotinas` obrigatório e lista (+ teste: toda lista do `DADOS_PADRAO` tem que estar no `hasAll`).
+- **Recorrência (`utils/afazeres.js`):** `datasDaRegra` (dias naturais sem fim/exceções — alimenta o seletor de fim), `ehDataDaRegra`, `dataFimDaRotina`; `ocorrenciasNoIntervalo` corta no fim (ocorrência arrastada cuja origem passou do fim some); avanço por calendário (`somarDias`), sem milissegundos. Textos: `textoRepeticao`, `textoFimRepeticao`, `descreverAfazer`; seções: `secoesDosAfazeres`. `dataAoSalvarAfazer` não recebe mais `temData`. Removidos `primeiroDiaDoMes/ultimoDiaDoMes` (mortos, #26).
+- **UI:** `ui/SeletorData.jsx` (popover próprio; `permitidas(ini, fim) → Set` desabilita dias; `marcada` = início; fundo **sólido** — com alpha o texto de baixo vazava por causa do backdrop-filter do card). `ui/SecaoLista.jsx` (seção recolhível com contagem). Afazeres: card "Novo afazer" (Dia/Começa em, Repetição, dias da semana, a cada N dias, **Termina em** só com dias da repetição, urgência, cor, frase-resumo) + seções Atrasados/Hoje/Próximos/Sem data/Recorrentes/Concluídos. Compromissos (`VisaoCompromissos.jsx`, novo): mesmo card + Hoje/Próximos/Passados ("Apagar passados" com Desfazer). Rotinas: `VisaoRotinas`/`PainelRotina` (git mv dos antigos de compromisso) + `ui/ResumoRotina.jsx` (faixa S T Q Q S S D na cor, "Próxima", h/semana). Sidebar: Cadeiras · Rotinas · Compromissos · Afazeres · Agenda.
+- **Calendário:** filtros Aulas · Avaliações (livro) · Rotinas · Compromissos (★) · Afazeres; marcadores na célula por `marcadoresDoDia`/`resumirMarcadores` (`projecao.js`); ★/livro antes do título na lista do dia; check do compromisso no próprio item; lixeira: compromisso e afazer sem repetição **excluem** (toast Desfazer), recorrentes removem só o dia; arrastar compromisso muda a data; "+" abre menu Afazer/Compromisso (`useFecharAoClicarFora`). Agenda semanal: `compromissos` → `rotinas` (filtro salvo herda o antigo).
+- **Puro novo:** `utils/rotinas.js` (dias ativos, minutos/semana, `textoDuracao`, `proximaOcorrenciaRotina`), `utils/compromissos.js` (validação, seções, textos); `proximoHorarioSemanal` extraído de `proximaAula` (`cadeiras.js`). `resumoDoBackup` migra antes de contar e mostra rotinas.
+- **CSS:** novos `listas.css`, `seletor-data.css`, `rotinas.css`; `afazeres.css` sem as classes mortas (`.afazer-form`, `.item-afazer`, `.checkbox-linha`…); marcadores e menu em `calendario.css`; mobile em `mobile.css`.
+- **Testes:** 271 ✅ (+47): v4→v5, datas de fim, seções, marcadores, rotinas, compromissos, Rules. `npm run check` ✅. **Verificado no navegador** (Playwright + Chrome, dados v4 semeados no localStorage): migração ao abrir, seletor de fim (semanal só libera as quintas; dias específicos sem domingo), criar/concluir compromisso, lixeira exclui com Desfazer, gravação em v5 sem `hora`, desktop e mobile, sem erros no console.
+- **⚠ Deploy das Rules (usuário):** `firebase deploy --only firestore:rules` **depois** de abrir a versão nova pelo menos uma vez (o doc precisa já ter `rotinas`, senão um PWA antigo em cache teria gravações recusadas). PWA antigo vê o doc v5 como "desatualizado" (esperado).
+- **Testar no app:** (1) Rotinas: os antigos compromissos semanais estão lá, com a faixa da semana e "Próxima"; (2) Compromissos: os afazeres que tinham hora viraram compromissos; ★ no calendário; (3) afazer recorrente com "qtd. de vezes" agora mostra "até DD/MM"; (4) criar afazer semanal → "Termina em" só deixa clicar no mesmo dia da semana; (5) "+" no calendário → Compromisso abre a aba com a data; (6) arrastar um compromisso para outro dia; (7) lixeira num afazer sem repetição → some da aba também (Desfazer volta).
+- **Pendências novas:** #55 (cor padrão do afazer, `#221e1e`, quase invisível no calendário), #56 (calendário: cadeiras de todos os períodos × rotinas só do ativo — não mexido).
+
+---
+
 ## 2026-11-19 (8) — Ajustes do resumo da cadeira (#21) pedidos pelo usuário
 - **Causa das "caixas cinzas":** a linha vazia usava a classe `vazio`, que colidia com o `.vazio` global do `EstadoVazio` (`base.css`: tracejado + 50px de padding). O usuário gostou do visual, então virou estilo próprio: `.resumo-caixa` / `.resumo-caixa-vazia` (`cadeiras.css`). **Não reutilizar `vazio` como modificador.**
 - Caixa vazia: tracejada, cinza, centrada e **compacta** (padding 5px). Caixa com conteúdo: preenchimento leve na cor da cadeira (`--cor-rgb` inline via `hexParaRgb`).
@@ -153,20 +169,3 @@
   - [ ] Usuário testar no celular a lista do calendário geral com um nome longo.
   - [ ] #9: usuário decidir se religa o backup diário (`useAutoBackup`) ou remove.
   - [ ] #23: usuário escolher a abordagem dos lembretes (a/b/c) quando chegar lá.
-
----
-
-## 2026-11-18 (1) — Documentação para o Claude
-- **Feito:** leitura completa do projeto; criados `CLAUDE.md` (regras + escopo), `organization.md` (árvore + atalhos), `todo.md` (backlog priorizado com os pedidos do usuário + achados da leitura), `log.md`.
-- **Código:** nenhuma alteração.
-- **Estado:** `npm run build` ✅ (aviso de chunk de 970 kB, conhecido). Sem testes automatizados.
-- **Achados principais da leitura** (detalhes no `todo.md` P0): `useAutoBackup` não é usado; `icon-maskable-512.png` inexistente; "hoje" em UTC na Agenda; rotina mensal deriva em dias 29–31; chaves de evento por nome; concluir rotina na aba Afazeres marca a rotina toda.
-- **Pendências:** resolvidas na sessão (2). Ideias aprovadas, docs vão para o git, bug do mobile e `tests/` feitos.
-
----
-
-## Histórico anterior (resumo do git)
-- 2026-10-21 `Clean README` — README com screenshots em `docs/screenshots/`.
-- 2026-09-30 — removidos `agenda.zip` e `contexto-projeto.md` (doc antigo, disponível em `git show e2c8770:contexto-projeto.md`).
-- 2026-09-22 `Auto reload + Offline` — watchdog de 12s, fallback cache Firestore, `ultimaSincronizacao`, status offline.
-- 2026-09-18 `FIXED bug de afazeres com rotinas`; antes: dias específicos, deletar afazer no dia, remake visual, ícones Android, cadastro de cadeiras reformulado, backups automáticos, Firebase seguro contra deleções, drag-and-drop no calendário.

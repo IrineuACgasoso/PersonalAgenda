@@ -13,7 +13,7 @@ npm run format    # corrige a formatação (Prettier) e o que o ESLint souber co
 | Caminho | O quê |
 |---|---|
 | `setup.js` | Relógio fixo em **18/11/2026 10:00 (quarta)**, fuso `America/Recife` (definido em `vitest.config.js`) |
-| `fixtures/fabricas.js` | Construtores `periodo/cadeira/horario/compromisso/afazer/appData/backupAntigo` no formato real do `AppData` |
+| `fixtures/fabricas.js` | Construtores `periodo/cadeira/horario/rotina/compromisso/afazer/appData/backupAntigo` (`rotina` = bloco semanal; `compromisso` = pontual, v5) no formato real do `AppData` |
 | `unit/afazeres.test.js` | Recorrência: todos os tipos de rotina, limite de repetições, exceções de drag, mensal no fim do mês (#12), check de rotina por ocorrência (#11), rotina sem data-base (#40) |
 | `unit/calendario.test.js` | Grade do mês, intervalo do mês, vigência da cadeira (#19: regra, validação, texto, herança na cadeira nova), `hexParaRgb`, `formatarData` |
 | `unit/sanitizarDados.test.js` | Proteção contra perda de dados: campos preservados, retrocompatibilidade, `pareceVazio` |

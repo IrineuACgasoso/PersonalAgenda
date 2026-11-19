@@ -24,9 +24,10 @@ service cloud.firestore {
     // todos estes campos). Bloqueia gravar lixo/estado vazio por bug:
     // `periodos` nunca fica vazio (sanitizarDados garante pelo menos um).
     function appDataValido(d) {
-      return d.keys().hasAll(["periodos", "cadeiras", "compromissos", "afazeres", "eventosConcluidos", "eventosExcluidos"])
+      return d.keys().hasAll(["periodos", "cadeiras", "rotinas", "compromissos", "afazeres", "eventosConcluidos", "eventosExcluidos"])
         && d.periodos is list && d.periodos.size() > 0
         && d.cadeiras is list
+        && d.rotinas is list
         && d.compromissos is list
         && d.afazeres is list
         && d.eventosConcluidos is list

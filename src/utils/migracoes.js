@@ -17,7 +17,7 @@
 // Campos que só ganham um valor padrão NÃO precisam de migração: basta
 // registrá-los no sanitizarDados.
 
-export const VERSAO_ATUAL = 4;
+export const VERSAO_ATUAL = 5;
 
 export const MIGRACOES = {
   // v0 → v1: baseline. Todos os dados anteriores a 2026-11 (sem `versao`)
@@ -96,7 +96,118 @@ export const MIGRACOES = {
         : dados.periodos,
     };
   },
+
+  // v4 → v5 (Fase 5, #22): três tipos de item na agenda.
+  //  - Os "compromissos" semanais (com horários) viram `rotinas`, e as
+  //    chaves "compromissos|ISO|id|idHorario" viram "rotinas|ISO|id|idHorario".
+  //  - `compromissos` passa a ser a lista de eventos PONTUAIS com data e hora.
+  //    Os afazeres SEM repetição que tinham data + hora viram compromissos
+  //    (mesmo id, nome, cor, data, hora → início, feito/concluidoEm).
+  //  - Afazer não tem mais hora: os que sobram perdem o campo `hora`.
+  //  - "Número de repetições" (`rotina.totalRepeticoes`) vira data de fim
+  //    (`rotina.dataFim` = dia da última ocorrência). Sem como calcular (sem
+  //    data-base), a repetição fica sem fim — que era o efeito antes.
+  5: (dados) => {
+    const afazeres = Array.isArray(dados.afazeres) ? dados.afazeres : null;
+    const viramCompromisso = (afazeres || []).filter(afazerViraCompromissoV5);
+    return {
+      ...dados,
+      rotinas: [
+        ...(Array.isArray(dados.rotinas) ? dados.rotinas : []),
+        ...(Array.isArray(dados.compromissos) ? dados.compromissos : []),
+      ],
+      compromissos: viramCompromisso.map(afazerParaCompromissoV5),
+      afazeres: afazeres ? afazeres.filter((a) => !afazerViraCompromissoV5(a)).map(afazerV5) : dados.afazeres,
+      eventosConcluidos: renomearChavesV5(dados.eventosConcluidos),
+      eventosExcluidos: renomearChavesV5(dados.eventosExcluidos),
+    };
+  },
 };
+
+/* ---- v4 → v5 ----
+ * Regras de recorrência copiadas AQUI (e não importadas de afazeres.js) pelo
+ * mesmo motivo das chaves v2: a migração tem que reproduzir o comportamento
+ * do "número de repetições" da v4, que não existe mais no código atual. */
+
+const ISO_V5 = /^\d{4}-\d{2}-\d{2}$/;
+const HORA_V5 = /^\d{2}:\d{2}$/;
+const ehISOV5 = (v) => typeof v === "string" && ISO_V5.test(v);
+const isoParaDataV5 = (iso) => {
+  const [a, m, d] = iso.split("-").map(Number);
+  return new Date(a, m - 1, d);
+};
+const dataParaIsoV5 = (dt) =>
+  `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+
+function afazerViraCompromissoV5(a) {
+  if (!a || typeof a !== "object") return false;
+  const tipo = a.rotina?.tipo || "nenhuma";
+  return tipo === "nenhuma" && ehISOV5(a.data) && typeof a.hora === "string" && HORA_V5.test(a.hora);
+}
+
+function afazerParaCompromissoV5(a) {
+  const c = {
+    id: a.id,
+    nome: a.nome || "Compromisso",
+    cor: a.cor || "#8b5cf6",
+    data: a.data,
+    inicio: a.hora,
+    feito: !!a.feito,
+  };
+  if (a.concluidoEm) c.concluidoEm = a.concluidoEm;
+  return c;
+}
+
+function afazerV5(a) {
+  if (!a || typeof a !== "object") return a;
+  const semHora = Object.fromEntries(Object.entries(a).filter(([k]) => k !== "hora"));
+  const rotina = semHora.rotina;
+  if (!rotina || typeof rotina !== "object") return semHora;
+  const novaRotina = Object.fromEntries(Object.entries(rotina).filter(([k]) => k !== "totalRepeticoes"));
+  const n = Number(rotina.totalRepeticoes);
+  if (Number.isInteger(n) && n > 0 && !ehISOV5(rotina.dataFim)) {
+    const fim = ultimaOcorrenciaV4(semHora, n);
+    if (fim) novaRotina.dataFim = fim;
+  }
+  return { ...semHora, rotina: novaRotina };
+}
+
+// Dia da n-ésima (última) ocorrência na regra da v4, contada da data-base.
+function ultimaOcorrenciaV4(afazer, n) {
+  const tipo = afazer.rotina?.tipo || "nenhuma";
+  if (!ehISOV5(afazer.data)) return ""; // v4: sem data-base o limite era ignorado
+  const base = isoParaDataV5(afazer.data);
+  const somar = (dias) => new Date(base.getFullYear(), base.getMonth(), base.getDate() + dias);
+  if (tipo === "diaria") return dataParaIsoV5(somar(n - 1));
+  if (tipo === "semanal") return dataParaIsoV5(somar(7 * (n - 1)));
+  if (tipo === "quinzenal") return dataParaIsoV5(somar(15 * (n - 1)));
+  if (tipo === "personalizada") {
+    const passo = Math.max(1, Number(afazer.rotina?.intervaloDias) || 1);
+    return dataParaIsoV5(somar(passo * (n - 1)));
+  }
+  if (tipo === "mensal") {
+    const mes = base.getMonth() + n - 1;
+    const ultimoDia = new Date(base.getFullYear(), mes + 1, 0).getDate();
+    return dataParaIsoV5(new Date(base.getFullYear(), mes, Math.min(base.getDate(), ultimoDia)));
+  }
+  if (tipo === "dias_especificos") {
+    const dias = Array.isArray(afazer.rotina?.diasSemana) ? afazer.rotina.diasSemana : [];
+    if (dias.length === 0) return "";
+    let contador = 0;
+    for (let i = 0; i < 3000; i++) {
+      const d = somar(i);
+      if (dias.includes((d.getDay() + 6) % 7) && ++contador === n) return dataParaIsoV5(d);
+    }
+  }
+  return "";
+}
+
+function renomearChavesV5(lista) {
+  if (!Array.isArray(lista)) return lista;
+  return lista.map((chave) =>
+    typeof chave === "string" && chave.startsWith("compromissos|") ? `rotinas|${chave.slice(13)}` : chave,
+  );
+}
 
 /* ---- v2 → v3 ---- */
 

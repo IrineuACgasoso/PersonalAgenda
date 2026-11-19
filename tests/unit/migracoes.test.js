@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { VERSAO_ATUAL, MIGRACOES, versaoDos, ehVersaoFutura, migrarDados } from "../../src/utils/migracoes.js";
 import { sanitizarDados } from "../../src/utils/sanitizarDados.js";
 import { projetarEventos } from "../../src/utils/projecao.js";
-import { appData, backupAntigo, cadeira, compromisso, horario, afazer, periodo } from "../fixtures/fabricas.js";
+import { appData, backupAntigo, cadeira, rotina, horario, afazer, periodo } from "../fixtures/fabricas.js";
 
 // Congela recursivamente: qualquer mutação da entrada lança erro.
 function congelar(o) {
@@ -60,7 +60,8 @@ describe("migrarDados", () => {
   });
   it("v0 → atual preserva o conteúdo de um backup antigo sem eventos", () => {
     const { versao, ...resto } = migrarDados(backupAntigo());
-    expect(resto).toEqual(backupAntigo());
+    // v5 só acrescenta as listas novas (vazias: o backup não tinha compromissos).
+    expect(resto).toEqual({ ...backupAntigo(), rotinas: [], compromissos: [] });
   });
 });
 
@@ -72,7 +73,8 @@ describe("v1 → v2: chaves de evento por id (#10)", () => {
     horarios: [horario({ id: "h1", dia: 0, inicio: "08:00" }), horario({ id: "h2", dia: 2, inicio: "08:00" })],
     datas: [{ id: "d1", titulo: "Prova | 1", data: "2026-11-20", hora: "10:00" }],
   });
-  const academia = compromisso({
+  // Até a v4, "compromisso" era o bloco semanal (hoje: rotina).
+  const academia = rotina({
     id: "k1",
     nome: "Academia",
     horarios: [horario({ id: "hk", dia: 4, inicio: "18:00" })],
@@ -268,5 +270,161 @@ describe("v3 → v4: vigência sai do período e vai para as cadeiras (#19/#20)"
     expect(novo.versao).toBe(VERSAO_ATUAL);
     const m = projetarEventos({ inicioISO: "2026-11-01", fimISO: "2026-11-30", cadeiras: novo.cadeiras });
     expect(Object.keys(m).sort()).toEqual(["2026-11-02", "2026-11-09"]);
+  });
+});
+
+describe("v4 → v5: rotinas, compromissos pontuais e data de fim (Fase 5)", () => {
+  const migrar = (d) => MIGRACOES[5](d);
+  // Afazer no formato da v4 (com hora e número de repetições).
+  const afazerV4 = (extra = {}) => {
+    const { rotina: r, ...resto } = extra;
+    return {
+      id: "af",
+      nome: "Afazer",
+      data: "",
+      hora: "",
+      cor: "#221e1e",
+      urgencia: 1,
+      feito: false,
+      datasConcluidas: [],
+      excecoesData: {},
+      rotina: { tipo: "nenhuma", intervaloDias: 1, totalRepeticoes: "", diasSemana: [], ...(r || {}) },
+      ...resto,
+    };
+  };
+  const academia = {
+    id: "k1",
+    periodoId: "per-x",
+    nome: "Academia",
+    cor: "#10b981",
+    horarios: [horario({ id: "hk", dia: 4 })],
+  };
+
+  it("compromissos semanais viram rotinas e as chaves 'compromissos|' viram 'rotinas|'", () => {
+    const d = migrar(
+      appData({
+        versao: 4,
+        compromissos: [academia],
+        eventosConcluidos: ["compromissos|2026-11-06|k1|hk", "aulas|2026-11-09|c1|h1"],
+        eventosExcluidos: ["compromissos|2026-11-13|k1|hk", "afazeres|af|2026-11-01"],
+      }),
+    );
+    expect(d.rotinas).toEqual([academia]);
+    expect(d.compromissos).toEqual([]);
+    expect(d.eventosConcluidos).toEqual(["rotinas|2026-11-06|k1|hk", "aulas|2026-11-09|c1|h1"]);
+    expect(d.eventosExcluidos).toEqual(["rotinas|2026-11-13|k1|hk", "afazeres|af|2026-11-01"]);
+  });
+
+  it("afazer sem repetição com data + hora vira compromisso (mesmo id, feito e concluidoEm)", () => {
+    const d = migrar(
+      appData({
+        versao: 4,
+        afazeres: [
+          afazerV4({
+            id: "x",
+            nome: "Dentista",
+            data: "2026-11-20",
+            hora: "14:30",
+            cor: "#f00",
+            feito: true,
+            concluidoEm: 9,
+          }),
+          afazerV4({ id: "y", nome: "Sem hora", data: "2026-11-21" }),
+        ],
+      }),
+    );
+    expect(d.compromissos).toEqual([
+      { id: "x", nome: "Dentista", cor: "#f00", data: "2026-11-20", inicio: "14:30", feito: true, concluidoEm: 9 },
+    ]);
+    expect(d.afazeres.map((a) => a.id)).toEqual(["y"]);
+  });
+
+  it("afazer recorrente com hora continua afazer e perde a hora; todos perdem o campo hora", () => {
+    const d = migrar(
+      appData({
+        versao: 4,
+        afazeres: [
+          afazerV4({ id: "r", data: "2026-11-02", hora: "07:00", rotina: { tipo: "diaria" } }),
+          afazerV4({ id: "s", hora: "08:00" }), // hora sem data: não dá compromisso
+        ],
+      }),
+    );
+    expect(d.compromissos).toEqual([]);
+    expect(d.afazeres.map((a) => a.id)).toEqual(["r", "s"]);
+    d.afazeres.forEach((a) => expect("hora" in a).toBe(false));
+  });
+
+  it("número de repetições vira data de fim (dia da última ocorrência)", () => {
+    const fimDe = (rotina, data = "2026-11-02") =>
+      migrar(appData({ versao: 4, afazeres: [afazerV4({ data, rotina })] })).afazeres[0].rotina;
+    expect(fimDe({ tipo: "diaria", totalRepeticoes: 3 })).toEqual({
+      tipo: "diaria",
+      intervaloDias: 1,
+      diasSemana: [],
+      dataFim: "2026-11-04",
+    });
+    expect(fimDe({ tipo: "semanal", totalRepeticoes: 3 }).dataFim).toBe("2026-11-16");
+    expect(fimDe({ tipo: "quinzenal", totalRepeticoes: 2 }).dataFim).toBe("2026-11-17");
+    expect(fimDe({ tipo: "personalizada", intervaloDias: 10, totalRepeticoes: 3 }).dataFim).toBe("2026-11-22");
+    expect(fimDe({ tipo: "mensal", totalRepeticoes: 2 }, "2026-01-31").dataFim).toBe("2026-02-28");
+    // 01/11 é domingo; sextas: 06 e 13
+    expect(fimDe({ tipo: "dias_especificos", diasSemana: [4], totalRepeticoes: 2 }, "2026-11-01").dataFim).toBe(
+      "2026-11-13",
+    );
+  });
+
+  it("sem como calcular (sem data-base ou sem limite), a repetição fica sem fim", () => {
+    const r1 = migrar(
+      appData({
+        versao: 4,
+        afazeres: [afazerV4({ rotina: { tipo: "dias_especificos", diasSemana: [1], totalRepeticoes: 4 } })],
+      }),
+    );
+    expect("dataFim" in r1.afazeres[0].rotina).toBe(false);
+    expect("totalRepeticoes" in r1.afazeres[0].rotina).toBe(false);
+    const r2 = migrar(appData({ versao: 4, afazeres: [afazerV4({ data: "2026-11-02", rotina: { tipo: "diaria" } })] }));
+    expect("dataFim" in r2.afazeres[0].rotina).toBe(false);
+  });
+
+  it("tolera dados incompletos e não muta a entrada", () => {
+    expect(() => migrar({})).not.toThrow();
+    expect(migrar({}).rotinas).toEqual([]);
+    expect(() => migrar({ afazeres: [null, 3, { id: "z" }], compromissos: "lixo" })).not.toThrow();
+    expect(() =>
+      migrar(
+        congelar(
+          appData({ versao: 4, compromissos: [academia], afazeres: [afazerV4({ data: "2026-11-02", hora: "09:00" })] }),
+        ),
+      ),
+    ).not.toThrow();
+  });
+
+  it("ponta a ponta: o que aparecia no calendário continua aparecendo (e marcado)", () => {
+    const antes = appData({
+      versao: 4,
+      compromissos: [academia],
+      afazeres: [
+        afazerV4({ id: "x", nome: "Dentista", data: "2026-11-20", hora: "14:30" }),
+        afazerV4({ id: "d", nome: "Estudar", data: "2026-11-16", rotina: { tipo: "diaria", totalRepeticoes: 5 } }),
+      ],
+      eventosConcluidos: ["compromissos|2026-11-06|k1|hk"],
+    });
+    const novo = sanitizarDados(antes);
+    expect(novo.versao).toBe(VERSAO_ATUAL);
+    const m = projetarEventos({
+      inicioISO: "2026-11-01",
+      fimISO: "2026-11-30",
+      rotinas: novo.rotinas,
+      compromissos: novo.compromissos,
+      afazeres: novo.afazeres,
+    });
+    const chaveAcademia = m["2026-11-06"].find((e) => e.tipo === "rotinas").chave;
+    expect(novo.eventosConcluidos).toContain(chaveAcademia);
+    const compromissosDia20 = m["2026-11-20"].filter((e) => e.tipo === "compromissos");
+    expect(compromissosDia20.map((e) => [e.titulo, e.hora])).toEqual([["Dentista", "14:30"]]);
+    const diasEstudo = Object.keys(m)
+      .filter((d) => m[d].some((e) => e.titulo === "Estudar"))
+      .sort();
+    expect(diasEstudo).toEqual(["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20"]);
   });
 });

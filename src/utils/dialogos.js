@@ -3,6 +3,8 @@
 // recusada (#44). O componente (`ui/Dialogos.jsx`) só desenha e resolve
 // promises; tudo que dá para testar sem React fica aqui.
 
+import { migrarDados } from "./migracoes.js";
+
 /**
  * Põe um diálogo no fim da fila. Um aviso igual a outro que já está na fila
  * (mesmo `chave`) não entra de novo: com o app "desatualizado", por exemplo,
@@ -57,15 +59,23 @@ function plural(n, singular, pluralTexto) {
 
 /**
  * Resumo de um backup para a lista de "Restaurar da nuvem" (ex.:
- * "5 cadeiras · 2 compromissos · 12 afazeres"). Ajuda a não restaurar um
- * backup vazio ou muito antigo por engano.
+ * "5 cadeiras · 2 rotinas · 1 compromisso · 12 afazeres"). Ajuda a não
+ * restaurar um backup vazio ou muito antigo por engano. Backup anterior à
+ * v5 é migrado antes de contar (os semanais dele viram rotinas).
  */
 export function resumoDoBackup(payload) {
   const tamanho = (lista) => (Array.isArray(lista) ? lista.length : 0);
+  let dados = payload;
+  try {
+    dados = migrarDados(payload);
+  } catch {
+    /* sem migração possível: conta como está */
+  }
   const partes = [
-    plural(tamanho(payload?.cadeiras), "cadeira", "cadeiras"),
-    plural(tamanho(payload?.compromissos), "compromisso", "compromissos"),
-    plural(tamanho(payload?.afazeres), "afazer", "afazeres"),
+    plural(tamanho(dados?.cadeiras), "cadeira", "cadeiras"),
+    plural(tamanho(dados?.rotinas), "rotina", "rotinas"),
+    plural(tamanho(dados?.compromissos), "compromisso", "compromissos"),
+    plural(tamanho(dados?.afazeres), "afazer", "afazeres"),
   ];
   return partes.join(" · ");
 }

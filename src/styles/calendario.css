@@ -146,15 +146,78 @@
   color: #8a8a92;
 }
 
-/* Início/fim da vigência de alguma cadeira (#19): bandeirinha na cor da
-   cadeira no canto da célula. Só informativo (o clique é da célula). */
+/* Marcadores no canto da célula (Fase 5): ★ compromisso, livro = avaliação,
+   bandeiras = início/fim de vigência (#19), na cor do item. Até 3; o
+   número sobrescrito = quantos daquele tipo. Só informativos (o clique é da
+   célula). */
 .calendario-marcos {
   position: absolute;
   top: 5px;
-  right: 5px;
+  right: 4px;
   display: flex;
-  gap: 2px;
+  align-items: flex-start;
+  gap: 1px;
   pointer-events: none;
+}
+
+.calendario-marcador {
+  display: inline-flex;
+  align-items: flex-start;
+}
+
+.calendario-marcador > sup {
+  margin-left: -1px;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--texto);
+}
+
+.calendario-marcos-mais {
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 11px;
+  color: var(--texto-fraco);
+}
+
+/* "+" da lista do dia: menu Afazer / Compromisso. */
+.menu-novo {
+  position: relative;
+}
+
+.menu-novo-opcoes {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 5px;
+  border-radius: var(--raio-sm);
+  border: 1px solid var(--vidro-borda-forte);
+  /* Cor sólida: com alpha, o texto de baixo aparecia através do popover
+     (o card do formulário tem backdrop-filter). */
+  background: var(--vidro-grad), #14161b;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.menu-novo-opcoes > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--texto);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-novo-opcoes > button:hover {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 /* Linha "Início de X" / "Fim de X" no topo da lista do dia selecionado. */

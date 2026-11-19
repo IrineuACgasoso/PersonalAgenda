@@ -25,22 +25,19 @@ export function diasEntre(aISO, bISO) {
 const horaDe = (d) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
 /**
- * Próxima aula a partir de `agora` (Date), dentro da vigência e pulando as
- * ocorrências removidas da agenda (`eventosExcluidos`). Uma aula em
- * andamento (início ≤ agora < fim) conta, com `emAndamento: true`.
- * Devolve { data, horario, emAndamento } ou null (sem horários, ou a
- * vigência já acabou).
+ * Próximo horário de uma lista de horários SEMANAIS ({ dia, inicio, fim })
+ * a partir de `agora` (Date). Serve para aulas (#21) e rotinas (Fase 5).
+ * - `inicio`/`fim` ("YYYY-MM-DD", opcionais): janela em que os horários valem.
+ * - `excluida(dataISO, horario)`: ocorrência removida da agenda (pula).
+ * Um horário em andamento (início ≤ agora < fim) conta, com `emAndamento`.
+ * Procura por 8 semanas: cobre semanas inteiras removidas (feriado, greve).
+ * Devolve { data, horario, emAndamento } ou null.
  */
-export function proximaAula(cadeira, agora = new Date(), eventosExcluidos = []) {
-  const horarios = (cadeira?.horarios || []).filter((h) => h && h.inicio);
+export function proximoHorarioSemanal(horariosBrutos, agora = new Date(), { inicio = "", fim = "", excluida } = {}) {
+  const horarios = (horariosBrutos || []).filter((h) => h && h.inicio);
   if (horarios.length === 0) return null;
-  const excluidos = new Set(eventosExcluidos);
   const hojeISO = toISO(agora);
   const horaAgora = horaDe(agora);
-  const { inicio, fim } = vigenciaDaCadeira(cadeira);
-
-  // Começa hoje (ou no início da vigência, se ainda não começou) e procura
-  // por 8 semanas: cobre semanas inteiras de aulas removidas (feriado, greve).
   const partida = parseISO(inicio && inicio > hojeISO ? inicio : hojeISO);
   for (let i = 0; i < 7 * 8; i++) {
     const dia = new Date(partida);
@@ -50,8 +47,8 @@ export function proximaAula(cadeira, agora = new Date(), eventosExcluidos = []) 
     const diaSemana = (dia.getDay() + 6) % 7;
     const doDia = horarios
       .filter((h) => h.dia === diaSemana)
-      .filter((h) => !excluidos.has(chaveAula(dataISO, cadeira, h)))
-      // Hoje: só as que ainda não terminaram.
+      .filter((h) => !excluida?.(dataISO, h))
+      // Hoje: só os que ainda não terminaram.
       .filter((h) => dataISO !== hojeISO || (h.fim || h.inicio) > horaAgora)
       .sort((a, b) => a.inicio.localeCompare(b.inicio));
     if (doDia.length > 0) {
@@ -60,6 +57,23 @@ export function proximaAula(cadeira, agora = new Date(), eventosExcluidos = []) 
     }
   }
   return null;
+}
+
+/**
+ * Próxima aula a partir de `agora` (Date), dentro da vigência e pulando as
+ * ocorrências removidas da agenda (`eventosExcluidos`). Uma aula em
+ * andamento (início ≤ agora < fim) conta, com `emAndamento: true`.
+ * Devolve { data, horario, emAndamento } ou null (sem horários, ou a
+ * vigência já acabou).
+ */
+export function proximaAula(cadeira, agora = new Date(), eventosExcluidos = []) {
+  const excluidos = new Set(eventosExcluidos);
+  const { inicio, fim } = vigenciaDaCadeira(cadeira);
+  return proximoHorarioSemanal(cadeira?.horarios, agora, {
+    inicio,
+    fim,
+    excluida: (dataISO, h) => excluidos.has(chaveAula(dataISO, cadeira, h)),
+  });
 }
 
 // Avaliação a até 7 dias fica em destaque no resumo.

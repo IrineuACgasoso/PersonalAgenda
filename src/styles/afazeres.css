@@ -1,33 +1,7 @@
 /* afazeres.css
-   VisaoAfazeres.jsx: formulário de criação/edição, seletor de urgência,
-   seletor de dias da semana (rotina "Dias específicos") e lista de itens. */
-
-.afazer-form {
-  background: var(--vidro-grad), var(--vidro-cor);
-  backdrop-filter: var(--vidro-blur);
-  -webkit-backdrop-filter: var(--vidro-blur);
-  border: 1px solid var(--vidro-borda);
-  border-radius: var(--raio-md);
-  padding: 16px;
-  margin-bottom: 22px;
-  box-shadow: var(--vidro-sombra);
-}
-
-.checkbox-linha {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #c4c4cc;
-  margin: 10px 0;
-  cursor: pointer;
-}
-
-.checkbox-linha input {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--accent);
-}
+   VisaoAfazeres.jsx: seletor de urgência, seletor de dias da semana
+   (repetição "Dias específicos") e o check. O card do formulário e a lista
+   em seções são compartilhados com Compromissos (listas.css). */
 
 .urgencia-picker {
   display: flex;
@@ -102,31 +76,6 @@
   transform: scale(1.04);
 }
 
-.item-afazer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--vidro-grad), var(--vidro-cor);
-  backdrop-filter: var(--vidro-blur);
-  -webkit-backdrop-filter: var(--vidro-blur);
-  border: 1px solid var(--vidro-borda);
-  border-radius: var(--raio-sm);
-  padding: 11px 13px;
-  transition: border-color 0.15s;
-}
-
-.item-afazer:hover {
-  border-color: var(--vidro-borda-forte);
-}
-
-.item-afazer.feito {
-  opacity: 0.5;
-}
-
-.item-afazer.feito .item-linha-titulo {
-  text-decoration: line-through;
-}
-
 .check-btn {
   width: 21px;
   height: 21px;
@@ -146,21 +95,8 @@
   border-color: #10b981;
 }
 
-/* Rotina sem ocorrências (ex: terminou o limite de repetições) */
+/* Repetição que já terminou (passou da data de fim) */
 .check-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-}
-
-/* Rotina antiga sem data de início (#40) */
-.afazer-aviso {
-  color: #f87171;
-}
-
-.afazer-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px;
-  margin-top: 2px;
 }

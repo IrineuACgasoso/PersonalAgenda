@@ -16,6 +16,7 @@ export const DADOS_PADRAO = {
   versao: VERSAO_ATUAL,
   periodos: [{ id: "p1", nome: "2026.1" }],
   cadeiras: [],
+  rotinas: [],
   compromissos: [],
   afazeres: [],
   eventosConcluidos: [],
@@ -30,10 +31,10 @@ function listaDeObjetos(valor) {
   return Array.isArray(valor) ? valor.filter((item) => item && typeof item === "object" && !Array.isArray(item)) : [];
 }
 
-// Cadeiras e compromissos: a UI acessa `c.horarios.length`, `c.links.map`
+// Cadeiras e rotinas: a UI acessa `c.horarios.length`, `c.links.map`
 // etc. sem checar, então as listas internas precisam existir sempre. Um
 // backup antigo/incompleto sem `links` derrubava a VisaoCadeiras inteira.
-// ATENÇÃO: lista interna nova numa cadeira/compromisso ⇒ registrar aqui.
+// ATENÇÃO: lista interna nova numa cadeira/rotina ⇒ registrar aqui.
 function sanitizarCadeira(c) {
   return {
     ...c,
@@ -47,8 +48,23 @@ function sanitizarCadeira(c) {
   };
 }
 
+// Rotina (ex-"compromisso" semanal, v5): só a lista de horários.
+function sanitizarRotina(r) {
+  return { ...r, horarios: listaDeObjetos(r.horarios) };
+}
+
+const HORA = /^\d{2}:\d{2}$/;
+
+// Compromisso pontual (v5): data e início são obrigatórios na UI; aqui só
+// garantimos os tipos (lixo vira "" e o fim inválido some).
 function sanitizarCompromisso(c) {
-  return { ...c, horarios: listaDeObjetos(c.horarios) };
+  return {
+    ...c,
+    data: ehDataISO(c.data) ? c.data : "",
+    inicio: HORA.test(c.inicio) ? c.inicio : "",
+    fim: HORA.test(c.fim) ? c.fim : undefined,
+    feito: !!c.feito,
+  };
 }
 
 // Remove (em profundidade) propriedades `undefined` e itens `undefined` de
@@ -88,6 +104,7 @@ function normalizar(raw) {
     versao: versaoDos(raw),
     periodos: Array.isArray(raw.periodos) && raw.periodos.length > 0 ? raw.periodos : DADOS_PADRAO.periodos,
     cadeiras: listaDeObjetos(raw.cadeiras).map(sanitizarCadeira),
+    rotinas: listaDeObjetos(raw.rotinas).map(sanitizarRotina),
     compromissos: listaDeObjetos(raw.compromissos).map(sanitizarCompromisso),
     eventosConcluidos: Array.isArray(raw.eventosConcluidos) ? raw.eventosConcluidos : [],
     eventosExcluidos: Array.isArray(raw.eventosExcluidos) ? raw.eventosExcluidos : [],
@@ -106,7 +123,8 @@ function normalizar(raw) {
           rotina: {
             tipo: a.rotina?.tipo || "nenhuma",
             intervaloDias: a.rotina?.intervaloDias || 1,
-            totalRepeticoes: a.rotina?.totalRepeticoes || "",
+            // Fim da repetição (v5, substitui `totalRepeticoes`): "" = para sempre.
+            dataFim: ehDataISO(a.rotina?.dataFim) ? a.rotina.dataFim : "",
             // ATENÇÃO: qualquer campo novo de rotina precisa ser listado aqui
             // manualmente, senão ele é apagado silenciosamente a cada save
             // (foi exatamente isso que quebrou a rotina "Dias específicos" —
@@ -125,9 +143,10 @@ function normalizar(raw) {
 export function pareceVazio(dados) {
   if (!dados) return true;
   const semCadeiras = !dados.cadeiras || dados.cadeiras.length === 0;
+  const semRotinas = !dados.rotinas || dados.rotinas.length === 0;
   const semCompromissos = !dados.compromissos || dados.compromissos.length === 0;
   const semAfazeres = !dados.afazeres || dados.afazeres.length === 0;
   const periodosPadrao =
     !dados.periodos || dados.periodos.length === 0 || (dados.periodos.length === 1 && dados.periodos[0]?.id === "p1");
-  return semCadeiras && semCompromissos && semAfazeres && periodosPadrao;
+  return semCadeiras && semRotinas && semCompromissos && semAfazeres && periodosPadrao;
 }
