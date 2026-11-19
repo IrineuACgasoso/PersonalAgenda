@@ -8,7 +8,10 @@
 |---|---|
 | Criar/editar/excluir período, cadeira, compromisso, afazer | `src/App.jsx` (ações CRUD, linhas 60–257) |
 | Mudar como os dados são salvos/carregados, status de sync | `src/hooks/usePersistedData.js` → `persist()` ~197, auth ~69, Firestore ~98 |
-| Adicionar campo novo ao modelo de dados | `src/utils/sanitizarDados.js` → `sanitizarDados()` ~19 (**obrigatório**) |
+| Adicionar campo novo ao modelo de dados | `src/utils/sanitizarDados.js` → `sanitizarDados()` (**obrigatório**) |
+| Mudança estrutural no schema (renomear/mover dados) | `src/utils/migracoes.js` → `VERSAO_ATUAL` + `MIGRACOES[n]` + teste em `tests/unit/migracoes.test.js` |
+| Regras de segurança do Firestore | `firestore.rules` (deploy: `firebase deploy --only firestore:rules`, feito pelo usuário) |
+| Status "App desatualizado" (dados de versão mais nova) | `usePersistedData.js` (efeito + trava em `persist()`), `Sidebar.jsx` |
 | Lógica de recorrência de afazeres (diária, semanal, dias específicos…) | `src/utils/afazeres.js` → `ocorrenciasNoIntervalo()` ~26, `gerarOcorrenciasComData()` ~115 |
 | O que aparece em cada dia do calendário geral | `src/utils/projecao.js` (puro): `projetarAvaliacoes/Aulas/Compromissos/Afazeres/AfazeresSemData`, `compararEventosDoDia` (ordenação), `agruparPorDia`, `projetarEventos` (tudo de uma vez). O hook `useEventosCalendario.js` só memoiza |
 | Rodar/escrever testes | `tests/README.md`; dados de exemplo em `tests/fixtures/fabricas.js` |
@@ -35,6 +38,7 @@
 ## Modelo de dados (`AppData`, um único documento `users/{uid}` ou `localStorage["painel-academico-data"]`)
 
 ```
+versao            int — versão do schema (atual: 1; ausente = 0). Ver utils/migracoes.js
 periodos[]        { id, nome, dataInicio?, dataFim? }
 periodoAtivoId    string | null
 cadeiras[]        { id, periodoId, nome, cor, horarios[], links[], datas[] }
@@ -72,7 +76,11 @@ UFPE/
 ├── index.html           Shell HTML, metas iOS/PWA, favicons; título "Painel acadêmico"
 ├── vite.config.js       Vite + React + VitePWA (manifest, workbox precache, navigateFallback)
 │                        ⚠ referencia public/icon-maskable-512.png, que NÃO existe
-├── package.json         scripts: dev, build, preview, test (vitest run), test:watch, check (test + build). Sem lint ainda
+├── package.json         scripts: dev, build, preview, test (vitest run), test:watch, check (test + build). Sem lint ainda.
+│                        overrides: @grpc/grpc-js ^1.14.7 (o firebase fixa ~1.9 vulnerável; só usado no Node)
+├── firestore.rules      Security Rules: uid + e-mail permitido + email_verified, formato mínimo do AppData,
+│                        doc principal não pode ser apagado, backups só create/delete, resto negado
+├── firebase.json        Aponta firestore.rules · .firebaserc: projeto default
 ├── vitest.config.js     Config dos testes (Node, TZ America/Recife, setup tests/setup.js). Separada do vite.config
 ├── .env.example         Chaves VITE_FIREBASE_* (o .env real é ignorado)
 ├── .gitignore
@@ -85,8 +93,10 @@ UFPE/
 │       ├── afazeres.test.js       Recorrência (todos os tipos, limite, exceções de drag)
 │       ├── calendario.test.js     Grade do mês, intervalo, vigência, hexParaRgb, formatarData
 │       ├── sanitizarDados.test.js Preservação de campos, retrocompat, pareceVazio
+│       ├── migracoes.test.js      Registro de migrações completo, v0→atual, não muta, versão futura intocada
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação
-│       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI
+│       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
+│                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO)
 ├── public/
 │   ├── capacete-carregando.png   Imagem da tela de loading
 │   ├── icon-192/512.png, web-app-manifest-192/512.png (maskable), favicon.*, apple-touch-icon.png
@@ -106,8 +116,9 @@ UFPE/
     │   ├── usePersistedData.js   {data, persist, status, online, ultimaSincronizacao, user, login, logout}
     │   │                         Sem login: localStorage. Logado: getDocFromServer (timeout 8s) → cria doc
     │   │                         se não existe (migra localStorage) → onSnapshot com metadata.
-    │   │                         Fallback getDocFromCache offline. persist(): sanitiza, trava pareceVazio,
-    │   │                         fila serializada de setDoc, versão p/ status. status: loading|saving|saved|offline|error
+    │   │                         Fallback getDocFromCache offline. persist(): bloqueia dados de versão futura,
+    │   │                         sanitiza, trava pareceVazio, fila serializada de setDoc, versão p/ status.
+    │   │                         status: loading|saving|saved|offline|error|desatualizado
     │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, afazeres, compromissos} em localStorage
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h (checa a cada 15min),
@@ -115,8 +126,9 @@ UFPE/
     │   ├── useAutoBackup.js      ⚠ NÃO USADO em lugar nenhum. Backup diário (download .json + 10 em localStorage)
     │   └── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
     ├── utils/
-    │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1"), sanitizarDados() (whitelist de afazeres/rotina),
-    │   │                         pareceVazio() (trava anti-sobrescrita)
+    │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1", versao atual), sanitizarDados() (1º migra, depois
+    │   │                         normaliza; whitelist de afazeres/rotina), pareceVazio() (trava anti-sobrescrita)
+    │   ├── migracoes.js          VERSAO_ATUAL, MIGRACOES{n: fn pura}, versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, ocorrenciasNoIntervalo(afazer, ini, fim) → [{data, dataOriginal}],
     │   │                         gerarOcorrenciasComData (interno), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
     │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, cadeiraEstaAtivaNaData

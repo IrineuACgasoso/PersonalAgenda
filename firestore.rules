@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Regras do Firestore — fonte da verdade da segurança do app.
+// A trava de e-mail em src/firebase.js é só conveniência de UI; quem
+// realmente protege os dados é este arquivo.
+//
+// Deploy: firebase deploy --only firestore:rules
+// IMPORTANTE: o e-mail abaixo precisa ser o mesmo de EMAIL_PERMITIDO em
+// src/firebase.js (checado por tests/unit/integridade.test.js).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Dono = logado, é o próprio uid do caminho E é o e-mail permitido
+    // (com e-mail verificado — contas Google sempre vêm verificadas).
+    function ehDono(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email == "cac@cin.ufpe.br"
+        && request.auth.token.email_verified == true;
+    }
+
+    // Formato mínimo do AppData (ver sanitizarDados.js, que sempre grava
+    // todos estes campos). Bloqueia gravar lixo/estado vazio por bug:
+    // `periodos` nunca fica vazio (sanitizarDados garante pelo menos um).
+    function appDataValido(d) {
+      return d.keys().hasAll(["periodos", "cadeiras", "compromissos", "afazeres", "eventosConcluidos", "eventosExcluidos"])
+        && d.periodos is list && d.periodos.size() > 0
+        && d.cadeiras is list
+        && d.compromissos is list
+        && d.afazeres is list
+        && d.eventosConcluidos is list
+        && d.eventosExcluidos is list
+        && (!("versao" in d) || d.versao is int);
+    }
+
+    // Documento principal: users/{uid}
+    match /users/{uid} {
+      allow read: if ehDono(uid);
+      allow create, update: if ehDono(uid) && appDataValido(request.resource.data);
+      // O app nunca apaga o documento principal; bloquear evita perda total
+      // por bug ou por sessão sequestrada.
+      allow delete: if false;
+
+      // Snapshots automáticos: users/{uid}/backups/{timestamp}
+      // (ver src/hooks/useCloudBackup.js). Só cria e apaga (rotação dos 10
+      // mais recentes) — backup nunca é editado depois de criado.
+      match /backups/{backupId} {
+        allow read: if ehDono(uid);
+        allow create: if ehDono(uid)
+          && request.resource.data.keys().hasOnly(["timestamp", "dataHora", "payload"])
+          && request.resource.data.timestamp is int
+          && backupId == string(request.resource.data.timestamp)
+          && request.resource.data.payload is map;
+        allow delete: if ehDono(uid);
+        allow update: if false;
+      }
+    }
+
+    // Qualquer outro caminho: negado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

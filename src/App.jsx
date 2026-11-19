@@ -15,6 +15,10 @@ import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
 import { useCloudBackup, listarBackupsCloud } from "./hooks/useCloudBackup";
+import { ehVersaoFutura } from "./utils/migracoes";
+
+const MSG_BACKUP_VERSAO_FUTURA =
+  "Este backup foi criado por uma versão mais nova do app. Recarregue a página para atualizar o app e tente de novo.";
 
 // Se a tela de carregamento inicial ficar travada por mais tempo que isso,
 // assumimos que algo no boot (rede, auth, etc.) não vai se resolver sozinho
@@ -280,6 +284,10 @@ export default function App() {
         if (!importado || typeof importado !== "object" || !Array.isArray(importado.periodos)) {
           throw new Error("formato inválido");
         }
+        if (ehVersaoFutura(importado)) {
+          window.alert(MSG_BACKUP_VERSAO_FUTURA);
+          return;
+        }
         if (
           !window.confirm(
             "Importar este backup vai substituir TODOS os dados atuais. Deseja continuar?"
@@ -287,6 +295,9 @@ export default function App() {
         )
           return;
         persist({
+          // A versão do schema TEM que vir junto: sem ela o backup seria
+          // tratado como v0 e migrado de novo (ver utils/migracoes.js).
+          versao: importado.versao,
           periodos: importado.periodos ?? [],
           cadeiras: importado.cadeiras ?? [],
           compromissos: importado.compromissos ?? [],
@@ -331,6 +342,10 @@ export default function App() {
     if (Number.isNaN(indice) || indice < 0 || indice >= backups.length) return;
 
     const escolhido = backups[indice];
+    if (ehVersaoFutura(escolhido.payload)) {
+      window.alert(MSG_BACKUP_VERSAO_FUTURA);
+      return;
+    }
     if (
       !window.confirm(
         `Restaurar o backup de ${escolhido.dataHora}? Isso substitui TODOS os dados atuais (locais e na nuvem).`

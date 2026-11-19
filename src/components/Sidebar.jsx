@@ -157,7 +157,9 @@ export default function Sidebar({
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span className={`status-dot ${online === false ? "offline" : status}`} />
             <span style={{ fontSize: 11 }}>
-              {online === false || status === "offline"
+              {status === "desatualizado"
+                ? "App desatualizado — recarregue a página"
+                : online === false || status === "offline"
                 ? (ultimaSincronizacao
                     ? `Offline — dados de ${formatarUltimaSincronizacao(ultimaSincronizacao)}`
                     : "Offline — sincroniza ao reconectar")

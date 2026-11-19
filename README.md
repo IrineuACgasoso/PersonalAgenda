@@ -7,7 +7,7 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 </p>
 <!-- PLACEHOLDER: print da aba "Calendário geral" com um dia selecionado e o painel de eventos aberto -->
 
-**Stack:** React 18 · Vite 5 · Firebase (Auth + Firestore) · vite-plugin-pwa · Lucide React · CSS puro (dark theme)
+**Stack:** React 18 · Vite 6 · Firebase (Auth + Firestore) · vite-plugin-pwa · Lucide React · CSS puro (dark theme)
 
 ---
 
@@ -154,7 +154,8 @@ Login via Google (popup). O acesso é restrito a **um único e-mail** definido e
 | Camada | Tecnologia |
 |---|---|
 | UI | React 18, Lucide React, CSS puro |
-| Build | Vite 5 |
+| Build | Vite 6 |
+| Testes | Vitest 4 |
 | PWA | vite-plugin-pwa (Workbox, `autoUpdate`) |
 | Auth e dados | Firebase Auth (Google) + Firestore (cache persistente) |
 | Persistência local | `localStorage` + IndexedDB (via Firestore) |
@@ -210,21 +211,11 @@ VITE_FIREBASE_APP_ID=
 export const EMAIL_PERMITIDO = "seu-email@exemplo.com";
 ```
 
-7. **Obrigatório:** configure as **Security Rules** do Firestore. Sem isso, qualquer usuário autenticado no seu projeto poderia ler/escrever dados de outros:
+7. **Obrigatório:** publique as **Security Rules** versionadas em [`firestore.rules`](firestore.rules). Elas restringem cada documento ao próprio `uid` **e** ao e-mail permitido (troque o e-mail lá também), validam o formato mínimo dos dados, impedem apagar o documento principal e só permitem criar/apagar backups:
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-
-      match /backups/{backupId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
-      }
-    }
-  }
-}
+```bash
+# troque o projeto em .firebaserc pelo seu
+firebase deploy --only firestore:rules
 ```
 
 > As chaves `VITE_FIREBASE_*` são públicas por natureza (vão para o bundle do client). Usar `.env` aqui serve para facilitar a troca de projeto e não commitar credenciais, **não** para escondê-las. A proteção real são as Security Rules.
@@ -234,6 +225,8 @@ service cloud.firestore {
 ## Build e deploy
 
 ```bash
+npm test          # testes (Vitest)
+npm run check     # testes + build
 npm run build     # gera dist/
 npm run preview   # serve o build localmente
 ```

@@ -2,13 +2,14 @@
 
 PWA pessoal (single-user) para vida acadêmica + rotina: **períodos → cadeiras** (horários, links, datas importantes), **compromissos** semanais, **afazeres** com recorrência e um **calendário geral** que cruza tudo. Offline-first, sync via Firebase quando logado.
 
-**Stack:** React 18 · Vite 5 · Firebase 12 (Auth Google + Firestore com cache IndexedDB) · vite-plugin-pwa · lucide-react · CSS puro (dark). Sem TypeScript, sem state manager, sem framework de UI.
+**Stack:** React 18 · Vite 6 · Firebase 12 (Auth Google + Firestore com cache IndexedDB) · vite-plugin-pwa · lucide-react · CSS puro (dark) · Vitest 4. Sem TypeScript, sem state manager, sem framework de UI.
 
 ## Antes de trabalhar (economia de tokens)
 1. Leia **`log.md`** (o que mudou recentemente + pendências da última sessão).
 2. Use **`organization.md`** para achar o arquivo/função certo **antes** de abrir código. Não releia o projeto inteiro.
 3. Escopo de trabalho vem de **`todo.md`** (backlog priorizado).
 4. Ao fim de cada sessão: adicione entrada no `log.md`, marque itens do `todo.md`, e atualize `organization.md` se criar/mover/remover arquivos ou funções relevantes.
+5. **Ao terminar uma feature de ponta a ponta** (implementada, testada, docs atualizados, commit/push feitos): **peça ao usuário para rodar `/clear`** e limpar o contexto antes da próxima. O `log.md` garante a continuidade.
 
 ## Comandos
 - `npm run dev` → http://localhost:5173 (precisa de `.env` com `VITE_FIREBASE_*`, mesmo sem login)
@@ -23,7 +24,8 @@ PWA pessoal (single-user) para vida acadêmica + rotina: **períodos → cadeira
 - **Nunca** criar caminho que grave estado vazio por cima do documento remoto. Respeitar `pareceVazio()` e a leitura forçada no servidor.
 - **Ocorrências recorrentes nunca são persistidas** — são derivadas sob demanda (`useEventosCalendario`, `ocorrenciasNoIntervalo`). Só exceções são salvas (`eventosConcluidos`, `eventosExcluidos`, `datasConcluidas`, `excecoesData`).
 - **Edição de listas é atômica**: um único `.map()` por `id`. Nunca "remover + adicionar" em duas chamadas (closure com array velho ⇒ duplicata).
-- Mudança de schema ⇒ manter **retrocompatibilidade** com backups `.json` antigos e com o documento atual no Firestore (migração em `sanitizarDados`).
+- **Mudança estrutural de schema ⇒ nova migração em `src/utils/migracoes.js`** (subir `VERSAO_ATUAL`, função pura, teste em `tests/unit/migracoes.test.js`). Backups `.json` antigos e o doc no Firestore continuam no formato velho. Campo que só ganha valor padrão não precisa de migração, só do `sanitizarDados`. Nunca descartar `versao` ao montar/importar dados.
+- **Segurança:** `firestore.rules` é a fonte da verdade (e-mail precisa bater com `EMAIL_PERMITIDO`; os campos obrigatórios com `DADOS_PADRAO`, checado em `integridade.test.js`). Campo novo obrigatório no doc ⇒ atualizar as Rules. Deploy (`firebase deploy --only firestore:rules`) é feito **pelo usuário**.
 - Datas são strings locais `YYYY-MM-DD` / `HH:MM`. Use `toISO`/`parseISO` de `utils/afazeres.js`; **não use `toISOString()`** para "hoje" (UTC ≠ Recife, UTC-3).
 - Dia da semana: **0 = Segunda … 6 = Domingo** (`(getDay() + 6) % 7`).
 - CSS: regras vão no arquivo temático em `src/styles/`; `app.css` só importa. **Tudo de mobile (≤860px) fica em `mobile.css`**, que é importado por último.
@@ -33,4 +35,4 @@ PWA pessoal (single-user) para vida acadêmica + rotina: **períodos → cadeira
 - Idioma: **PT-BR** em UI, nomes de variáveis/funções e comentários (ex.: `criarCadeira`, `onAlternarFeito`).
 - Comentários explicam o **porquê** (o código atual é bem comentado — manter o padrão).
 - Componentes: `Visao*` = telas da sidebar; `Painel*` = drawers de edição; `abas/` = sub-abas do drawer; `ui/` = peças reutilizáveis.
-- Commits: só quando o usuário pedir. Mensagens curtas em PT.
+- Git: commits **direto na `main`**, só com `npm run check` verde. Push para a `main` é como o usuário testa no app (deploy). Commit/push só quando o usuário pedir na sessão. Mensagens curtas em PT.

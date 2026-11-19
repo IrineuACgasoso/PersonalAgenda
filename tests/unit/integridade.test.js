@@ -58,3 +58,28 @@ describe("Segurança", () => {
     expect(ler("src/firebase.js")).not.toMatch(/AIza[0-9A-Za-z_-]{20,}/);
   });
 });
+
+describe("Firestore Rules (firestore.rules)", () => {
+  const rules = ler("firestore.rules");
+
+  it("e-mail das Rules é o mesmo EMAIL_PERMITIDO do client", () => {
+    const emailClient = ler("src/firebase.js").match(/EMAIL_PERMITIDO\s*=\s*"([^"]+)"/)[1];
+    const emailRules = rules.match(/request\.auth\.token\.email\s*==\s*"([^"]+)"/)[1];
+    expect(emailRules).toBe(emailClient);
+  });
+
+  it("todo campo obrigatório nas Rules é gravado pelo sanitizarDados", async () => {
+    const { DADOS_PADRAO } = await import("../../src/utils/sanitizarDados.js");
+    const obrigatorios = JSON.parse(rules.match(/hasAll\((\[[^\]]+\])\)/)[1]);
+    expect(obrigatorios.filter((c) => !(c in DADOS_PADRAO))).toEqual([]);
+  });
+
+  it("documento principal não pode ser apagado e o resto do banco é negado", () => {
+    expect(rules).toMatch(/match \/users\/\{uid\}[\s\S]*?allow delete: if false;/);
+    expect(rules).toMatch(/match \/\{document=\*\*\}\s*\{\s*allow read, write: if false;/);
+  });
+
+  it("firebase.json aponta para o arquivo de regras", () => {
+    expect(JSON.parse(ler("firebase.json")).firestore.rules).toBe("firestore.rules");
+  });
+});

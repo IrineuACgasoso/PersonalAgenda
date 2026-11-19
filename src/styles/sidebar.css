@@ -107,6 +107,7 @@
 .status-dot.saving { background: #f59e0b; }
 .status-dot.error { background: #ef4444; }
 .status-dot.offline { background: #6b7280; }
+.status-dot.desatualizado { background: #ef4444; }
 
 /* ---------- legado: dropdown de período dentro da sidebar ----------
    Estas classes não parecem mais usadas por nenhum componente — a seleção

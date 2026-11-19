@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-11-18 (3) — #1 Rules, #2 npm audit, #4 schema versionado
+- **Push** do commit anterior (`a966a2d`) para `origin/main`.
+- **#1 Firestore Rules** (`firestore.rules`, `firebase.json`, `.firebaserc`): uid + e-mail permitido + `email_verified` no servidor; formato mínimo do AppData (`periodos` não vazio, listas obrigatórias, `versao` int); doc principal não pode ser apagado; backups só create/delete com id = timestamp; resto negado. Compilado no servidor com `--dry-run` ✅. **O deploy real foi bloqueado pela permissão do modo automático → o usuário precisa rodar `firebase deploy --only firestore:rules`.**
+- **#2 Dependências:** firebase 12.17→12.19; `overrides` `@grpc/grpc-js ^1.14.7` (o firebase, até o 13, fixa `~1.9`, e o grpc só é usado no Node, não no bundle); Vite 5→6.4.6, Vitest 2→4.1.12, plugin-react 4.7. `npm audit --omit=dev` = 0. Restam 4 moderate (workbox/glob, só no build) → #30. Dev server conferido (200 em index/main/App/projecao).
+- **#4 Versionamento:** `src/utils/migracoes.js` (`VERSAO_ATUAL=1`, v0→v1 baseline), chamado no início do `sanitizarDados`; `DADOS_PADRAO.versao`. `persist()` bloqueia gravação se os dados forem de versão futura (novo status `desatualizado` na Sidebar). Import/restore da nuvem recusam backup de versão futura; `importarBackup` preserva `versao` (sem isso, um backup migrado seria migrado de novo).
+- **Testes:** +`migracoes.test.js` (12) e +4 de Rules em `integridade.test.js`. Total 86 (83 ✅ + 3 `it.fails` conhecidos). `npm run check` ✅.
+- **Docs:** `CLAUDE.md` (pedir `/clear` ao fim de cada feature; git na main só com check verde; regras de migração e Rules), `organization.md`, `todo.md`, `README.md` (Rules via arquivo, Vite 6, testes).
+- **➡ Próximo passo recomendado:** o usuário publica as Rules e testa o app (login, editar algo, ver "Nuvem sincronizada"). Depois, **#3 code review completa**, que vai alimentar a fase 2 (#5–#15, bugs de dados). Começar a fase 2 por **#5** e **#6**.
+- **Pendências de curto prazo:**
+  - [ ] Usuário: `firebase deploy --only firestore:rules` e confirmar a sincronização. Se der "Erro ao salvar"/permissão negada, reverter no console (Firestore → Regras → histórico) e me avisar.
+  - [ ] Usuário: testar no celular a lista do calendário com nome longo (sessão 2).
+  - [ ] #9: decidir sobre o `useAutoBackup`.
+
+---
+
 ## 2026-11-18 (2) — Bug do nome cortado no mobile + pasta tests/ + TODO por nível
 - **Bug corrigido:** na lista "Eventos em DD/MM" do calendário geral, o nome do evento era cortado com "..." (`nowrap` inline). Agora quebra linha e o item/faixa cresce em altura. No mobile, as colunas de urgência e hora ficaram mais estreitas e a faixa mais grossa. O "fantasma" do drag passou a ter largura máxima com reticências.
   - `src/components/VisaoGeral.jsx` (estilos inline → classes), `src/styles/agenda.css` (`.data-item-texto/-titulo-quebra/-sub/-urgencia/-hora`, `.drag-ghost-titulo`), `src/styles/mobile.css`.

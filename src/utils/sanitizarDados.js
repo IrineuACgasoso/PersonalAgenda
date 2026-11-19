@@ -5,8 +5,14 @@
 // lugar do app, e outra duplicada dentro de usePersistedData.js). Isso é
 // perigoso: qualquer novo código que importasse "a errada" perderia a
 // proteção contra dados ausentes/corrompidos. Agora só existe esta.
+//
+// Ordem: primeiro migra o schema (utils/migracoes.js) até a versão atual,
+// depois completa/normaliza os campos.
+
+import { VERSAO_ATUAL, migrarDados, versaoDos } from "./migracoes.js";
 
 export const DADOS_PADRAO = {
+  versao: VERSAO_ATUAL,
   periodos: [{ id: "p1", nome: "2026.1" }],
   cadeiras: [],
   compromissos: [],
@@ -16,12 +22,17 @@ export const DADOS_PADRAO = {
   periodoAtivoId: "p1",
 };
 
-export function sanitizarDados(raw) {
-  if (!raw || typeof raw !== "object") return { ...DADOS_PADRAO };
+export function sanitizarDados(entrada) {
+  if (!entrada || typeof entrada !== "object") return { ...DADOS_PADRAO };
+
+  const raw = migrarDados(entrada);
 
   return {
     ...DADOS_PADRAO,
     ...raw,
+    // Atual após a migração; se os dados vierem de uma versão FUTURA do
+    // app, mantém a versão deles (nunca "rebaixa").
+    versao: versaoDos(raw),
     periodos:
       Array.isArray(raw.periodos) && raw.periodos.length > 0
         ? raw.periodos

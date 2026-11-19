@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth, loginComGoogle, fazerLogout, EMAIL_PERMITIDO } from "../firebase";
 import { STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY } from "../constants";
 import { DADOS_PADRAO, sanitizarDados, pareceVazio } from "../utils/sanitizarDados";
+import { ehVersaoFutura } from "../utils/migracoes";
 
 // Tempo máximo de espera pela confirmação do servidor na checagem inicial.
 // Numa rede instável (ex: wifi caindo bem nessa hora) a chamada pode nunca
@@ -53,6 +54,14 @@ export default function usePersistedData() {
       window.removeEventListener("offline", marcarOffline);
     };
   }, []);
+
+  // Dados gravados por uma versão mais nova do app (outro aparelho já
+  // atualizado, este ainda com o PWA antigo em cache): mostra o aviso
+  // "desatualizado" no lugar de qualquer outro status — persist() também
+  // se recusa a gravar nesse estado. O autoUpdate do PWA resolve no reload.
+  useEffect(() => {
+    if (data && ehVersaoFutura(data) && status !== "desatualizado") setStatus("desatualizado");
+  }, [data, status]);
 
   // Trava dupla contra escrita prematura / sobre dados ainda não confirmados.
   const carregadoRef = useRef(false);
@@ -197,6 +206,14 @@ export default function usePersistedData() {
   const persist = async (newData) => {
     if (!carregadoRef.current) {
       console.warn("Tentativa de salvar bloqueada: dados ainda estão sendo carregados do banco.");
+      return;
+    }
+
+    // Esta versão do app não entende dados de schema mais novo: gravar por
+    // cima destruiria campos/formatos que ela desconhece.
+    if (ehVersaoFutura(data) || ehVersaoFutura(newData)) {
+      console.error("persist() bloqueado: os dados são de uma versão mais nova do app. Recarregue para atualizar.");
+      setStatus("desatualizado");
       return;
     }
 

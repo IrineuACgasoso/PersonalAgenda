@@ -11,10 +11,10 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ## 🔴 ALTO
 
 ### Fase 1 — Segurança e fundação
-- [ ] **#1 Versionar e endurecer as Firestore Rules.** Criar `firestore.rules` (+ `firebase.json`) no repo. Hoje elas só existem no README. Além de `uid == uid`, restringir também por `request.auth.token.email` (a trava de e-mail atual é só no client). Validar o tamanho/formato mínimo do doc e do `backups/{id}`.
-- [ ] **#2 Dependências vulneráveis (`npm audit`).** Produção: `@grpc/grpc-js` e `re2js` (vêm do `firebase`) → atualizar `firebase`. Dev: `esbuild` (dev server do Vite 5), `brace-expansion`, `fast-uri` → avaliar `npm audit fix` sem `--force` e depois o upgrade Vite 5→6 em item separado. Rodar `npm run check` após cada upgrade.
+- [~] **#1 Versionar e endurecer as Firestore Rules.** `firestore.rules` + `firebase.json` + `.firebaserc` criados e validados (compila no servidor via `--dry-run`, 4 testes de sincronia em `integridade.test.js`). **Falta o usuário publicar:** `firebase deploy --only firestore:rules` e confirmar que o app sincroniza. Opcional depois: testes de comportamento com o emulador (precisa de Java).
+- [x] **#2 Dependências vulneráveis.** Produção: **0 vulnerabilidades** (firebase 12.19 + override `@grpc/grpc-js ^1.14.7`). Dev: Vite 5→6.4.6, Vitest 2→4.1, plugin-react 4.7. Restam 4 *moderate* no `glob/minimatch` do `workbox-build` (vite-plugin-pwa), que roda só no build sobre padrões do próprio projeto: **risco aceito**, revisar em #30.
 - [ ] **#3 Code review completa do projeto** (correção, dados, segurança, performance, a11y, CSS morto). Cada achado novo entra aqui com nível e posição na ordem.
-- [ ] **#4 Schema versionado + migrações.** `data.versao` + `src/utils/migracoes.js`, chamado por `sanitizarDados`, com testes para cada migração (backup antigo → versão atual). É **pré-requisito** de #10, #22, #23 e #24.
+- [x] **#4 Schema versionado + migrações.** `src/utils/migracoes.js` (`VERSAO_ATUAL = 1`, baseline), aplicado dentro de `sanitizarDados`. Proteção: a versão antiga do app **não grava** sobre dados de versão futura (status "desatualizado"), e import/restore recusam backup futuro. `importarBackup` agora preserva `versao`.
 
 ### Fase 2 — Bugs de dados, race conditions e fallbacks
 - [ ] **#5 `sanitizarDados` não normaliza cadeiras/compromissos** (`horarios/links/datas`). Um backup sem `links` quebra `VisaoCadeiras`. _Teste `it.fails` já existe em `sanitizarDados.test.js`._
@@ -66,7 +66,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [ ] **#27** `.gitignore`: `node_modules` duplicado; `.zip` → `*.zip`.
 - [ ] **#28** `AbaLinks`: tratar o erro de `navigator.clipboard.writeText`.
 - [ ] **#29** `uid()` → `crypto.randomUUID()` (mantendo os ids antigos).
-- [ ] **#30** Upgrade Vite 5 → 6 / Vitest 3 (fecha os avisos de dev do #2).
+- [ ] **#30** Upgrade `vite-plugin-pwa` (fecha os 4 *moderate* do workbox) e avaliar Vite 7/8 e `firebase@13` (major). Vite 6 + Vitest 4 já feitos no #2.
 
 ### Ideias aprovadas pelo usuário (implementar depois das fases acima)
 - [ ] **#31 Tela "Hoje"**: resumo do dia (aulas, compromissos, afazeres urgentes) como home no mobile. Reaproveitar `projetarEventos` de `utils/projecao.js`.
@@ -81,5 +81,6 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] #2 `npm audit` (prod limpo) e #4 schema versionado (2026-11-18).
 - [x] Mobile: nome longo cortado na lista "Eventos em DD/MM" → agora quebra linha (2026-11-18).
 - [x] Pasta `tests/` com Vitest + `npm test` / `npm run check` (2026-11-18).
