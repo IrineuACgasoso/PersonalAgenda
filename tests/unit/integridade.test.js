@@ -143,3 +143,51 @@ describe("Firestore Rules (firestore.rules)", () => {
     expect(JSON.parse(ler("firebase.json")).firestore.rules).toBe("firestore.rules");
   });
 });
+
+// Lembretes programados (#23): app + Cloud Function + Rules + service worker.
+describe("Lembretes (#23)", () => {
+  it("a função usa uma cópia IDÊNTICA de src/utils/lembretes.js (rode `npm run funcoes:sincronizar`)", () => {
+    expect(ler("functions/compartilhado/lembretes.js")).toBe(ler("src/utils/lembretes.js"));
+  });
+
+  it("src/utils/lembretes.js não importa nada (a função só enxerga functions/)", () => {
+    expect(ler("src/utils/lembretes.js")).not.toMatch(/^\s*import\s/m);
+  });
+
+  it("firebase.json: deploy das funções sincroniza a cópia antes", () => {
+    const funcoes = JSON.parse(ler("firebase.json")).functions;
+    const cfg = Array.isArray(funcoes) ? funcoes[0] : funcoes;
+    expect(cfg.source).toBe("functions");
+    expect(cfg.predeploy.join(" ")).toMatch(/funcoes:sincronizar/);
+  });
+
+  it("a função só LÊ o documento principal (nunca grava em users/{uid})", () => {
+    const codigo = ler("functions/index.js");
+    expect(codigo).not.toMatch(/docUsuario\.ref\.(set|update|delete)\(/);
+    expect(codigo).not.toMatch(/refUsuario\.(set|update|delete)\(/);
+  });
+
+  it("Rules: aparelhos com campos limitados e dentro de users/{uid}", () => {
+    const rules = ler("firestore.rules");
+    const bloco = rules.match(/match \/dispositivos\/\{dispositivoId\}\s*\{([\s\S]*?)\n {6}\}/);
+    expect(bloco).not.toBeNull();
+    expect(bloco[1]).toMatch(/ehDono\(uid\)/);
+    expect(bloco[1]).toMatch(/hasOnly\(/);
+    // O que o app grava em src/notificacoes.js tem que caber no hasOnly.
+    const permitidos = JSON.parse(bloco[1].match(/hasOnly\((\[[^\]]+\])\)/)[1]);
+    ["token", "aparelho", "criadoEm", "atualizadoEm", "testeEm", "testeRespondidoEm"].forEach((c) =>
+      expect(permitidos).toContain(c),
+    );
+  });
+
+  it("service worker próprio: mantém o cache offline e trata o push", () => {
+    const cfg = ler("vite.config.js");
+    expect(cfg).toMatch(/strategies:\s*"injectManifest"/);
+    expect(cfg).toMatch(/filename:\s*"sw\.js"/);
+    const sw = ler("src/sw.js");
+    expect(sw).toMatch(/precacheAndRoute\(self\.__WB_MANIFEST\)/);
+    expect(sw).toMatch(/createHandlerBoundToURL\("\/index\.html"\)/);
+    expect(sw).toMatch(/addEventListener\("push"/);
+    expect(sw).toMatch(/addEventListener\("notificationclick"/);
+  });
+});

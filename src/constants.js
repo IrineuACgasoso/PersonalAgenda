@@ -7,7 +7,6 @@ export const CORES = [
   "#0c3d00",
   "#10b981",
   "#14b8a6",
-  "#221e1e",
   "#3b82f6",
   "#4700cc",
   "#6366f1",
@@ -28,6 +27,8 @@ export const HORA_FIM = 23;
 export const STORAGE_KEY = "painel-academico-data";
 export const SIDEBAR_STATE_KEY = "painel-academico-sidebar";
 export const ULTIMA_SINCRONIZACAO_KEY = "painel-academico-ultima-sincronizacao";
+// Registro deste aparelho para os lembretes (#23): { id, ativo, token }.
+export const DISPOSITIVO_PUSH_KEY = "painel-academico-dispositivo-push";
 
 export const ROTINA_OPCOES = [
   { valor: "nenhuma", label: "Não é rotineiro" },

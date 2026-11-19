@@ -3,6 +3,7 @@
 import { describe, it, expect } from "vitest";
 import { sanitizarDados, pareceVazio, DADOS_PADRAO, removerUndefined } from "../../src/utils/sanitizarDados.js";
 import { appData, afazer, cadeira, rotina, compromisso, horario, backupAntigo } from "../fixtures/fabricas.js";
+import { VERSAO_ATUAL } from "../../src/utils/migracoes.js";
 
 describe("sanitizarDados", () => {
   it("entrada nula/inválida vira o padrão", () => {
@@ -196,5 +197,43 @@ describe("vigência da cadeira (#19)", () => {
     expect(d.cadeiras[0]).toMatchObject({ dataInicio: "2026-08-01", dataFim: "2026-12-15" });
     expect("dataInicio" in d.cadeiras[1] || "dataFim" in d.cadeiras[1]).toBe(false);
     expect("dataInicio" in d.cadeiras[2]).toBe(false);
+  });
+});
+
+// Lembretes (#23): campos opcionais, sem migração — tem que sobreviver ao persist().
+describe("lembretes (#23)", () => {
+  it("padrões globais sempre completos; valor salvo é mantido", () => {
+    expect(sanitizarDados(appData()).lembretes).toEqual({ compromissos: [15], avaliacoes: [1440] });
+    expect(sanitizarDados(appData({ lembretes: { compromissos: [], avaliacoes: [60] } })).lembretes).toEqual({
+      compromissos: [],
+      avaliacoes: [60],
+    });
+  });
+  it("lembretes do compromisso e da avaliação sobrevivem; ausente continua ausente (= padrão)", () => {
+    const d = sanitizarDados(
+      appData({
+        versao: VERSAO_ATUAL, // sem versão, a migração v5 trataria `compromissos` como rotinas
+        compromissos: [compromisso({ id: "c1", lembretes: [60, 0] }), compromisso({ id: "c2" })],
+        cadeiras: [
+          cadeira({
+            datas: [
+              { id: "a1", titulo: "P1", data: "2026-11-25", lembretes: [] },
+              { id: "a2", titulo: "P2", data: "2026-11-26" },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(d.compromissos[0].lembretes).toEqual([0, 60]);
+    expect("lembretes" in d.compromissos[1]).toBe(false);
+    expect(d.cadeiras[0].datas[0].lembretes).toEqual([]);
+    expect("lembretes" in d.cadeiras[0].datas[1]).toBe(false);
+  });
+  it("lixo nos lembretes some (vira padrão) sem levar o item junto", () => {
+    const d = sanitizarDados(
+      appData({ versao: VERSAO_ATUAL, compromissos: [compromisso({ id: "c1", lembretes: "15" })] }),
+    );
+    expect(d.compromissos[0]).toMatchObject({ id: "c1" });
+    expect("lembretes" in d.compromissos[0]).toBe(false);
   });
 });

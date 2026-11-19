@@ -106,6 +106,11 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 </p>
 <!-- PLACEHOLDER: print da sidebar mostrando seção Backup, conta logada e status "Nuvem sincronizada" -->
 
+### 🔔 Lembretes
+- Notificações push de **compromissos** e **avaliações**, mesmo com o app fechado (Android, desktop e iPhone com o app instalado).
+- Padrões globais (ex.: 15 min antes de compromissos, 1 dia antes de provas) e lembretes próprios por item ("Na hora", "1 h", "1 semana", "Nenhum"…).
+- Uma Cloud Function agendada roda a cada minuto, calcula o que venceu com a **mesma lógica pura** do app (`utils/lembretes.js`) e envia pelo Firebase Cloud Messaging.
+
 ### 📱 PWA e UX
 - Instalável (Android, iOS, desktop) e funciona offline.
 - Layout responsivo: abaixo de 860px a sidebar vira menu deslizante.
@@ -124,8 +129,9 @@ type AppData = {
   versao: number;                 // versão do schema (migrações em utils/migracoes.js)
   periodos: Periodo[];            // { id, nome }
   cadeiras: Cadeira[];            // { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[], links[], datas[] }
-  rotinas: Rotina[];              // { id, periodoId, nome, cor, horarios[] }
-  compromissos: Compromisso[];    // { id, nome, cor, data, inicio, fim?, feito }
+  rotinas: Rotina[];              // { id, nome, cor, horarios[], dataInicio?, dataFim? }
+  compromissos: Compromisso[];    // { id, nome, cor, data, inicio, fim?, feito, lembretes? }
+  lembretes: { compromissos: number[]; avaliacoes: number[] };  // padrões (minutos antes)
   afazeres: Afazer[];             // { id, nome, data?, rotina{ tipo, dataFim?, ... }, urgencia, feito, cor?, ... }
   eventosConcluidos: string[];    // chaves de ocorrências marcadas como concluídas
   eventosExcluidos: string[];     // chaves de ocorrências removidas (ex.: aula cancelada)
@@ -227,6 +233,13 @@ export const EMAIL_PERMITIDO = "seu-email@exemplo.com";
 firebase deploy --only firestore:rules
 ```
 
+8. **Lembretes (opcional, exige o plano Blaze):** publique a Cloud Function agendada em [`functions/`](functions). O predeploy copia `src/utils/lembretes.js` para `functions/compartilhado/`:
+
+```bash
+cd functions && npm install && cd ..
+firebase deploy --only functions,firestore:rules
+```
+
 > As chaves `VITE_FIREBASE_*` são públicas por natureza (vão para o bundle do client). Usar `.env` aqui serve para facilitar a troca de projeto e não commitar credenciais, **não** para escondê-las. A proteção real são as Security Rules.
 
 ---
@@ -251,6 +264,8 @@ Deploy estático em qualquer provedor (Vercel, Netlify, Firebase Hosting). Na Ve
 src/
 ├── App.jsx                  # Estado global, ações CRUD, backup, roteamento de abas
 ├── firebase.js              # Config Firebase, login Google, e-mail permitido
+├── notificacoes.js          # Registro do aparelho no FCM (lembretes)
+├── sw.js                    # Service worker: cache offline + push dos lembretes
 ├── constants.js             # Cores, dias, rotinas, chaves de storage
 ├── hooks/
 │   ├── usePersistedData.js  # Persistência híbrida (local / Firestore), fila de escrita, offline
@@ -281,6 +296,7 @@ src/
 - **Sem ocorrências persistidas:** recorrência é derivada; só exceções são salvas. Evita dados inconsistentes quando a regra muda.
 - **Edição atômica de listas:** itens são editados com um único `.map()` por `id`, nunca "remover + adicionar" em duas chamadas (causava duplicatas por closure sobre array desatualizado).
 - **Offline-first sem reinventar sincronização:** o cache persistente do Firestore cuida da fila de escritas pendentes.
+- **Lembretes sem duplicar regra:** a função do servidor usa uma cópia byte a byte de `utils/lembretes.js` (checada nos testes), então o que o app mostra e o que o servidor envia nunca divergem.
 - **CSS puro:** sem framework de UI, por ser um projeto de escopo pequeno.
 
 ---

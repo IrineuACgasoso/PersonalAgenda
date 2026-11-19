@@ -56,6 +56,20 @@ service cloud.firestore {
         allow delete: if ehDono(uid);
         allow update: if false;
       }
+
+      // Aparelhos que recebem os lembretes (#23): users/{uid}/dispositivos/{id}
+      // (ver src/notificacoes.js). O app cria/atualiza o token e pede testes;
+      // a Cloud Function (Admin SDK, ignora estas regras) lê, marca
+      // `testeRespondidoEm` e apaga tokens inválidos.
+      // users/{uid}/sistema/** é só da função: cai no "negado" lá embaixo.
+      match /dispositivos/{dispositivoId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid)
+          && request.resource.data.keys().hasOnly(["token", "aparelho", "criadoEm", "atualizadoEm", "testeEm", "testeRespondidoEm"])
+          && request.resource.data.token is string
+          && request.resource.data.token.size() > 0
+          && request.resource.data.token.size() < 4096;
+      }
     }
 
     // Qualquer outro caminho: negado.

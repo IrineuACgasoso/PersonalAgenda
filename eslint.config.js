@@ -43,8 +43,8 @@ export default [
     },
   },
   {
-    // Configs e testes rodam no Node.
-    files: ["*.config.js", "tests/**/*.js"],
+    // Configs, testes e Cloud Functions rodam no Node.
+    files: ["*.config.js", "tests/**/*.js", "functions/**/*.js"],
     languageOptions: { globals: { ...globals.node } },
   },
   prettier,

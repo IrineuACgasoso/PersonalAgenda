@@ -10,6 +10,7 @@ import {
   ehDataISO,
   textoVigencia,
   vigenciaPadraoParaNovaCadeira,
+  corVisivel,
 } from "../../src/utils/calendario.js";
 import { formatarData } from "../../src/utils/formatarData.js";
 import { cadeira } from "../fixtures/fabricas.js";
@@ -125,4 +126,28 @@ describe("hexParaRgb", () => {
 describe("formatarData", () => {
   it("ISO → DD/MM/AAAA", () => expect(formatarData("2026-11-18")).toBe("18/11/2026"));
   it("vazio → string vazia", () => expect(formatarData("")).toBe(""));
+});
+
+// #55: o padrão antigo do afazer (#221e1e) sumia no fundo escuro.
+describe("corVisivel", () => {
+  it("devolve cores normais exatamente como vieram (inclusive hex curto)", () => {
+    expect(corVisivel("#f00")).toBe("#f00");
+    expect(corVisivel("#8b5cf6")).toBe("#8b5cf6");
+    expect(corVisivel("#0c3d00")).toBe("#0c3d00");
+  });
+  it("clareia cores quase pretas, mantendo um hex de 6 dígitos", () => {
+    const c = corVisivel("#221e1e");
+    expect(c).toMatch(/^#[0-9a-f]{6}$/);
+    expect(c).not.toBe("#221e1e");
+    const [r, g, b] = hexParaRgb(c).split(", ").map(Number);
+    expect(r).toBeGreaterThan(90);
+    expect(r).toBeGreaterThanOrEqual(g); // mantém o leve tom avermelhado
+    expect(g).toBe(b);
+    expect(corVisivel("#000000")).not.toBe("#000000");
+  });
+  it("valor inválido passa direto (sem quebrar a tela)", () => {
+    expect(corVisivel(undefined)).toBeUndefined();
+    expect(corVisivel("")).toBe("");
+    expect(corVisivel("azul")).toBe("azul");
+  });
 });

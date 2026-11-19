@@ -1,0 +1,127 @@
+/* lembretes.css — lembretes programados (#23): chips de antecedência
+   (ui/SeletorLembretes) e o modal de configuração (ui/ModalLembretes). */
+
+.seletor-lembretes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seletor-lembretes .form-campo-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.seletor-lembretes-resumo {
+  opacity: 0.85;
+}
+
+.chips-lembrete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-lembrete {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(20, 22, 27, 0.6);
+  border: 1px solid var(--vidro-borda);
+  color: var(--texto-fraco);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.chip-lembrete:hover {
+  border-color: var(--vidro-borda-forte);
+}
+
+.chip-lembrete.ativo {
+  background: rgba(99, 102, 241, 0.22);
+  border-color: var(--accent-2);
+  color: #fff;
+}
+
+/* Valor que vem do padrão global (o item não escolheu nada próprio). */
+.chip-lembrete.herdado {
+  border-style: dashed;
+  border-color: rgba(129, 140, 248, 0.55);
+  color: var(--texto);
+}
+
+.lembretes-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--vidro-borda);
+}
+
+.lembretes-secao:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.lembretes-subtitulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-fraco);
+}
+
+.lembretes-status {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #d4d4dc;
+}
+
+.lembretes-status.estado-ativo {
+  color: #6ee7b7;
+}
+
+.lembretes-status.estado-bloqueado {
+  color: #fca5a5;
+}
+
+.lembretes-ajuda {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.lembretes-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lembretes-botoes:empty {
+  display: none;
+}
+
+.lembretes-botoes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* "· 🔔 1 dia antes" na linha da avaliação (só quando foge do padrão). */
+.lembrete-proprio {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+}

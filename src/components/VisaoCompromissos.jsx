@@ -3,9 +3,10 @@
 // (dentista, reunião, entrega presencial). No calendário geral, o dia ganha
 // uma ★ na cor do compromisso. Não dependem de período.
 import { useState, useEffect, useRef } from "react";
-import { Plus, Trash2, Check, Trash, Edit2, X, Star } from "lucide-react";
+import { Plus, Trash2, Check, Trash, Edit2, X, Star, Bell, BellOff } from "lucide-react";
 import useDialogos from "../hooks/useDialogos";
 import { toISO } from "../utils/afazeres.js";
+import { corVisivel } from "../utils/calendario.js";
 import {
   erroDoCompromisso,
   secoesDosCompromissos,
@@ -17,17 +18,28 @@ import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import SeletorData from "./ui/SeletorData.jsx";
 import SecaoLista from "./ui/SecaoLista.jsx";
+import SeletorLembretes from "./ui/SeletorLembretes.jsx";
+import { OPCOES_LEMBRETE, LEMBRETES_PADRAO, textoListaLembretes } from "../utils/lembretes.js";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const COR_PADRAO_COMPROMISSO = "#f59e0b";
 
-function FormularioCompromisso({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNovaData, onGatilhoConsumido }) {
+function FormularioCompromisso({
+  onSalvar,
+  itemEmEdicao,
+  onCancelarEdicao,
+  gatilhoNovaData,
+  onGatilhoConsumido,
+  lembretesPadrao,
+}) {
   const { avisar } = useDialogos();
   const [nome, setNome] = useState("");
   const [data, setData] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [cor, setCor] = useState(COR_PADRAO_COMPROMISSO);
+  // Lembretes deste compromisso (#23): undefined = padrão global.
+  const [lembretes, setLembretes] = useState(undefined);
   const formRef = useRef(null);
   const nomeRef = useRef(null);
   useNavegacaoEnter(formRef);
@@ -38,6 +50,7 @@ function FormularioCompromisso({ onSalvar, itemEmEdicao, onCancelarEdicao, gatil
     setInicio("");
     setFim("");
     setCor(COR_PADRAO_COMPROMISSO);
+    setLembretes(undefined);
     if (onCancelarEdicao) onCancelarEdicao();
   };
 
@@ -48,6 +61,7 @@ function FormularioCompromisso({ onSalvar, itemEmEdicao, onCancelarEdicao, gatil
       setInicio(itemEmEdicao.inicio || "");
       setFim(itemEmEdicao.fim || "");
       setCor(itemEmEdicao.cor || COR_PADRAO_COMPROMISSO);
+      setLembretes(itemEmEdicao.lembretes);
       formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       nomeRef.current?.focus({ preventScroll: true });
     } else {
@@ -68,7 +82,7 @@ function FormularioCompromisso({ onSalvar, itemEmEdicao, onCancelarEdicao, gatil
   const submit = () => {
     const erro = erroDoCompromisso({ nome, data, inicio, fim });
     if (erro) return avisar(erro, { titulo: "Faltam dados" });
-    onSalvar({ nome: nome.trim(), data, inicio, fim: fim || undefined, cor });
+    onSalvar({ nome: nome.trim(), data, inicio, fim: fim || undefined, cor, lembretes });
     limpar();
   };
 
@@ -104,6 +118,15 @@ function FormularioCompromisso({ onSalvar, itemEmEdicao, onCancelarEdicao, gatil
         <SeletorCor valor={cor} onChange={setCor} adiarMs={0} label="Cor:" />
       </div>
 
+      <div className="form-campo">
+        <SeletorLembretes
+          valor={lembretes}
+          onChange={setLembretes}
+          padrao={lembretesPadrao}
+          opcoes={OPCOES_LEMBRETE.compromissos}
+        />
+      </div>
+
       <div className="form-acoes">
         <button className="btn-primario full" onClick={submit}>
           {itemEmEdicao ? <Check size={15} /> : <Plus size={15} />}
@@ -120,7 +143,7 @@ function FormularioCompromisso({ onSalvar, itemEmEdicao, onCancelarEdicao, gatil
 }
 
 function ItemCompromisso({ c, hojeISO, onAlternarFeito, onEditar, onExcluir }) {
-  const cor = c.cor || COR_PADRAO_COMPROMISSO;
+  const cor = corVisivel(c.cor || COR_PADRAO_COMPROMISSO);
   return (
     <div className={`item-lista${c.feito ? " feito" : ""}`} style={{ "--cor-item": cor }}>
       <button
@@ -138,6 +161,13 @@ function ItemCompromisso({ c, hojeISO, onAlternarFeito, onEditar, onExcluir }) {
             <Star size={11} fill={cor} color={cor} />
             {textoDataComSemana(c.data)} · {rotuloRelativo(c.data, hojeISO)}
           </span>
+          {/* Só quando foge do padrão (#23). */}
+          {Array.isArray(c.lembretes) && (
+            <span className="chip-meta" title="Lembrete deste compromisso">
+              {c.lembretes.length ? <Bell size={11} /> : <BellOff size={11} />}
+              {textoListaLembretes(c.lembretes)}
+            </span>
+          )}
         </div>
       </div>
       <span className="item-lista-hora">{textoHorarioCompromisso(c)}</span>
@@ -160,6 +190,7 @@ export default function VisaoCompromissos({
   onLimparPassados,
   gatilhoNovaData,
   onGatilhoConsumido,
+  lembretesPadrao = LEMBRETES_PADRAO.compromissos,
 }) {
   const [itemEmEdicao, setItemEmEdicao] = useState(null);
 
@@ -198,6 +229,7 @@ export default function VisaoCompromissos({
         onCancelarEdicao={() => setItemEmEdicao(null)}
         gatilhoNovaData={gatilhoNovaData}
         onGatilhoConsumido={onGatilhoConsumido}
+        lembretesPadrao={lembretesPadrao}
       />
 
       {compromissos.length === 0 ? (

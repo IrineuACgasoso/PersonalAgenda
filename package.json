@@ -9,9 +9,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint --max-warnings 0 src tests *.config.js && prettier --check . src",
-    "format": "prettier --write . src && eslint --fix src tests *.config.js",
-    "check": "npm run lint && vitest run && vite build"
+    "lint": "eslint --max-warnings 0 src tests functions *.config.js && prettier --check . src functions",
+    "format": "prettier --write . src functions && eslint --fix src tests functions *.config.js",
+    "check": "npm run lint && vitest run && vite build",
+    "funcoes:sincronizar": "node -e \"require('fs').copyFileSync('src/utils/lembretes.js','functions/compartilhado/lembretes.js')\""
   },
   "dependencies": {
     "firebase": "^12.19.0",
@@ -30,7 +31,10 @@
     "prettier": "^3.10.1",
     "vite": "^6.4.6",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1"
   },
   "overrides": {
     "@grpc/grpc-js": "^1.14.7"

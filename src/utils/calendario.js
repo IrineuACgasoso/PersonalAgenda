@@ -36,6 +36,34 @@ export function hexParaRgb(hex) {
   return `${r}, ${g}, ${b}`;
 }
 
+// Luminância relativa (WCAG) de "r, g, b" → 0 (preto) … 1 (branco).
+function luminancia(r, g, b) {
+  const canal = (v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+}
+
+// Cores quase pretas somem no fundo escuro do app (#55: o padrão antigo do
+// afazer, #221e1e, deixava o ponto do calendário e a faixa do item
+// invisíveis). Abaixo do limite, mistura com branco até chegar num cinza
+// médio, mantendo o matiz. Só para EXIBIÇÃO: a cor gravada não muda, e
+// cores normais voltam exatamente como vieram (inclusive "#f00").
+export const LUMINANCIA_MINIMA = 0.03;
+const LUMINANCIA_ALVO = 0.12;
+export function corVisivel(hex) {
+  // Hex inválido (ou nem string): devolve como veio, sem mexer.
+  if (typeof hex !== "string" || !/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex.trim())) return hex;
+  const [r, g, b] = hexParaRgb(hex).split(", ").map(Number);
+  if (luminancia(r, g, b) >= LUMINANCIA_MINIMA) return hex;
+  const misturar = (v, t) => Math.round(v + (255 - v) * t);
+  let t = 0;
+  while (t < 1 && luminancia(misturar(r, t), misturar(g, t), misturar(b, t)) < LUMINANCIA_ALVO) t += 0.02;
+  const paraHex = (v) => v.toString(16).padStart(2, "0");
+  return `#${paraHex(misturar(r, t))}${paraHex(misturar(g, t))}${paraHex(misturar(b, t))}`;
+}
+
 export function getIntervaloMes(ano, mes) {
   const primeiroDia = new Date(ano, mes, 1);
   const ultimoDia = new Date(ano, mes + 1, 0);

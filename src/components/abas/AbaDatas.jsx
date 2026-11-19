@@ -1,21 +1,26 @@
 // src/components/cadeira/AbaDatas.jsx
 import { useState } from "react";
-import { Plus, Trash2, Edit2, Calendar, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Calendar, Check, X, Bell, BellOff } from "lucide-react";
 import { formatarData } from "../../utils/formatarData.js";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
+import SeletorLembretes from "../ui/SeletorLembretes.jsx";
 import useDialogos from "../../hooks/useDialogos";
+import { OPCOES_LEMBRETE, LEMBRETES_PADRAO, textoListaLembretes } from "../../utils/lembretes.js";
 
-export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
+export default function AbaDatas({ datas, lembretesPadrao = LEMBRETES_PADRAO.avaliacoes, onAdd, onRemover, onEditar }) {
   const { avisar } = useDialogos();
   const [titulo, setTitulo] = useState("");
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
+  // Lembretes desta avaliação (#23): undefined = padrão global.
+  const [lembretes, setLembretes] = useState(undefined);
   const [editandoId, setEditandoId] = useState(null);
 
   const limpar = () => {
     setTitulo("");
     setData("");
     setHora("");
+    setLembretes(undefined);
     setEditandoId(null);
   };
 
@@ -25,15 +30,16 @@ export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
       avisar("Preencha o título e a data.", { titulo: "Faltam dados" });
       return;
     }
+    const campos = { titulo: t, data, hora, lembretes };
     if (editandoId) {
       if (onEditar) {
-        onEditar(editandoId, { titulo: t, data, hora });
+        onEditar(editandoId, campos);
       } else {
         onRemover(editandoId);
-        onAdd({ titulo: t, data, hora });
+        onAdd(campos);
       }
     } else {
-      onAdd({ titulo: t, data, hora });
+      onAdd(campos);
     }
     limpar();
   };
@@ -43,6 +49,7 @@ export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
     setTitulo(d.titulo);
     setData(d.data);
     setHora(d.hora || "");
+    setLembretes(d.lembretes);
   };
 
   return (
@@ -56,6 +63,14 @@ export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
       <div className="form-grid duas-colunas" style={{ marginTop: 8 }}>
         <input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} />
         <input className="input" type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <SeletorLembretes
+          valor={lembretes}
+          onChange={setLembretes}
+          padrao={lembretesPadrao}
+          opcoes={OPCOES_LEMBRETE.avaliacoes}
+        />
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
         <button className="btn-primario full" onClick={salvar}>
@@ -81,6 +96,13 @@ export default function AbaDatas({ datas, onAdd, onRemover, onEditar }) {
                 <div className="subtle">
                   {formatarData(d.data)}
                   {d.hora ? ` · ${d.hora}` : ""}
+                  {/* Só quando foge do padrão (#23). */}
+                  {Array.isArray(d.lembretes) && (
+                    <span className="lembrete-proprio">
+                      {d.lembretes.length ? <Bell size={11} /> : <BellOff size={11} />}
+                      {textoListaLembretes(d.lembretes)}
+                    </span>
+                  )}
                 </div>
               </div>
               <button className="icon-btn-ghost" onClick={() => iniciarEdicao(d)} title="Editar data">

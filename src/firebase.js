@@ -19,7 +19,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+// Exportado para o FCM dos lembretes (src/notificacoes.js, #23).
+export const app = initializeApp(firebaseConfig);
 
 // Cache local persistente (IndexedDB): permite ler/escrever offline. Escritas
 // feitas sem rede ficam na fila do próprio SDK do Firestore e sobem para o

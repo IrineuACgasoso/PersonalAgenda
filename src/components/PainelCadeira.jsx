@@ -27,7 +27,14 @@ function Secao({ titulo, contagem, aberta, onAlternar, children }) {
   );
 }
 
-export default function PainelCadeira({ cadeira, eventosExcluidos = [], onFechar, onAtualizar, onExcluir }) {
+export default function PainelCadeira({
+  cadeira,
+  eventosExcluidos = [],
+  lembretesPadrao,
+  onFechar,
+  onAtualizar,
+  onExcluir,
+}) {
   const [abertas, setAbertas] = useState({ horarios: true, links: true, datas: true });
   const alternarSecao = (secao) => setAbertas((a) => ({ ...a, [secao]: !a[secao] }));
   const [nomeEdit, setNomeEdit] = useState(cadeira.nome);
@@ -113,7 +120,13 @@ export default function PainelCadeira({ cadeira, eventosExcluidos = [], onFechar
             aberta={abertas.datas}
             onAlternar={() => alternarSecao("datas")}
           >
-            <AbaDatas datas={cadeira.datas} onAdd={addData} onRemover={rmData} onEditar={editData} />
+            <AbaDatas
+              datas={cadeira.datas}
+              lembretesPadrao={lembretesPadrao}
+              onAdd={addData}
+              onRemover={rmData}
+              onEditar={editData}
+            />
           </Secao>
         </div>
       </div>

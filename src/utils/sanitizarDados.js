@@ -11,6 +11,7 @@
 
 import { VERSAO_ATUAL, migrarDados, versaoDos } from "./migracoes.js";
 import { ehDataISO } from "./calendario.js";
+import { LEMBRETES_PADRAO, sanitizarListaLembretes, sanitizarPreferenciasLembretes } from "./lembretes.js";
 
 export const DADOS_PADRAO = {
   versao: VERSAO_ATUAL,
@@ -22,6 +23,9 @@ export const DADOS_PADRAO = {
   eventosConcluidos: [],
   eventosExcluidos: [],
   periodoAtivoId: "p1",
+  // Padrões dos lembretes (#23): minutos de antecedência. Opcional no doc
+  // (sem migração nem Rules): ausente ⇒ estes valores.
+  lembretes: LEMBRETES_PADRAO,
 };
 
 // Mantém só os itens que são objetos de verdade. Um `null`/string perdido
@@ -40,7 +44,8 @@ function sanitizarCadeira(c) {
     ...c,
     horarios: listaDeObjetos(c.horarios),
     links: listaDeObjetos(c.links),
-    datas: listaDeObjetos(c.datas),
+    // Avaliações: `lembretes` opcional por item (#23); ausente = padrão global.
+    datas: listaDeObjetos(c.datas).map((d) => ({ ...d, lembretes: sanitizarListaLembretes(d.lembretes) })),
     // Vigência própria (#19), opcional: só "YYYY-MM-DD" válido sobrevive
     // (undefined é removido por removerUndefined; "" = sem limite).
     dataInicio: ehDataISO(c.dataInicio) ? c.dataInicio : undefined,
@@ -71,6 +76,9 @@ function sanitizarCompromisso(c) {
     inicio: HORA.test(c.inicio) ? c.inicio : "",
     fim: HORA.test(c.fim) ? c.fim : undefined,
     feito: !!c.feito,
+    // Lembretes (#23): lista de minutos de antecedência; ausente = padrão
+    // global, [] = sem lembrete.
+    lembretes: sanitizarListaLembretes(c.lembretes),
   };
 }
 
@@ -113,6 +121,7 @@ function normalizar(raw) {
     cadeiras: listaDeObjetos(raw.cadeiras).map(sanitizarCadeira),
     rotinas: listaDeObjetos(raw.rotinas).map(sanitizarRotina),
     compromissos: listaDeObjetos(raw.compromissos).map(sanitizarCompromisso),
+    lembretes: sanitizarPreferenciasLembretes(raw.lembretes),
     eventosConcluidos: Array.isArray(raw.eventosConcluidos) ? raw.eventosConcluidos : [],
     eventosExcluidos: Array.isArray(raw.eventosExcluidos) ? raw.eventosExcluidos : [],
     afazeres: Array.isArray(raw.afazeres)

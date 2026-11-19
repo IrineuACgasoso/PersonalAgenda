@@ -15,6 +15,7 @@ PWA pessoal (single-user) para vida acadêmica + rotina: **períodos → cadeira
 - `npm run dev` → http://localhost:5173 (precisa de `.env` com `VITE_FIREBASE_*`, mesmo sem login)
 - `npm run check` → lint (ESLint + Prettier, `--max-warnings 0`) + testes + build. **Verificação obrigatória antes de dar qualquer tarefa como pronta.** Formatação quebrada ⇒ `npm run format`.
 - Lint/Prettier recebem `src` **explicitamente**: no OneDrive a pasta é um ponto de reparse (o Node a vê como symlink) e `eslint .`/`prettier .` a pulam em silêncio.
+- `npm run funcoes:sincronizar` → copia `src/utils/lembretes.js` para `functions/compartilhado/` (o teste de integridade exige que sejam iguais; o predeploy das funções também roda).
 - `npm test` → só os testes (Vitest, ~1s) · `npm run test:watch` · `npm run build` · `npm run preview`
 - Convenções dos testes em `tests/README.md`. `it.fails` = bug conhecido; ao corrigir o bug, trocar por `it`. Bug corrigido ⇒ teste de regressão.
 - Lógica nova vai para funções **puras** em `src/utils/` (testáveis); hooks só memoizam.
@@ -32,6 +33,7 @@ PWA pessoal (single-user) para vida acadêmica + rotina: **períodos → cadeira
 - CSS: regras vão no arquivo temático em `src/styles/`; `app.css` só importa. **Tudo de mobile (≤860px) fica em `mobile.css`**, que é importado por último.
 - **Nada de `window.alert/confirm/prompt`**: use `useDialogos()` (`avisar`, `confirmar`, `notificar` com "Desfazer"). Excluir item simples não pede confirmação: mostra toast com "Desfazer" (#18). Teste estático em `integridade.test.js`.
 - Ações do `App.jsx` gravam por `gravar()` (wrapper do `persist()` que avisa recusas, #44), não chamam `persist()` direto.
+- **Lembretes (#23):** `src/utils/lembretes.js` roda também na Cloud Function ⇒ **sem imports** e, ao mudar, `npm run funcoes:sincronizar`. Mudar onde ficam compromissos/avaliações no schema ⇒ ajustar `listarLembretes` e o usuário precisa redeployar as funções (`firebase deploy --only functions`). A função **só lê** o doc principal; registro de aparelho (`users/{uid}/dispositivos`) não é dado do app (não passa pelo `persist()`).
 - Não alterar `EMAIL_PERMITIDO` (`src/firebase.js`) nem a trava de login sem pedido explícito.
 
 ## Convenções

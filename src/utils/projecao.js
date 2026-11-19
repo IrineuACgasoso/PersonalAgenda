@@ -7,8 +7,9 @@
 
 import { DIAS_FULL } from "../constants.js";
 import { toISO, parseISO, ocorrenciasNoIntervalo } from "./afazeres.js";
-import { cadeiraEstaAtivaNaData, vigenciaDaCadeira, estaAtivoNaData } from "./calendario.js";
+import { cadeiraEstaAtivaNaData, vigenciaDaCadeira, estaAtivoNaData, corVisivel } from "./calendario.js";
 
+// Cores quase pretas são clareadas só na exibição (corVisivel, #55).
 const COR_PADRAO_AFAZER_CALENDARIO = "#8b5cf6";
 
 // Chaves de evento (#10): identificam a ocorrência pelos IDS, nunca pelo
@@ -50,7 +51,7 @@ export function projetarAvaliacoes(cadeiras, inicioISO, fimISO) {
         data: d.data,
         hora: d.hora,
         titulo: d.titulo,
-        cor: c.cor,
+        cor: corVisivel(c.cor),
         origem: c.nome,
         chave: chaveAvaliacao(c, d),
       })),
@@ -71,7 +72,7 @@ export function projetarAulas(cadeiras, inicioISO, fimISO) {
             data: dataISO,
             hora: h.inicio,
             titulo: c.nome,
-            cor: c.cor,
+            cor: corVisivel(c.cor),
             origem: h.local || DIAS_FULL[diaSemana],
             chave: chaveAula(dataISO, c, h),
           });
@@ -94,7 +95,7 @@ export function projetarMarcosVigencia(cadeiras, inicioISO, fimISO) {
   };
   cadeiras.forEach((c) => {
     const { inicio, fim } = vigenciaDaCadeira(c);
-    const base = { idCadeira: c.id, nome: c.nome, cor: c.cor };
+    const base = { idCadeira: c.id, nome: c.nome, cor: corVisivel(c.cor) };
     adicionar(inicio, { ...base, tipo: "inicio" });
     adicionar(fim, { ...base, tipo: "fim" });
   });
@@ -116,7 +117,7 @@ export function projetarRotinas(rotinas, inicioISO, fimISO) {
             data: dataISO,
             hora: h.inicio,
             titulo: r.nome,
-            cor: r.cor,
+            cor: corVisivel(r.cor),
             origem: h.local || `Rotina · até ${h.fim}`,
             chave: chaveRotina(dataISO, r, h),
           });
@@ -136,7 +137,7 @@ export function projetarCompromissos(compromissos, inicioISO, fimISO) {
       hora: c.inicio || "",
       fim: c.fim || "",
       titulo: c.nome,
-      cor: c.cor || COR_PADRAO_AFAZER_CALENDARIO,
+      cor: corVisivel(c.cor || COR_PADRAO_AFAZER_CALENDARIO),
       origem: c.fim ? `Compromisso · até ${c.fim}` : "Compromisso",
       feito: !!c.feito,
       id: c.id,
@@ -164,7 +165,7 @@ export function projetarAfazeres(afazeres, inicioISO, fimISO) {
         // só ela, sem afetar as outras ocorrências da rotina.
         dataOriginal,
         titulo: a.nome,
-        cor: a.cor || COR_PADRAO_AFAZER_CALENDARIO,
+        cor: corVisivel(a.cor || COR_PADRAO_AFAZER_CALENDARIO),
         origem: concluido ? "concluído" : "pendente",
         feito: concluido,
         datasConcluidas: a.datasConcluidas || [],
@@ -197,7 +198,7 @@ export function projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) {
         data: hojeISO,
         dataOriginal: hojeISO,
         titulo: a.nome,
-        cor: a.cor || COR_PADRAO_AFAZER_CALENDARIO,
+        cor: corVisivel(a.cor || COR_PADRAO_AFAZER_CALENDARIO),
         origem: "pendente",
         feito: false,
         datasConcluidas: [],

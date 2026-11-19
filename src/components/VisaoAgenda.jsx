@@ -5,6 +5,7 @@ import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import { horariosNaSemana } from "../utils/rotinas.js";
+import { corVisivel } from "../utils/calendario.js";
 
 const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
 
@@ -50,7 +51,7 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
   if (filtros.cadeiras) {
     cadeiras.forEach((c) => {
       c.horarios.forEach((h) => {
-        blocos.push({ ...h, tipo: "cadeira", origemId: c.id, origemNome: c.nome, cor: c.cor });
+        blocos.push({ ...h, tipo: "cadeira", origemId: c.id, origemNome: c.nome, cor: corVisivel(c.cor) });
       });
     });
   }
@@ -58,13 +59,13 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
     // Só os horários que valem nesta semana (vigência da rotina, #56).
     rotinas.forEach((r) => {
       horariosNaSemana(r, hojeStr).forEach((h) => {
-        blocos.push({ ...h, tipo: "rotina", origemId: r.id, origemNome: r.nome, cor: r.cor });
+        blocos.push({ ...h, tipo: "rotina", origemId: r.id, origemNome: r.nome, cor: corVisivel(r.cor) });
       });
     });
   }
 
   const proximasDatas = cadeiras
-    .flatMap((c) => c.datas.map((d) => ({ ...d, cadeiraNome: c.nome, cor: c.cor, cadeiraId: c.id })))
+    .flatMap((c) => c.datas.map((d) => ({ ...d, cadeiraNome: c.nome, cor: corVisivel(c.cor), cadeiraId: c.id })))
     .sort((a, b) => `${a.data}T${a.hora || "00:00"}`.localeCompare(`${b.data}T${b.hora || "00:00"}`));
 
   const totalHoras = HORA_FIM - HORA_INICIO;

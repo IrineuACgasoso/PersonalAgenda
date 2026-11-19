@@ -13,6 +13,7 @@ import {
   CloudDownload,
   LogIn,
   LogOut,
+  Bell,
 } from "lucide-react";
 
 // Formata o timestamp da última sincronização real com o servidor: só hora
@@ -40,6 +41,7 @@ export default function Sidebar({
   onExportarBackup,
   onImportarBackup,
   onRestaurarBackupNuvem,
+  onAbrirLembretes,
   user,
   loginWithGoogle,
   logout,
@@ -93,6 +95,22 @@ export default function Sidebar({
           </div>
           <button className={`nav-btn${aba === "visaogeral" ? " ativo" : ""}`} onClick={() => irPara("visaogeral")}>
             <LayoutGrid size={15} /> Calendário geral
+          </button>
+        </div>
+
+        <div className="sidebar-secao">
+          <div className="sidebar-secao-label">
+            <span>Ajustes</span>
+          </div>
+          <button
+            className="nav-btn"
+            onClick={() => {
+              setMobileAberta(false);
+              onAbrirLembretes();
+            }}
+            title="Notificações de compromissos e avaliações (#23)"
+          >
+            <Bell size={15} /> Lembretes
           </button>
         </div>
 

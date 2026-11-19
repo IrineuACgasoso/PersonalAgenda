@@ -47,25 +47,36 @@
 | Qualquer coisa de layout mobile | `src/styles/mobile.css` (único `@media (max-width: 860px)`) |
 | Manifest/ícones/service worker | `vite.config.js` (VitePWA) + `public/` |
 | Login Google / e-mail permitido | `src/firebase.js` |
+| Lembretes (#23): quando disparam, textos do push, padrões | `src/utils/lembretes.js` (PURO, **sem imports**; cópia em `functions/compartilhado/` via `npm run funcoes:sincronizar`) |
+| Lembretes: envio no servidor (agendador 1/min, FCM, tokens inválidos, testes) | `functions/index.js` (deploy pelo usuário: `firebase deploy --only functions`) |
+| Lembretes: ativar/desativar/testar no aparelho, token FCM | `src/notificacoes.js` (registro em `users/{uid}/dispositivos`, não passa pelo persist); estado puro em `src/utils/aparelho.js` |
+| Lembretes: UI | `ui/ModalLembretes.jsx` (Sidebar → Ajustes → Lembretes), `ui/SeletorLembretes.jsx` (form do compromisso, `AbaDatas`); CSS `lembretes.css` |
+| Push / clique na notificação / cache offline | `src/sw.js` (service worker próprio, `injectManifest` no `vite.config.js`) |
+| Cor quase preta invisível no fundo escuro (#55) | `corVisivel` (`utils/calendario.js`), aplicada em `projecao.js`, listas e agenda — só exibição |
 
 ## Modelo de dados (`AppData`, um único documento `users/{uid}` ou `localStorage["painel-academico-data"]`)
 
 ```
-versao            int — versão do schema (atual: 5; ausente = 0). Ver utils/migracoes.js
+versao            int — versão do schema (atual: 6; ausente = 0). Ver utils/migracoes.js
 periodos[]        { id, nome }                                   ← sem datas desde a v4 (#20)
 periodoAtivoId    string | null
 cadeiras[]        { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[], links[], datas[] }  ← vigência (#19)
   horarios[]      { id, dia(0=Seg..6=Dom), inicio "HH:MM", fim, local? }
   links[]         { id, titulo, url, isClassroom?, codigoClassroom? }
-  datas[]         { id, titulo, data "YYYY-MM-DD", hora? }       ← avaliações
+  datas[]         { id, titulo, data "YYYY-MM-DD", hora?, lembretes?: number[] }  ← avaliações
 rotinas[]         { id, nome, cor, horarios[], dataInicio?, dataFim? }  ← semanais (eram "compromissos" até a v4); sem período desde a v6 (#56)
-compromissos[]    { id, nome, cor, data, inicio "HH:MM", fim?, feito, concluidoEm? }  ← pontuais (v5)
+compromissos[]    { id, nome, cor, data, inicio "HH:MM", fim?, feito, concluidoEm?, lembretes?: number[] }  ← pontuais (v5)
+lembretes         { compromissos: number[], avaliacoes: number[] }  ← padrões (#23, minutos antes; padrão 15 / 1440).
+                  `lembretes` ausente no item = padrão; [] = sem lembrete. Sem migração (só valor padrão no sanitizarDados)
 afazeres[]        { id, nome, data?, cor?, urgencia 1|2|3, feito, concluidoEm?,      ← sem hora desde a v5
                     rotina{ tipo, intervaloDias, dataFim ("" = para sempre), diasSemana[] },
                     datasConcluidas[] (por ocorrência, pela data NATURAL = origem), excecoesData{ origem: destino } (drag) }
 eventosConcluidos[]  chaves de evento (aulas/avaliações/rotinas), por id — ver abaixo (compromisso guarda `feito` no item)
 eventosExcluidos[]   chaves de ocorrências removidas (todas as fontes)
 ```
+Fora do AppData (subcoleções de `users/{uid}`, não passam pelo `persist()`): `backups/{ts}` (snapshots, #8),
+`dispositivos/{id}` `{ token, aparelho, criadoEm, atualizadoEm, testeEm?, testeRespondidoEm? }` (app grava; Rules limitam campos),
+`sistema/lembretes` `{ enviados: { chave: disparoMs }, ultimaExecucao }` (só a Cloud Function, Admin SDK).
 `rotina.tipo` (repetição do AFAZER — não confundir com a entidade `rotinas[]`): `nenhuma | diaria | semanal | quinzenal | mensal | dias_especificos | personalizada`.
 Chaves de evento (v2+, montadas em `utils/projecao.js` → `chaveAula/chaveCompromisso/chaveAvaliacao`) — aulas: `aulas|ISO|idCadeira|idHorario`; rotinas: `rotinas|ISO|idRotina|idHorario` (v5; antes `compromissos|…`); compromissos pontuais: `compromissos|id` (só identifica, não é gravada); avaliações: `avaliacoes|idCadeira|idAvaliacao` (sem data); afazeres: `afazeres|id|dataOriginal` (v3) ou `afazeres-semdata|id`.
 
@@ -96,7 +107,13 @@ UFPE/
 │                        overrides: @grpc/grpc-js ^1.14.7 (o firebase fixa ~1.9 vulnerável; só usado no Node)
 ├── firestore.rules      Security Rules: uid + e-mail permitido + email_verified, formato mínimo do AppData,
 │                        doc principal não pode ser apagado, backups só create/delete, resto negado
-├── firebase.json        Aponta firestore.rules · .firebaserc: projeto default
+├── firebase.json        Aponta firestore.rules + functions (nodejs22, predeploy `npm run funcoes:sincronizar`) · .firebaserc: projeto default
+├── functions/           Cloud Functions (pacote próprio, ESM, Node 22; deploy pelo usuário, plano Blaze)
+│   ├── index.js         enviarLembretes: onSchedule a cada 1 min (America/Recife) → para cada users/{uid} com dispositivos:
+│   │                    testes pedidos (testeEm > testeRespondidoEm), lembretesPendentes (janela 10 min, dedupe em
+│   │                    sistema/lembretes), sendEachForMulticast (só `data`; TTL até o evento), apaga tokens inválidos.
+│   │                    NUNCA grava no doc principal (teste em integridade)
+│   └── compartilhado/lembretes.js  CÓPIA de src/utils/lembretes.js (teste exige igualdade)
 ├── vitest.config.js     Config dos testes (Node, TZ America/Recife, setup tests/setup.js). Separada do vite.config
 ├── .env.example         Chaves VITE_FIREBASE_* (o .env real é ignorado)
 ├── .gitignore
@@ -121,6 +138,7 @@ UFPE/
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, rotinas, compromissos, afazeres) + ordenação + marcos + marcadores
 │       ├── rotinas.test.js        Faixa da semana, horas/semana, próxima ocorrência da rotina
 │       ├── compromissos.test.js   Validação, seções e textos dos compromissos
+│       ├── lembretes.test.js      #23: sanitização, fuso, listarLembretes (padrão/próprio/[]/feito/excluída/vigência/sem hora), textos do push, dedupe, estado do aparelho
 │       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
 │                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO),
 │                                  sem alert/confirm/prompt nativos (#17), check roda o lint (#16)
@@ -135,7 +153,11 @@ UFPE/
     │                    gravar() (persist + aviso de recusa, #44), excluir com Desfazer (#18), entrar() (aviso de login),
     │                    roteamento por `aba` ("visaogeral" | "afazeres" | "compromissos" | "rotinas" | "cadeiras" | "agenda");
     │                    cadeiras/agenda exigem período ativo; rotinas/compromissos/afazeres não
-    ├── firebase.js      initializeApp, Firestore com persistentLocalCache(singleTab) + ignoreUndefinedProperties, auth,
+    ├── sw.js            Service worker (injectManifest): precache do app shell + fallback /index.html, `push` (mostra a
+    │                    notificação a partir de `data` {titulo, corpo, tag, url}), `notificationclick` (foca/abre o app)
+    ├── notificacoes.js  Lembretes (#23) no aparelho: estadoNotificacoes, ativar (permissão + getToken com o SW + setDoc em
+    │                    dispositivos + testeEm), desativar, testar, renovarTokenSeAtivo (App, 1×/login). SDK messaging via import()
+    ├── firebase.js      `app` exportado (FCM), initializeApp, Firestore com persistentLocalCache(singleTab) + ignoreUndefinedProperties, auth,
     │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail; devolve { ok, user | mensagem }), fazerLogout()
     ├── constants.js     DIAS, DIAS_FULL, CORES (paleta p/ novas cadeiras), HORA_INICIO/FIM (6–23),
     │                    STORAGE_KEY, SIDEBAR_STATE_KEY (sem uso), ULTIMA_SINCRONIZACAO_KEY,
@@ -181,10 +203,13 @@ UFPE/
     │   │                         → [{data, dataOriginal}], mesmoDiaMesesDepois (mensal, #12), ehRotina, afazerConcluido (rotina nunca, #11),
     │   │                         ocorrenciaAtual (check da aba, #11), ROTINAS_COM_DATA_BASE/dataAoSalvarAfazer/rotinaSemDataBase (#40),
     │   │                         textoRepeticao/textoFimRepeticao/descreverAfazer, secoesDosAfazeres
-    │   ├── calendario.js         NOME_MESES, hexParaRgb, getIntervaloMes, gerarCelulasMes, vigência da cadeira (#19): vigenciaDaCadeira,
+    │   ├── calendario.js         NOME_MESES, hexParaRgb, corVisivel (#55), getIntervaloMes, gerarCelulasMes, vigência da cadeira (#19): vigenciaDaCadeira,
     │   │                         cadeiraEstaAtivaNaData (aliases vigenciaDe/estaAtivoNaData p/ rotinas), textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
     │   ├── rotinas.js            PURO (Fase 5): diasAtivosDaRotina, minutosPorSemana, textoDuracao, proximaOcorrenciaRotina (vigência), rotinaEncerrada,
     │   │                         horariosNaSemana (agenda semanal, #56) — ui/ResumoRotina.jsx
+    │   ├── lembretes.js          PURO, SEM IMPORTS (#23; copiado p/ functions/): LEMBRETES_PADRAO, OPCOES_LEMBRETE, sanitizar*, textoAntecedencia,
+    │   │                         instanteLocal/partesLocais (Recife UTC-3 fixo), listarLembretes, montarNotificacao, lembretesPendentes, podarEnviados
+    │   ├── aparelho.js           PURO: estadoDoAparelho (sem-login/ios-instalar/sem-suporte/bloqueado/ativo/inativo), descreverAparelho
     │   ├── compromissos.js       PURO (Fase 5): erroDoCompromisso, secoesDosCompromissos, textoHorarioCompromisso, textoDataComSemana, rotuloRelativo
     │   ├── cadeiras.js           PURO (#21): diasEntre, proximoHorarioSemanal (genérico, usado por rotinas), proximaAula (vigência + excluídas), proximasAvaliacoes (destaque ≤7 dias), progressoVigencia,
     │   │                         rotuloDias, textoProximaAula, textoQuandoAvaliacao — usados por ui/ResumoCadeira.jsx
@@ -223,6 +248,8 @@ UFPE/
     │       ├── Dialogos.jsx        DialogosProvider (fila de diálogos + toast com ação) e a casca `Modal` (Esc, foco preso)
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período), sobre a casca `Modal`
     │       ├── ModalRestaurarNuvem.jsx  Lista de backups da nuvem (data + resumo); confirmação/gravação no App
+│       ├── ModalLembretes.jsx  #23: este aparelho (ativar/testar/desativar) + padrões de compromissos e avaliações
+│       ├── SeletorLembretes.jsx Chips de antecedência (Padrão · opções · Nenhum); padrão herdado aparece tracejado
 │       ├── TelaErroCarga.jsx   Erro da carga inicial (#7): "Tentar de novo" + "Usar sem login" (estilos no fim de painel.css)
     │       ├── ResumoRotina.jsx    Faixa S T Q Q S S D (dias ativos na cor), caixa "Próxima" (ou "Encerrada"), h/semana, vigência
     │       ├── SeletorData.jsx     Seletor de data próprio: popover do mês, `permitidas(ini, fim) → Set`, minimo/maximo, marcada, limpavel
@@ -244,6 +271,7 @@ UFPE/
         ├── afazeres.css        Urgência, dias da semana, check-btn
         ├── rotinas.css         .resumo-rotina, .faixa-semana
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
+        ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células, pontos, marcadores, menu "+"
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)
         └── mobile.css          Todas as regras ≤860px

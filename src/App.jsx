@@ -15,6 +15,9 @@ import PainelRotina from "./components/PainelRotina";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
 import ModalRestaurarNuvem from "./components/ui/ModalRestaurarNuvem";
+import ModalLembretes from "./components/ui/ModalLembretes";
+import { renovarTokenSeAtivo } from "./notificacoes";
+import { sanitizarPreferenciasLembretes } from "./utils/lembretes";
 import useDialogos from "./hooks/useDialogos";
 import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
 import TelaErroCarga from "./components/ui/TelaErroCarga.jsx";
@@ -67,6 +70,7 @@ export default function App() {
   const [gatilhoNovoCompromisso, setGatilhoNovoCompromisso] = useState(null);
   const [cargaTravada, setCargaTravada] = useState(false);
   const [restaurandoNuvem, setRestaurandoNuvem] = useState(false);
+  const [modalLembretes, setModalLembretes] = useState(false);
   const { avisar, confirmar, notificar } = useDialogos();
 
   // Watchdog: se a tela de carregamento ficar travada (ex: a rede caiu ou
@@ -93,6 +97,12 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [data, erroCarga, cargaTravada]);
 
+  // Lembretes (#23): o FCM pode trocar o token deste aparelho; confere uma
+  // vez por login (só faz algo se os lembretes estiverem ligados aqui).
+  useEffect(() => {
+    if (user?.uid) renovarTokenSeAtivo(user.uid);
+  }, [user?.uid]);
+
   const tela = telaInicial({ temDados: !!data, erroCarga, travou: cargaTravada });
   if (tela === "carregando") {
     return <CarregandoPainel texto="Carregando seu painel..." />;
@@ -117,6 +127,8 @@ export default function App() {
   const rotinas = data.rotinas || [];
   const rotinaAberta = rotinas.find((r) => r.id === rotinaAbertaId);
   const compromissos = data.compromissos || [];
+  // Padrões dos lembretes (#23), sempre completos.
+  const preferenciasLembretes = sanitizarPreferenciasLembretes(data.lembretes);
 
   /* Toda ação grava por aqui. Ela usa persist((d) => ...): o updater recebe
      o estado MAIS RECENTE, não o `data` deste render — duas ações seguidas
@@ -276,6 +288,9 @@ export default function App() {
     excluirComDesfazer("rotinas", id, (r) => `Rotina "${r.nome}" excluída`);
     if (rotinaAbertaId === id) setRotinaAbertaId(null);
   };
+
+  /* ---- lembretes (#23): padrões globais (o registro do aparelho fica em notificacoes.js) ---- */
+  const salvarPreferenciasLembretes = (prefs) => gravar((d) => ({ ...d, lembretes: prefs }));
 
   /* ---- ações compromissos (pontuais, v5) ---- */
   const criarCompromisso = (dados) => {
@@ -557,6 +572,7 @@ export default function App() {
         ultimaSincronizacao={ultimaSincronizacao}
         onExportarBackup={exportarBackup}
         onRestaurarBackupNuvem={abrirRestaurarNuvem}
+        onAbrirLembretes={() => setModalLembretes(true)}
         onImportarBackup={importarBackup}
         user={user}
         loginWithGoogle={entrar}
@@ -583,6 +599,7 @@ export default function App() {
             onAlternarFeito={alternarFeitoCompromisso}
             onExcluir={excluirCompromisso}
             onLimparPassados={limparCompromissosPassados}
+            lembretesPadrao={preferenciasLembretes.compromissos}
             gatilhoNovaData={gatilhoNovoCompromisso}
             onGatilhoConsumido={() => setGatilhoNovoCompromisso(null)}
           />
@@ -648,6 +665,7 @@ export default function App() {
         <PainelCadeira
           cadeira={cadeiraAberta}
           eventosExcluidos={eventosExcluidos}
+          lembretesPadrao={preferenciasLembretes.avaliacoes}
           onFechar={() => setCadeiraAbertaId(null)}
           onAtualizar={(patch) => atualizarCadeira(cadeiraAberta.id, patch)}
           onExcluir={() => excluirCadeira(cadeiraAberta.id)}
@@ -669,6 +687,15 @@ export default function App() {
           uid={user.uid}
           onEscolher={restaurarBackupNuvem}
           onFechar={() => setRestaurandoNuvem(false)}
+        />
+      )}
+
+      {modalLembretes && (
+        <ModalLembretes
+          user={user}
+          preferencias={preferenciasLembretes}
+          onSalvarPreferencias={salvarPreferenciasLembretes}
+          onFechar={() => setModalLembretes(false)}
         />
       )}
 

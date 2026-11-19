@@ -26,6 +26,7 @@ import {
   ROTINAS_COM_DATA_BASE,
 } from "../utils/afazeres.js";
 import { textoDataComSemana, rotuloRelativo } from "../utils/compromissos.js";
+import { corVisivel } from "../utils/calendario.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import SeletorData from "./ui/SeletorData.jsx";
@@ -33,7 +34,9 @@ import BarraUrgencia from "./ui/BarraUrgencia.jsx";
 import SecaoLista from "./ui/SecaoLista.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
-const COR_PADRAO_AFAZER = "#221e1e";
+// Era #221e1e, que sumia no fundo escuro (#55). Afazeres antigos com cores
+// quase pretas são clareados na exibição por corVisivel.
+const COR_PADRAO_AFAZER = "#8b5cf6";
 const LETRA_DIA = DIAS_FULL.map((d) => d[0]);
 
 // Rótulos do seletor de repetição (os valores continuam os de ROTINA_OPCOES).
@@ -274,7 +277,7 @@ function FormularioAfazer({ onSalvar, itemEmEdicao, onCancelarEdicao, gatilhoNov
 
 function ItemAfazer({ item, hojeISO, onAlternarFeito, onEditar, onExcluir }) {
   const { afazer: a, ocorrencia, diasAtraso } = item;
-  const cor = a.cor || "#8b5cf6";
+  const cor = corVisivel(a.cor || COR_PADRAO_AFAZER);
   const rotina = ehRotina(a);
   // Recorrentes já vêm com a ocorrência calculada por secoesDosAfazeres.
   const oc = rotina ? (ocorrencia ?? null) : null;

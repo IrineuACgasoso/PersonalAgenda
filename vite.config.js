@@ -6,6 +6,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Service worker próprio (src/sw.js) desde o #23: precisa tratar o
+      // `push` dos lembretes. O cache continua o mesmo de antes.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
       registerType: "autoUpdate",
       includeAssets: ["icon-192.png", "icon-512.png", "web-app-manifest-512x512.png"],
       manifest: {
@@ -37,13 +42,13 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         // Cacheia o app shell inteiro: garante que o app abre offline mesmo
         // sem rede nenhuma. Os dados em si vêm do Firestore (com cache
         // persistente habilitado em src/firebase.js) quando logado, ou do
         // localStorage quando não logado — ver usePersistedData.js.
+        // O fallback de navegação (/index.html) fica em src/sw.js.
         globPatterns: ["**/*.{js,css,html,png,svg,ico,mp4}"],
-        navigateFallback: "/index.html",
       },
     }),
   ],
