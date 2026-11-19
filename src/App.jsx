@@ -60,27 +60,30 @@ export default function App() {
   );
   const compromissoAberto = compromissos.find((c) => c.id === compromissoAbertoId);
 
-  /* ---- ações períodos ---- */
+  /* ---- ações períodos ----
+     Toda ação usa persist((d) => ...): o updater recebe o estado MAIS
+     RECENTE, não o `data` deste render — duas ações seguidas (ex: blur do
+     nome no drawer + clique em "Adicionar") não se sobrescrevem (#6). */
   const selecionarPeriodo = (id) => {
-    persist({ ...data, periodoAtivoId: id });
+    persist((d) => ({ ...d, periodoAtivoId: id }));
   };
 
   const criarPeriodo = (nome) => {
     const novo = { id: uid(), nome };
-    persist({
-      ...data,
-      periodos: [...data.periodos, novo],
+    persist((d) => ({
+      ...d,
+      periodos: [...d.periodos, novo],
       periodoAtivoId: novo.id,
-    });
+    }));
   };
 
   const atualizarPeriodo = (id, patch) => {
-    persist({
-      ...data,
-      periodos: data.periodos.map((p) =>
+    persist((d) => ({
+      ...d,
+      periodos: d.periodos.map((p) =>
         p.id === id ? { ...p, ...patch } : p
       ),
-    });
+    }));
   };
 
   const excluirPeriodo = (id) => {
@@ -90,15 +93,17 @@ export default function App() {
       )
     )
       return;
-    const periodos = data.periodos.filter((p) => p.id !== id);
-    const cadeiras = data.cadeiras.filter((c) => c.periodoId !== id);
-    const compromissosRestantes = compromissos.filter((c) => c.periodoId !== id);
-    const periodoAtivoId =
-      data.periodoAtivoId === id ? periodos[0]?.id ?? null : data.periodoAtivoId;
-    persist({ ...data, periodos, cadeiras, compromissos: compromissosRestantes, periodoAtivoId });
-    if (compromissoAbertoId && !compromissosRestantes.some((c) => c.id === compromissoAbertoId)) {
-      setCompromissoAbertoId(null);
-    }
+    persist((d) => {
+      const periodos = d.periodos.filter((p) => p.id !== id);
+      return {
+        ...d,
+        periodos,
+        cadeiras: d.cadeiras.filter((c) => c.periodoId !== id),
+        compromissos: (d.compromissos || []).filter((c) => c.periodoId !== id),
+        periodoAtivoId: d.periodoAtivoId === id ? periodos[0]?.id ?? null : d.periodoAtivoId,
+      };
+    });
+    if (compromissoAberto?.periodoId === id) setCompromissoAbertoId(null);
   };
 
   /* ---- ações cadeiras ---- */
@@ -112,22 +117,22 @@ export default function App() {
       links: [],
       datas: [],
     };
-    persist({ ...data, cadeiras: [...data.cadeiras, nova] });
+    persist((d) => ({ ...d, cadeiras: [...d.cadeiras, nova] }));
     setCadeiraAbertaId(nova.id);
   };
 
   const atualizarCadeira = (id, patch) => {
-    persist({
-      ...data,
-      cadeiras: data.cadeiras.map((c) =>
+    persist((d) => ({
+      ...d,
+      cadeiras: d.cadeiras.map((c) =>
         c.id === id ? { ...c, ...patch } : c
       ),
-    });
+    }));
   };
 
   const excluirCadeira = (id) => {
     if (!window.confirm("Excluir esta cadeira e todos os seus dados?")) return;
-    persist({ ...data, cadeiras: data.cadeiras.filter((c) => c.id !== id) });
+    persist((d) => ({ ...d, cadeiras: d.cadeiras.filter((c) => c.id !== id) }));
     if (cadeiraAbertaId === id) setCadeiraAbertaId(null);
   };
 
@@ -141,22 +146,22 @@ export default function App() {
       cor: CORES[compromissos.length % CORES.length],
       horarios: [],
     };
-    persist({ ...data, compromissos: [...compromissos, novo] });
+    persist((d) => ({ ...d, compromissos: [...(d.compromissos || []), novo] }));
     setCompromissoAbertoId(novo.id);
   };
 
   const atualizarCompromisso = (id, patch) => {
-    persist({
-      ...data,
-      compromissos: compromissos.map((c) =>
+    persist((d) => ({
+      ...d,
+      compromissos: (d.compromissos || []).map((c) =>
         c.id === id ? { ...c, ...patch } : c
       ),
-    });
+    }));
   };
 
   const excluirCompromisso = (id) => {
     if (!window.confirm("Excluir este compromisso e todos os seus horários?")) return;
-    persist({ ...data, compromissos: compromissos.filter((c) => c.id !== id) });
+    persist((d) => ({ ...d, compromissos: (d.compromissos || []).filter((c) => c.id !== id) }));
     if (compromissoAbertoId === id) setCompromissoAbertoId(null);
   };
 
@@ -165,20 +170,20 @@ export default function App() {
 
   const criarAfazer = (afazer) => {
     const novo = { id: uid(), feito: false, datasConcluidas: [], ...afazer };
-    persist({ ...data, afazeres: [...afazeres, novo] });
+    persist((d) => ({ ...d, afazeres: [...(d.afazeres || []), novo] }));
   };
 
   const atualizarAfazer = (id, patch) => {
-    persist({
-      ...data,
-      afazeres: afazeres.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-    });
+    persist((d) => ({
+      ...d,
+      afazeres: (d.afazeres || []).map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    }));
   };
 
   const alternarFeitoAfazer = (id, dataOcorrencia) => {
-    persist({
-      ...data,
-      afazeres: afazeres.map((a) => {
+    persist((d) => ({
+      ...d,
+      afazeres: (d.afazeres || []).map((a) => {
         if (a.id !== id) return a;
 
         const ehRotina = a.rotina && a.rotina.tipo !== "nenhuma";
@@ -195,7 +200,7 @@ export default function App() {
         const feito = !a.feito;
         return { ...a, feito, concluidoEm: feito ? Date.now() : a.concluidoEm };
       }),
-    });
+    }));
   };
 
   // Move só UMA ocorrência de um afazer rotineiro (ex: arrastar no
@@ -203,19 +208,19 @@ export default function App() {
   // as demais ocorrências continuam caindo nos dias da semana configurados.
   // Isso fica guardado em `excecoesData`: { dataOriginalDaOcorrencia: novaData }.
   const moverInstanciaAfazer = (id, dataOrigem, dataDestino) => {
-    persist({
-      ...data,
-      afazeres: afazeres.map((a) => {
+    persist((d) => ({
+      ...d,
+      afazeres: (d.afazeres || []).map((a) => {
         if (a.id !== id) return a;
         const excecoes = { ...(a.excecoesData || {}) };
         excecoes[dataOrigem] = dataDestino;
         return { ...a, excecoesData: excecoes };
       }),
-    });
+    }));
   };
 
   const excluirAfazer = (id) => {
-    persist({ ...data, afazeres: afazeres.filter((a) => a.id !== id) });
+    persist((d) => ({ ...d, afazeres: (d.afazeres || []).filter((a) => a.id !== id) }));
   };
 
   const abrirNovoAfazerNaData = (dataISO) => {
@@ -228,12 +233,14 @@ export default function App() {
   const eventosExcluidos = data.eventosExcluidos || [];
 
   const alternarEventoConcluido = (chave) => {
-    const jaConcluido = eventosConcluidos.includes(chave);
-    persist({
-      ...data,
-      eventosConcluidos: jaConcluido
-        ? eventosConcluidos.filter((c) => c !== chave)
-        : [...eventosConcluidos, chave],
+    persist((d) => {
+      const concluidos = d.eventosConcluidos || [];
+      return {
+        ...d,
+        eventosConcluidos: concluidos.includes(chave)
+          ? concluidos.filter((c) => c !== chave)
+          : [...concluidos, chave],
+      };
     });
   };
 
@@ -244,8 +251,12 @@ export default function App() {
   // horário/afazer em si — só esconde esse dia; as outras ocorrências
   // continuam normalmente.
   const excluirInstanciaEvento = (chave) => {
-    if (eventosExcluidos.includes(chave)) return;
-    persist({ ...data, eventosExcluidos: [...eventosExcluidos, chave] });
+    persist((d) => {
+      const excluidos = d.eventosExcluidos || [];
+      // Devolver o próprio `d` = nada a gravar (ver resolverGravacao).
+      if (excluidos.includes(chave)) return d;
+      return { ...d, eventosExcluidos: [...excluidos, chave] };
+    });
   };
 
   const limparAfazeresConcluidos = () => {
@@ -257,7 +268,7 @@ export default function App() {
       )
     )
       return;
-    persist({ ...data, afazeres: afazeres.filter((a) => !a.feito) });
+    persist((d) => ({ ...d, afazeres: (d.afazeres || []).filter((a) => !a.feito) }));
   };
 
   /* ---- backup: exportar / importar ---- */
@@ -353,8 +364,14 @@ export default function App() {
     )
       return;
 
-    persist(escolhido.payload);
-    window.alert("Backup restaurado com sucesso.");
+    const { ok } = persist(escolhido.payload);
+    // persist() pode recusar (ex: trava de "parece vazio") — não anunciar
+    // sucesso nesse caso. Aviso mais completo de recusas: #44.
+    window.alert(
+      ok
+        ? "Backup restaurado com sucesso."
+        : "O backup NÃO foi restaurado: a gravação foi bloqueada pela proteção contra perda de dados."
+    );
   };
 
   return (

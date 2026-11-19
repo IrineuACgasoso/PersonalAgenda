@@ -16,6 +16,7 @@ npm run check     # testes + build — rodar SEMPRE antes de dar uma tarefa como
 | `unit/afazeres.test.js` | Recorrência: todos os tipos de rotina, limite de repetições, exceções de drag |
 | `unit/calendario.test.js` | Grade do mês, intervalo do mês, vigência, `hexParaRgb`, `formatarData` |
 | `unit/sanitizarDados.test.js` | Proteção contra perda de dados: campos preservados, retrocompatibilidade, `pareceVazio` |
+| `unit/persistencia.test.js` | Decisões do `persist()`: updater sem race (#6), travas, status do snapshot (#39) |
 | `unit/projecao.test.js` | O que aparece em cada dia do calendário geral (`src/utils/projecao.js`) e a ordenação |
 | `unit/integridade.test.js` | Checagens estáticas: ícones do PWA, ordem do CSS, `@media` só no `mobile.css`, `.env` ignorado, regressões de UI |
 

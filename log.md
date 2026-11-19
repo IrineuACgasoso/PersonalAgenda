@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-11-19 (2) — #6 persist(updater) + #39 status de sync
+- **Feito:** `persist()` aceita updater `(d) => novo` que lê um `dataRef` (estado mais recente, atualizado de forma síncrona em todo `setData`) — duas ações no mesmo tick não se sobrescrevem mais. Todas as ações do `App.jsx` migradas para a forma de updater. Lógica pura nova em `src/utils/persistencia.js`: `resolverGravacao` (versão futura, sanitiza, trava `pareceVazio`, `"sem-mudanca"` quando o updater devolve o próprio estado) e `statusDoSnapshot`. `persist()` agora devolve `{ ok, motivo }` na hora (pronto pro #44); "Restaurar da nuvem" usa isso para não anunciar sucesso falso.
+- **#39:** snapshot só marca `saved`/`marcarSincronizado()` com `!fromCache && !hasPendingWrites` (escrita pendente → `saving`/`offline`); o `setDoc` resolvido também marca sincronizado. `pendentesRef`: enquanto há `persist()` na fila, o `onSnapshot` é ignorado (antes a confirmação do 1º write fazia a tela voltar ao estado anterior até o 2º sair da fila).
+- **Testes:** `tests/unit/persistencia.test.js` (10). Total 99 (97 ✅ + 2 `it.fails` conhecidos). `npm run check` ✅.
+- **Docs:** `todo.md` (#6/#39 feitos, **#54 novo**), `organization.md`, `tests/README.md`.
+- **Achado novo (#54, aguarda aprovação):** offline, a fila serializada segura todo `setDoc` depois do 1º (ele só resolve com o servidor), então essas edições ficam só na memória e se perdem se o app fechar sem rede. Proposta: disparar `setDoc` na hora (o SDK já garante a ordem).
+- **➡ Próximo passo recomendado:** decidir #54 (mesmo arquivo, rápido); depois #41 (seletor de cor com debounce).
+- **Testar no app:** editar nome de cadeira e clicar direto em "Adicionar horário" → nome deve permanecer; bolinha de status deve ficar em "salvando" até o servidor confirmar.
+
+---
+
 ## 2026-11-19 (1) — #5 sanitizarDados normaliza cadeiras/compromissos
 - **Feito:** `src/utils/sanitizarDados.js` ganhou `listaDeObjetos`, `sanitizarCadeira` (`horarios/links/datas`) e `sanitizarCompromisso` (`horarios`). Lista ausente/inválida vira `[]`; itens que não são objeto (`null`, string, número) são descartados em `cadeiras`, `compromissos`, `afazeres` e nas listas internas (antes um `null` em `afazeres` fazia o próprio `sanitizarDados` lançar erro). Campos extras continuam preservados (spread).
 - **Testes:** `it.fails` de `sanitizarDados.test.js` → `it` (regressão) + 3 novos (compromisso sem `horarios`, preservação de conteúdo/campos extras, descarte de lixo). Total 89 (87 ✅ + 2 `it.fails` conhecidos: mensal dia 31 e ícone maskable). `npm run check` ✅.

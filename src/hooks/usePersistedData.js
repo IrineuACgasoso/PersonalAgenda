@@ -4,8 +4,9 @@ import { doc, onSnapshot, setDoc, getDocFromServer, getDocFromCache } from "fire
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth, loginComGoogle, fazerLogout, EMAIL_PERMITIDO } from "../firebase";
 import { STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY } from "../constants";
-import { DADOS_PADRAO, sanitizarDados, pareceVazio } from "../utils/sanitizarDados";
+import { DADOS_PADRAO, sanitizarDados } from "../utils/sanitizarDados";
 import { ehVersaoFutura } from "../utils/migracoes";
+import { resolverGravacao, statusDoSnapshot } from "../utils/persistencia";
 
 // Tempo máximo de espera pela confirmação do servidor na checagem inicial.
 // Numa rede instável (ex: wifi caindo bem nessa hora) a chamada pode nunca
@@ -21,7 +22,15 @@ function comTimeout(promise, ms) {
 
 export default function usePersistedData() {
   const [user, setUser] = useState(null);
-  const [data, setData] = useState(null);
+  const [data, setDataState] = useState(null);
+  // Cópia SÍNCRONA do estado mais recente. O `data` do React só muda no
+  // próximo render, então um persist() logo após outro (mesmo tick) leria o
+  // valor velho e desfaria o anterior (#6). Todo setData passa por aqui.
+  const dataRef = useRef(null);
+  const setData = (novo) => {
+    dataRef.current = novo;
+    setDataState(novo);
+  };
   const [status, setStatus] = useState("loading");
   // Conectividade real do navegador. Não bloqueia edição nem persist() — só
   // avisa na UI que as mudanças estão sendo enfileiradas localmente e serão
@@ -73,6 +82,12 @@ export default function usePersistedData() {
   const filaRef = useRef(Promise.resolve());
   // Só o resultado da chamada mais recente deve atualizar o status na tela.
   const versaoRef = useRef(0);
+  // Quantos persist() ainda não foram confirmados. Enquanto houver algum, o
+  // estado local está À FRENTE do que o onSnapshot entrega (a fila só manda
+  // o próximo setDoc depois do anterior confirmar), então aplicar o snapshot
+  // faria a tela "voltar no tempo" e o próximo updater partiria do estado
+  // velho — perdendo a edição que ainda está na fila.
+  const pendentesRef = useRef(0);
 
   // 1. Escuta Autenticação
   useEffect(() => {
@@ -180,14 +195,14 @@ export default function usePersistedData() {
       { includeMetadataChanges: true },
       (docSnap) => {
         if (!carregadoRef.current) return; // ainda na checagem inicial acima
+        if (pendentesRef.current > 0) return; // persist() na fila: local está à frente (ver pendentesRef)
         if (docSnap.exists()) {
           setData(sanitizarDados(docSnap.data()));
-          if (docSnap.metadata.fromCache) {
-            setStatus("offline");
-          } else {
-            setStatus("saved");
-            marcarSincronizado();
-          }
+          // #39: escrita local gera snapshot com fromCache=false mas
+          // hasPendingWrites=true — ainda não dá para dizer "sincronizado".
+          const { status: novoStatus, sincronizado } = statusDoSnapshot(docSnap.metadata, navigator.onLine);
+          setStatus(novoStatus);
+          if (sincronizado) marcarSincronizado();
         }
       },
       (error) => {
@@ -202,41 +217,40 @@ export default function usePersistedData() {
     };
   }, [user]);
 
-  // 3. Persistência segura, serializada e sem race conditions
-  const persist = async (newData) => {
+  // 3. Persistência segura, serializada e sem race conditions.
+  //
+  // Uso preferido: persist((atual) => ({ ...atual, campo })) — o updater
+  // recebe sempre o estado mais recente (dataRef), não o do closure de quem
+  // chamou. Também aceita o objeto completo (importar/restaurar backup).
+  //
+  // Devolve { ok, motivo } na hora (não espera a rede): motivo é null,
+  // "sem-mudanca", "carregando", "versao-futura" ou "parece-vazio".
+  const persist = (entrada) => {
     if (!carregadoRef.current) {
       console.warn("Tentativa de salvar bloqueada: dados ainda estão sendo carregados do banco.");
-      return;
+      return { ok: false, motivo: "carregando" };
     }
 
-    // Esta versão do app não entende dados de schema mais novo: gravar por
-    // cima destruiria campos/formatos que ela desconhece.
-    if (ehVersaoFutura(data) || ehVersaoFutura(newData)) {
+    const resultado = resolverGravacao(dataRef.current, entrada);
+    if (resultado.motivo === "versao-futura") {
       console.error("persist() bloqueado: os dados são de uma versão mais nova do app. Recarregue para atualizar.");
       setStatus("desatualizado");
-      return;
-    }
-
-    const dataSanitizada = sanitizarDados(newData);
-
-    // Trava extra: nunca gravamos algo que sanitiza para "vazio" por cima
-    // de um estado local que claramente tinha conteúdo — isso indicaria
-    // bug no chamador (ex: limpou o state sem querer) em vez de uma ação
-    // real do usuário.
-    if (pareceVazio(dataSanitizada) && !pareceVazio(data)) {
+    } else if (resultado.motivo === "parece-vazio") {
       console.error(
         "persist() bloqueado: dados novos parecem vazios enquanto os atuais não estão. " +
           "Isso evita uma possível perda acidental de dados. Se isso for intencional " +
           "(ex: o usuário excluiu tudo de propósito), revise esta trava."
       );
       setStatus("error");
-      return;
     }
+    if (!resultado.dados) return { ok: resultado.ok, motivo: resultado.motivo };
 
+    const dataSanitizada = resultado.dados;
     setData(dataSanitizada);
     setStatus(navigator.onLine ? "saving" : "offline");
 
     const minhaVersao = ++versaoRef.current;
+    pendentesRef.current += 1;
 
     // Encadeia a escrita na fila em vez de disparar em paralelo. Isso é o
     // que garante ORDEM: a próxima escrita só começa depois que a anterior
@@ -257,12 +271,20 @@ export default function usePersistedData() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(dataSanitizada));
         }
         // Só atualiza o status se ninguém mais recente já respondeu.
-        if (minhaVersao === versaoRef.current) setStatus(navigator.onLine ? "saved" : "offline");
+        if (minhaVersao === versaoRef.current) {
+          setStatus(navigator.onLine ? "saved" : "offline");
+          // setDoc só resolve depois que o servidor confirma (#39).
+          if (user) marcarSincronizado();
+        }
       } catch (err) {
         console.error("Erro ao salvar dados:", err);
         if (minhaVersao === versaoRef.current) setStatus(navigator.onLine ? "error" : "offline");
+      } finally {
+        pendentesRef.current -= 1;
       }
     });
+
+    return { ok: true, motivo: null };
   };
 
   return {

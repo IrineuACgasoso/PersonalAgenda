@@ -7,7 +7,7 @@
 | Quero… | Onde |
 |---|---|
 | Criar/editar/excluir período, cadeira, compromisso, afazer | `src/App.jsx` (ações CRUD, linhas 60–257) |
-| Mudar como os dados são salvos/carregados, status de sync | `src/hooks/usePersistedData.js` → `persist()` ~197, auth ~69, Firestore ~98 |
+| Mudar como os dados são salvos/carregados, status de sync | `src/hooks/usePersistedData.js` → `persist()` ~228, auth ~86, Firestore ~115; decisões puras em `src/utils/persistencia.js` |
 | Adicionar campo novo ao modelo de dados | `src/utils/sanitizarDados.js` → `sanitizarDados()` (**obrigatório**) |
 | Mudança estrutural no schema (renomear/mover dados) | `src/utils/migracoes.js` → `VERSAO_ATUAL` + `MIGRACOES[n]` + teste em `tests/unit/migracoes.test.js` |
 | Regras de segurança do Firestore | `firestore.rules` (deploy: `firebase deploy --only firestore:rules`, feito pelo usuário) |
@@ -59,7 +59,7 @@ Chaves de evento — aulas: `aulas|ISO|nomeCadeira|inicio`; avaliações: `avali
 ```
 usePersistedData ──data──▶ App.jsx (deriva periodoAtivo, cadeirasDoPeriodo, compromissosDoPeriodo)
       ▲                       │ props + callbacks (criarX/atualizarX/excluirX)
-      └──── persist(novo) ◀───┘
+      └── persist((d) => novo) ◀┘   (updater recebe o estado mais recente; devolve { ok, motivo })
 VisaoGeral → useEventosCalendario(cadeiras TODAS + compromissos DO PERÍODO ATIVO + afazeres)
            → utils/projecao.js (puro) → { "YYYY-MM-DD": evento[] }
 ```
@@ -93,6 +93,7 @@ UFPE/
 │       ├── afazeres.test.js       Recorrência (todos os tipos, limite, exceções de drag)
 │       ├── calendario.test.js     Grade do mês, intervalo, vigência, hexParaRgb, formatarData
 │       ├── sanitizarDados.test.js Preservação de campos, retrocompat, pareceVazio
+│       ├── persistencia.test.js   resolverGravacao (updater sem race #6, travas) e statusDoSnapshot (#39)
 │       ├── migracoes.test.js      Registro de migrações completo, v0→atual, não muta, versão futura intocada
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, compromissos, afazeres) + ordenação
 │       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
@@ -116,8 +117,11 @@ UFPE/
     │   ├── usePersistedData.js   {data, persist, status, online, ultimaSincronizacao, user, login, logout}
     │   │                         Sem login: localStorage. Logado: getDocFromServer (timeout 8s) → cria doc
     │   │                         se não existe (migra localStorage) → onSnapshot com metadata.
-    │   │                         Fallback getDocFromCache offline. persist(): bloqueia dados de versão futura,
-    │   │                         sanitiza, trava pareceVazio, fila serializada de setDoc, versão p/ status.
+    │   │                         Fallback getDocFromCache offline. persist(entrada): entrada = updater
+    │   │                         (d) => novo (lê dataRef, estado mais recente) ou objeto; decide via
+    │   │                         resolverGravacao; fila serializada de setDoc, versão p/ status; devolve
+    │   │                         { ok, motivo }. pendentesRef: onSnapshot ignorado enquanto há persist na fila.
+    │   │                         Snapshot só marca "sincronizado" com !fromCache && !hasPendingWrites.
     │   │                         status: loading|saving|saved|offline|error|desatualizado
     │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, afazeres, compromissos} em localStorage
@@ -130,6 +134,8 @@ UFPE/
     │   │                         normaliza; whitelist de afazeres/rotina; listas internas de cadeira
     │   │                         (horarios/links/datas) e compromisso (horarios) sempre arrays de objetos),
     │   │                         pareceVazio() (trava anti-sobrescrita)
+    │   ├── persistencia.js       resolverGravacao(atual, entrada) → { ok, motivo, dados } (versão futura,
+    │   │                         sanitiza, trava pareceVazio, "sem-mudanca"); statusDoSnapshot(metadata, online)
     │   ├── migracoes.js          VERSAO_ATUAL, MIGRACOES{n: fn pura}, versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, ocorrenciasNoIntervalo(afazer, ini, fim) → [{data, dataOriginal}],
     │   │                         gerarOcorrenciasComData (interno), primeiroDiaDoMes/ultimoDiaDoMes (sem uso)
