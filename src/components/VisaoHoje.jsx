@@ -4,7 +4,7 @@
 // rotinas, compromissos e afazeres —, com < e > para andar pelos dias. A
 // lista é a mesma do calendário geral (ui/ListaDoDia), sem o arrasto.
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
 import { useHoje } from "../hooks/useHoje.js";
 import { somarDias, diaPorExtenso } from "../utils/calendario.js";
 import {
@@ -109,6 +109,18 @@ export default function VisaoHoje({
         </div>
       )}
 
+      {/* Atalho de volta para hoje: numa linha própria, no canto direito, com
+          a altura SEMPRE reservada. Antes ele entrava ao lado do ">" e
+          espremia a navegação: o ">" andava e o toque seguinte caía no
+          "Hoje". Assim data, "<" e ">" nunca mudam de lugar. */}
+      <div className="hoje-topo">
+        {deslocamento !== 0 && (
+          <button type="button" className="btn-secundario hoje-voltar" onClick={() => setDeslocamento(0)}>
+            <Undo2 size={13} /> Hoje
+          </button>
+        )}
+      </div>
+
       <ListaDoDia
         diaISO={diaISO}
         hojeISO={hojeISO}
@@ -136,11 +148,6 @@ export default function VisaoHoje({
             >
               <ChevronRight size={18} />
             </button>
-            {deslocamento !== 0 && (
-              <button type="button" className="btn-secundario hoje-voltar" onClick={() => setDeslocamento(0)}>
-                Hoje
-              </button>
-            )}
           </div>
         }
         eventos={eventos}

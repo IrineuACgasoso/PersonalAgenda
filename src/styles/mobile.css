@@ -243,6 +243,16 @@
     font-size: 22px;
   }
 
+  /* Tela Hoje: a data ocupa o meio entre "<" e ">" com largura fixa
+     (390px − margens − setas − "+"), para as setas não se moverem. */
+  .hoje-nav-data {
+    flex-basis: 220px;
+  }
+
+  .hoje-nav-data .titulo-secao {
+    font-size: 16px;
+  }
+
   .periodo-seletor-nome {
     font-size: 19px;
   }

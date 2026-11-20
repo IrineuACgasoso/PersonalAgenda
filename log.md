@@ -5,6 +5,11 @@
 
 ---
 
+## 2026-11-20 (16) — Hoje: navegação fixa e menu do "+" para dentro da tela
+- **Pedido:** ao sair de hoje, o atalho "Hoje" entrava ao lado do ">" e espremia a navegação (o ">" andava e o toque seguinte caía no "Hoje"); deixar data e < > fixos, atalho no canto direito acima do título. E o menu do "+" abria para fora da tela.
+- **Feito:** atalho "↶ Hoje" saiu da linha da navegação para `.hoje-topo` (linha própria acima, à direita, com **altura sempre reservada** — senão a navegação desceria ao aparecer o botão; margin negativo reaproveita parte do espaço de cima). `.hoje-nav-data` com largura fixa (`flex: 0 0 260px`; 220px e título 16px no celular, em `mobile.css`), então o ">" não depende do tamanho do texto da data. Menu do "+" na Hoje alinhado pela direita (`.hoje-nav ~ .menu-novo .menu-novo-opcoes`); no calendário continua como antes (o "+" fica colado no título, à esquerda).
+- **Verificado no navegador** (preview, 1280px e 390px): posições de "<", data, ">" e "+" **idênticas** em hoje, +1, +2, +3 dias e ao voltar; menu do "+" em x 214..374 numa tela de 390 (dentro); sem rolagem lateral; sem erros no console. Testes 366 ✅, `npm run check` ✅.
+
 ## 2026-11-20 (15) — Aviso de atrasados na tela Hoje
 - **Pedido:** "afazeres atrasados podem ter sido concluídos mas esquecidos de ser marcados. prefira mostrar um aviso dizendo que existem afazeres/compromissos atrasados para que eu possa organizar (foram feitos, foram adiados) no calendário geral".
 - **Regra (`itensAtrasados`, `utils/projecao.js`):** afazer **sem repetição** com data < hoje e não feito (o mesmo critério da seção "Atrasados" da aba Afazeres, via `secoesDosAfazeres`) + compromisso com data < hoje e sem check. Afazer que se repete **não** conta (ocorrência perdida de rotina não é atraso). Compromisso de hoje que já passou da hora também não (ainda é "hoje"). Ordem: mais antigo primeiro.

@@ -292,7 +292,7 @@ UFPE/
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
         ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)
-        ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav) e aviso de atrasados (.aviso-atrasados)
+        ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav, largura fixa), atalho .hoje-topo (altura reservada), menu do + à direita, aviso de atrasados (.aviso-atrasados)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)
         └── mobile.css          Todas as regras ≤860px
 ```

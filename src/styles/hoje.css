@@ -1,7 +1,9 @@
 /* hoje.css — tela Hoje (VisaoHoje.jsx). A lista em si é a mesma do
    calendário geral (.detalhe-dia / .data-item em calendario.css e agenda.css). */
 
-/* < Sexta, 20 de novembro >  [Hoje]   — o "+" da lista fica à direita. */
+/* < Sexta, 20 de novembro >  ·····  +
+   Posições fixas: a data tem largura própria (não depende do texto) e nada
+   entra nesta linha ao sair de hoje — o atalho fica em .hoje-topo. */
 .hoje-nav {
   flex: 1;
   min-width: 0;
@@ -14,8 +16,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 0 0 260px;
   min-width: 0;
-  flex: 0 1 260px;
   text-align: center;
 }
 
@@ -26,10 +28,31 @@
   max-width: 100%;
 }
 
+/* Linha do atalho "Hoje", acima da data, à direita. Altura reservada mesmo
+   vazia (senão a navegação desceria ao aparecer o botão); o margin negativo
+   aproveita parte do espaço que já existia acima. */
+.hoje-topo {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 28px;
+  margin-top: -12px;
+  margin-bottom: 2px;
+}
+
 .hoje-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 4px 10px;
   font-size: var(--fs-rotulo);
-  margin-left: 4px;
+}
+
+/* O "+" da Hoje fica no canto direito: o menu abre para DENTRO da tela
+   (alinhado pela direita), não para fora. */
+.hoje-nav ~ .menu-novo .menu-novo-opcoes {
+  left: auto;
+  right: 0;
 }
 
 /* Aviso de atrasados: afazeres/compromissos com data passada e sem check.
