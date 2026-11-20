@@ -70,6 +70,8 @@ export default function App() {
   const [modalPeriodo, setModalPeriodo] = useState(false);
   const [gatilhoNovoAfazer, setGatilhoNovoAfazer] = useState(null);
   const [gatilhoNovoCompromisso, setGatilhoNovoCompromisso] = useState(null);
+  // Dia em que o calendário geral abre (aviso de atrasados da Hoje).
+  const [diaCalendario, setDiaCalendario] = useState(null);
   const [cargaTravada, setCargaTravada] = useState(false);
   const [restaurandoNuvem, setRestaurandoNuvem] = useState(false);
   const [modalLembretes, setModalLembretes] = useState(false);
@@ -337,6 +339,11 @@ export default function App() {
       ...d,
       compromissos: reinserirVarios(d.compromissos || [], removidos),
     }));
+  };
+
+  const abrirCalendarioNaData = (dataISO) => {
+    setDiaCalendario({ data: dataISO, ts: Date.now() });
+    setAba("visaogeral");
   };
 
   const abrirNovoCompromissoNaData = (dataISO) => {
@@ -621,6 +628,7 @@ export default function App() {
             onExcluirCompromisso={excluirCompromisso}
             onNovoAfazer={abrirNovoAfazerNaData}
             onNovoCompromisso={abrirNovoCompromissoNaData}
+            onAbrirCalendarioNaData={abrirCalendarioNaData}
           />
         ) : aba === "visaogeral" ? (
           <VisaoGeral
@@ -641,6 +649,8 @@ export default function App() {
             onExcluirCompromisso={excluirCompromisso}
             onNovoAfazer={abrirNovoAfazerNaData}
             onNovoCompromisso={abrirNovoCompromissoNaData}
+            diaInicial={diaCalendario}
+            onDiaInicialConsumido={() => setDiaCalendario(null)}
           />
         ) : aba === "rotinas" ? (
           <VisaoRotinas

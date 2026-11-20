@@ -6,7 +6,7 @@
 // permite testar a lógica do calendário em tests/ sem montar componentes.
 
 import { DIAS_FULL } from "../constants.js";
-import { toISO, parseISO, ocorrenciasNoIntervalo } from "./afazeres.js";
+import { toISO, parseISO, ocorrenciasNoIntervalo, secoesDosAfazeres } from "./afazeres.js";
 import { cadeiraEstaAtivaNaData, vigenciaDaCadeira, estaAtivoNaData, corVisivel } from "./calendario.js";
 
 // Cores quase pretas são clareadas só na exibição (corVisivel, #55).
@@ -357,4 +357,41 @@ export function projetarEventos({
     ...(filtros.afazeres ? projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) : []),
   ];
   return agruparPorDia(eventos, eventosExcluidos);
+}
+
+// Aviso de atrasados da tela Hoje: afazeres SEM repetição e compromissos
+// com data antes de hoje e não marcados. Podem ter sido feitos e esquecidos
+// de marcar, então a Hoje não os lista: só avisa e leva ao calendário geral,
+// onde se marca o check ou se arrasta para outro dia. Afazer que se repete
+// não entra (ocorrência perdida de rotina não é "atraso").
+// Devolve [{ tipo, id, nome, data, cor }] do mais antigo para o mais novo.
+export function itensAtrasados({ afazeres = [], compromissos = [] }, hojeISO) {
+  const deAfazeres = secoesDosAfazeres(afazeres, hojeISO).atrasados.map(({ afazer }) => ({
+    tipo: "afazeres",
+    id: afazer.id,
+    nome: afazer.nome,
+    data: afazer.data,
+    cor: corVisivel(afazer.cor || COR_PADRAO_AFAZER_CALENDARIO),
+  }));
+  const deCompromissos = compromissos
+    .filter((c) => !c.feito && /^\d{4}-\d{2}-\d{2}$/.test(c.data || "") && c.data < hojeISO)
+    .map((c) => ({
+      tipo: "compromissos",
+      id: c.id,
+      nome: c.nome,
+      data: c.data,
+      cor: corVisivel(c.cor || COR_PADRAO_AFAZER_CALENDARIO),
+    }));
+  return [...deAfazeres, ...deCompromissos].sort((a, b) => a.data.localeCompare(b.data));
+}
+
+// "2 afazeres e 1 compromisso atrasados" (null se não há nenhum).
+export function textoAtrasados(itens) {
+  const af = itens.filter((i) => i.tipo === "afazeres").length;
+  const co = itens.length - af;
+  if (!itens.length) return null;
+  const partes = [];
+  if (af) partes.push(`${af} afazer${af > 1 ? "es" : ""}`);
+  if (co) partes.push(`${co} compromisso${co > 1 ? "s" : ""}`);
+  return `${partes.join(" e ")} atrasado${itens.length > 1 ? "s" : ""}`;
 }

@@ -3,7 +3,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, BookOpen, BookMarked, ListChecks, Repeat, Star, Flag, FlagOff } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
-import { toISO } from "../utils/afazeres.js";
+import { toISO, parseISO } from "../utils/afazeres.js";
 import { useHoje } from "../hooks/useHoje.js";
 import { NOME_MESES, gerarCelulasMes, hexParaRgb } from "../utils/calendario.js";
 import { idArrasto, marcadoresDoDia, resumirMarcadores } from "../utils/projecao.js";
@@ -54,16 +54,29 @@ export default function VisaoGeral({
   onExcluirCompromisso,
   onNovoAfazer,
   onNovoCompromisso,
+  // { data, ts }: abrir já neste dia (aviso de atrasados da tela Hoje).
+  // Consumido ao montar, para a próxima visita abrir em hoje de novo.
+  diaInicial,
+  onDiaInicialConsumido,
 }) {
   const hojeISO = useHoje();
-  const hoje = new Date();
+  const inicio = diaInicial?.data ? parseISO(diaInicial.data) : new Date();
   // ano+mes vivem juntos num único estado (em vez de dois setState separados)
   // para que a navegação de mês feita por closures "antigas" (ex: o loop de
   // autoscroll do drag, que dispara mesmo sem o ponteiro se mover) sempre
   // aplique a mudança em cima do mês mais recente, via updater funcional.
-  const [cursor, setCursor] = useState({ ano: hoje.getFullYear(), mes: hoje.getMonth() });
+  const [cursor, setCursor] = useState({ ano: inicio.getFullYear(), mes: inicio.getMonth() });
   const { ano, mes } = cursor;
-  const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
+  const [diaSelecionado, setDiaSelecionado] = useState(diaInicial?.data || hojeISO);
+  useEffect(() => {
+    if (!diaInicial) return;
+    onDiaInicialConsumido?.();
+    // A lista do dia fica embaixo do calendário: no celular ela estaria fora
+    // da tela, então rola até o cabeçalho dela.
+    document.querySelector(".detalhe-dia-cabecalho")?.scrollIntoView({ block: "center" });
+    // Só na montagem: o valor inicial já foi lido pelos useState acima.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { filtros, alternarFiltro } = useFiltrosCalendario();
   const { eventosPorDia, marcosVigencia } = useEventosCalendario({
     cadeiras,

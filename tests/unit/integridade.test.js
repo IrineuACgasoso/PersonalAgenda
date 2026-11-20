@@ -275,6 +275,17 @@ describe("Tela Hoje (#31)", () => {
     expect(jsx.indexOf('className="calendario-grid"')).toBeLessThan(jsx.indexOf("<ListaDoDia"));
   });
 
+  it("atrasados viram aviso que abre o calendário geral no dia (não entram na lista)", () => {
+    const hoje = ler("src/components/VisaoHoje.jsx");
+    expect(hoje).toContain("itensAtrasados(");
+    expect(hoje).toContain("onAbrirCalendarioNaData");
+    const app = ler("src/App.jsx");
+    expect(app).toMatch(/onAbrirCalendarioNaData=\{abrirCalendarioNaData\}/);
+    expect(app).toMatch(/diaInicial=\{diaCalendario\}/);
+    // Consumido ao montar: a próxima visita ao calendário abre em hoje.
+    expect(ler("src/components/VisaoGeral.jsx")).toContain("onDiaInicialConsumido?.()");
+  });
+
   it("'hoje' vem de useHoje (vira à meia-noite, #49), não de new Date() no render", () => {
     expect(ler("src/components/VisaoHoje.jsx")).toContain("useHoje()");
     expect(ler("src/components/VisaoGeral.jsx")).toContain("useHoje()");

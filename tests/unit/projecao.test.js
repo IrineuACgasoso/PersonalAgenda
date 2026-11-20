@@ -7,6 +7,8 @@ import {
   eventoConcluido,
   textoDistanciaDeHoje,
   subtituloEvento,
+  itensAtrasados,
+  textoAtrasados,
   projetarMarcosVigencia,
   marcadoresDoDia,
   resumirMarcadores,
@@ -407,5 +409,46 @@ describe("marcadores da célula (marcadoresDoDia / resumirMarcadores)", () => {
     expect(r.visiveis.map((x) => x.tipo)).toEqual(["compromisso", "avaliacao"]);
     expect(r.ocultos).toBe(2);
     expect(resumirMarcadores(quatro.slice(0, 3))).toEqual({ visiveis: quatro.slice(0, 3), ocultos: 0 });
+  });
+});
+
+describe("aviso de atrasados da tela Hoje", () => {
+  const HOJE = "2026-11-20";
+  it("afazer avulso e compromisso com data passada e sem check, do mais antigo ao mais novo", () => {
+    const itens = itensAtrasados(
+      {
+        afazeres: [
+          afazer({ id: "a1", nome: "Lavar roupa", data: "2026-11-17" }),
+          afazer({ id: "a2", nome: "Feito", data: "2026-11-10", feito: true }),
+          afazer({ id: "a3", nome: "Hoje", data: HOJE }),
+          afazer({ id: "a4", nome: "Sem data" }),
+          afazer({ id: "a5", nome: "Academia", data: "2026-11-01", rotina: { tipo: "diaria" } }),
+        ],
+        compromissos: [
+          compromisso({ id: "c1", nome: "Dentista", data: "2026-11-12", inicio: "14:00" }),
+          compromisso({ id: "c2", nome: "Marcado", data: "2026-11-12", inicio: "15:00", feito: true }),
+          compromisso({ id: "c3", nome: "Hoje cedo", data: HOJE, inicio: "07:00" }),
+        ],
+      },
+      HOJE,
+    );
+    expect(itens.map((i) => `${i.tipo}:${i.nome}:${i.data}`)).toEqual([
+      "compromissos:Dentista:2026-11-12",
+      "afazeres:Lavar roupa:2026-11-17",
+    ]);
+  });
+
+  it("sem dados não quebra", () => {
+    expect(itensAtrasados({}, HOJE)).toEqual([]);
+  });
+
+  it("texto do aviso", () => {
+    const af = { tipo: "afazeres" };
+    const co = { tipo: "compromissos" };
+    expect(textoAtrasados([])).toBeNull();
+    expect(textoAtrasados([af])).toBe("1 afazer atrasado");
+    expect(textoAtrasados([co])).toBe("1 compromisso atrasado");
+    expect(textoAtrasados([af, af, co])).toBe("2 afazeres e 1 compromisso atrasados");
+    expect(textoAtrasados([co, co])).toBe("2 compromissos atrasados");
   });
 });

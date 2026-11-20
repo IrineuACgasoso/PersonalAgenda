@@ -31,3 +31,83 @@
   font-size: var(--fs-rotulo);
   margin-left: 4px;
 }
+
+/* Aviso de atrasados: afazeres/compromissos com data passada e sem check.
+   Não entram na lista do dia; cada item leva ao calendário geral. */
+.aviso-atrasados {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--raio-md);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.aviso-atrasados-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aviso-atrasados-icone {
+  color: #f87171;
+  flex-shrink: 0;
+}
+
+.aviso-atrasados-texto {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-item);
+}
+
+.aviso-atrasados-btn {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  font-size: var(--fs-rotulo);
+}
+
+.aviso-atrasados-itens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.aviso-atrasados-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 10px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--texto);
+  font-size: var(--fs-rotulo);
+  cursor: pointer;
+}
+
+.aviso-atrasados-item:hover {
+  border-color: var(--vidro-borda-forte);
+}
+
+.aviso-atrasados-item .subtle {
+  font-size: var(--fs-rotulo);
+  flex-shrink: 0;
+}
+
+.aviso-atrasados-nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aviso-atrasados-ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

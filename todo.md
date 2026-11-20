@@ -82,7 +82,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [ ] **#53** Excluir o último período recria em silêncio um "2026.1" (`id: "p1"`, via `sanitizarDados`). Bloquear a exclusão do único período ou avisar. _Combina com #38._
 
 ### Ideias aprovadas pelo usuário (implementar depois das fases acima)
-- [x] **#31 Tela "Hoje"** (2026-11-20). Tela inicial, em "Visão geral" na sidebar: lista do dia com < > para andar pelos dias. Calendário geral: a lista do dia passou para baixo do calendário (mesmo componente `ui/ListaDoDia`). Ordem nova nas duas: horário ↑ (qualquer tipo) → sem hora não-afazer (prova do dia todo) → afazeres do dia (com data ou repetição) → sem data; urgência desempata; concluídos no fim. Afazer mostra "Hoje / N d atrás / Daqui a N d", "Pendente" (sem data) ou "Concluído". _Ideia (perguntar):_ afazeres atrasados (data passada, não feitos) também na Hoje.
+- [x] **#31 Tela "Hoje"** (2026-11-20). Tela inicial, em "Visão geral" na sidebar: lista do dia com < > para andar pelos dias. Calendário geral: a lista do dia passou para baixo do calendário (mesmo componente `ui/ListaDoDia`). Ordem nova nas duas: horário ↑ (qualquer tipo) → sem hora não-afazer (prova do dia todo) → afazeres do dia (com data ou repetição) → sem data; urgência desempata; concluídos no fim. Afazer mostra "Hoje / N d atrás / Daqui a N d", "Pendente" (sem data) ou "Concluído". Atrasados (afazer avulso/compromisso com data passada e sem check) **não** entram na lista: aviso no topo da Hoje que abre o calendário no dia, para marcar como feito ou arrastar (adiar).
 - [ ] **#32 Detecção de conflito de horário** entre aulas e rotinas.
 - [ ] **#33 Exportar `.ics`** (assinar no Google Calendar). Também cobre parte dos lembretes.
 - [ ] **#34 Controle de faltas por cadeira** (contador vs. limite de 25% da carga horária, alerta ao se aproximar).
@@ -94,7 +94,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
-- [x] #31 Tela Hoje (inicial) + lista do calendário embaixo + ordem nova da lista do dia · #49 "hoje" vira à meia-noite (2026-11-20).
+- [x] #31 Tela Hoje (inicial) + lista do calendário embaixo + ordem nova da lista do dia · #49 "hoje" vira à meia-noite · aviso de atrasados na Hoje (2026-11-20).
 - [x] Ícone do Android com fundo branco: maskable 192 + `id`/`lang` no manifest; precisa reinstalar o app (2026-11-20).
 - [x] #25 chunks do bundle · #46 datas importantes · #24 exibição + Agenda com zoom (2026-11-20). **Fase 6 concluída.**
 - [x] #56 rotinas sem período, com vigência própria (schema v6) (2026-11-19).

@@ -23,6 +23,7 @@
 | Formato das chaves de evento (concluído/excluído no calendário) | `src/utils/projecao.js` → `chaveAula/chaveRotina/chaveCompromisso/chaveAvaliacao`; mudar formato ⇒ migração |
 | O que aparece em cada dia do calendário geral | `src/utils/projecao.js` (puro): `projetarAvaliacoes/Aulas/Rotinas/Compromissos/Afazeres/AfazeresSemData`, `compararEventosDoDia` (ordenação), `agruparPorDia`, `projetarEventos` (tudo de uma vez). O hook `useEventosCalendario.js` só memoiza |
 | Tela Hoje (#31, tela inicial) | `src/components/VisaoHoje.jsx` (< > por `deslocamento` a partir de hoje; projeta só o dia com `projetarEventos`); datas: `somarDias`/`diaPorExtenso` (`utils/calendario.js`); CSS `hoje.css` |
+| Aviso de atrasados na Hoje (afazer avulso/compromisso com data passada e sem check) | `itensAtrasados`, `textoAtrasados` (`utils/projecao.js`) + `.aviso-atrasados` em `VisaoHoje.jsx`/`hoje.css`; clicar abre o calendário no dia: `abrirCalendarioNaData` (App) → `VisaoGeral` `diaInicial` (consumido ao montar) |
 | Ordem da lista do dia (horário → sem hora não-afazer → afazeres do dia → sem data; urgência desempata; concluídos no fim) e textos "Hoje / N d atrás / Daqui a N d / Pendente / Concluído" | `compararEventosDoDia`, `ordenarEventosDoDia`, `subtituloEvento`, `textoDistanciaDeHoje` (`utils/projecao.js`) |
 | "Hoje" que vira à meia-noite (#49) | `src/hooks/useHoje.js` (timer até 00:00 + `visibilitychange`/`focus`); usado por `VisaoHoje`, `VisaoGeral` → `useEventosCalendario({ hojeISO })` |
 | Rodar/escrever testes | `tests/README.md`; dados de exemplo em `tests/fixtures/fabricas.js` |
@@ -231,7 +232,8 @@ UFPE/
     │   │                         rotinas, compromissos pontuais, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
     │   │                         marcadoresDoDia/resumirMarcadores (★/livro/bandeiras da célula);
     │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto);
-    │   │                         lista do dia: compararEventosDoDia, eventoConcluido, ordenarEventosDoDia, subtituloEvento, textoDistanciaDeHoje, idArrasto
+    │   │                         lista do dia: compararEventosDoDia, eventoConcluido, ordenarEventosDoDia, subtituloEvento, textoDistanciaDeHoje, idArrasto;
+    │   │                         aviso da Hoje: itensAtrasados, textoAtrasados
     │   ├── formatarData.js       "YYYY-MM-DD" → "DD/MM/YYYY"
     │   ├── links.js              normalizarUrl, hrefSeguro (só http(s) vira href, #50)
     │   ├── dialogos.js           enfileirarDialogo (dedupe por chave), removerDialogo, mensagemDeRecusa (#44), resumoDoBackup (migra antes de contar)
@@ -241,7 +243,7 @@ UFPE/
     ├── components/
     │   ├── Sidebar.jsx           Nav (Cadeiras, Rotinas, Compromissos, Afazeres, Agenda · Visão geral: Hoje, Calendário geral), Backup
     │   │                         (exportar/importar/restaurar nuvem), conta/login, status de sync. Menu deslizante no mobile
-    │   ├── VisaoHoje.jsx         Tela inicial (#31): < data > + ListaDoDia do dia (sem filtros, sem arrasto); botão "Hoje" volta
+    │   ├── VisaoHoje.jsx         Tela inicial (#31): aviso de atrasados (abre o calendário no dia) + < data > + ListaDoDia do dia (sem filtros, sem arrasto); botão "Hoje" volta
     │   ├── VisaoGeral.jsx        Calendário geral: filtros, calendário e, EMBAIXO, a ListaDoDia "Eventos em DD/MM";
     │   │                         calendário mensal com pontos coloridos, marcadores ★/livro/bandeiras, glow em dias de avaliação, drag-and-drop (afazer e compromisso)
     │   │                         (mouse direto; toque com long-press 350ms; autoscroll; troca de mês sobre as setas)
@@ -290,7 +292,7 @@ UFPE/
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
         ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)
-        ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav)
+        ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav) e aviso de atrasados (.aviso-atrasados)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)
         └── mobile.css          Todas as regras ≤860px
 ```
