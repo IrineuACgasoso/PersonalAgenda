@@ -35,7 +35,9 @@
 | Formulário/lista de compromissos | `src/components/VisaoCompromissos.jsx`; validação `erroDoCompromisso` (`utils/compromissos.js`) |
 | Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` + `src/styles/cadeiras.css`; resumo (próx. aula/avaliação, barra da vigência) em `ui/ResumoCadeira.jsx`, lógica pura em `src/utils/cadeiras.js` (#21) |
 | Drawer da cadeira (resumo + seções recolhíveis Horários/Links/Datas) | `src/components/PainelCadeira.jsx` (`Secao`) + `src/components/abas/*` (conteúdo de cada seção); CSS `.painel-secao*` em `painel.css` |
-| Grade semanal 06h–23h | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css` |
+| Grade semanal 06h–23h | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css` (no celular: `mobile.css`, grade com altura máx. e dias/horas `sticky`) |
+| Zoom da Agenda (pinça, Ctrl+roda, − 100% +) | `src/hooks/useZoomAgenda.js` (listeners nativos não passivos, foco sob os dedos, salva em `ZOOM_AGENDA_KEY`) + puro em `src/utils/zoomAgenda.js`; CSS via `--agenda-zoom` |
+| Cores de texto e escala tipográfica (#24) | tokens em `src/styles/base.css` (`--texto`, `--texto-fraco`, `--texto-sutil`, `--fs-*`); teste de contraste em `integridade.test.js` |
 | Menu lateral, backup, login, indicador de status | `src/components/Sidebar.jsx` + `src/styles/sidebar.css` |
 | Backup na nuvem (snapshots a cada 3h) | `src/hooks/useCloudBackup.js`; decisões puras (quando fazer, rotação) em `src/utils/backupNuvem.js` |
 | Seletor de cor (prévia local, grava ao soltar/fechar) | `src/components/ui/SeletorCor.jsx` + `src/utils/confirmacaoAdiada.js` |
@@ -138,6 +140,7 @@ UFPE/
 │       ├── dialogos.test.js       Fila/dedupe de diálogos (#17), mensagemDeRecusa (#44), resumoDoBackup
 │       ├── desfazer.test.js       reinserirPorId / reinserirVarios / separarRemovidos (#18)
 │       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos, datasImportantes (#46)
+│       ├── zoomAgenda.test.js     #24: limites, pinça, passos de 25%, foco sob os dedos
 │       ├── chunks.test.js         #25: nomeDoChunk (Firebase num chunk só, messaging sob demanda) e cicloEntreChunks
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, rotinas, compromissos, afazeres) + ordenação + marcos + marcadores
 │       ├── rotinas.test.js        Faixa da semana, horas/semana, próxima ocorrência da rotina
@@ -185,10 +188,12 @@ UFPE/
     │   │                         recente NO SERVIDOR (checa a cada 15min; timer não depende de `data`; 1 por vez;
     │   │                         offline não tenta — #8), mantém 10. listarBackupsCloud(uid)
     │   ├── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
+    │   ├── useZoomAgenda.js      #24: zoom da Agenda (pinça/Ctrl+roda/botões), mantém o ponto sob os dedos; callback ref `definirArea`
     │   ├── useDialogos.js        Contexto + hook: { avisar, confirmar, notificar } (provider em ui/Dialogos.jsx, #17/#18)
     │   └── useListaInterna.js    adicionar/editar/remover (com Desfazer) nas listas internas de cadeira/rotina;
     │                             usa onAtualizar(fn) → lê o item mais recente
     ├── utils/
+    │   ├── zoomAgenda.js         PURO (#24): limitarZoom, zoomDaPinca, zoomNoPasso (múltiplos de 25%), deslocamentoParaFoco, textoZoom
     │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1", versao atual), sanitizarDados() (1º migra, depois
     │   │                         normaliza; whitelist de afazeres/rotina; listas internas de cadeira
     │   │                         (horarios/links/datas) e compromisso (horarios) sempre arrays de objetos;

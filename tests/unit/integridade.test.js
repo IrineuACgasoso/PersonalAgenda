@@ -57,7 +57,36 @@ function cantoOpaco(caminho) {
   return cru[4] === 255;
 }
 
+// Razão de contraste WCAG entre duas cores #rrggbb.
+function contraste(a, b) {
+  const lum = (hex) => {
+    const [r, g, bl] = [1, 3, 5]
+      .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [claro, escuro] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (claro + 0.05) / (escuro + 0.05);
+}
+
 describe("CSS", () => {
+  // #24: texto secundário/terciário legível sobre os cards (#1d1f25), mesmo
+  // em 11–13px (WCAG AA = 4,5:1).
+  it("tokens de texto com contraste ≥ 4,5:1 sobre os cards", () => {
+    const base = ler("src/styles/base.css");
+    ["--texto", "--texto-fraco", "--texto-sutil"].forEach((token) => {
+      const cor = base.match(new RegExp(`${token}:\\s*(#[0-9a-fA-F]{6})`))?.[1];
+      expect(cor, token).toBeTruthy();
+      expect(contraste(cor, "#1d1f25"), token).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+  it("sem os cinzas escuros soltos de antes (usar --texto-fraco/--texto-sutil)", () => {
+    const usos = readdirSync(join(RAIZ, "src/styles"))
+      .filter((f) => f.endsWith(".css"))
+      .filter((f) => /#(6b6b74|71717a|8a8a92)\b/i.test(ler(`src/styles/${f}`)));
+    expect(usos).toEqual([]);
+  });
+
   it("app.css importa mobile.css por último", () => {
     const imports = [...ler("src/styles/app.css").matchAll(/@import\s+"([^"]+)"/g)].map((m) => m[1]);
     expect(imports.at(-1)).toBe("./mobile.css");

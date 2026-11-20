@@ -389,7 +389,7 @@
 }
 
 .painel-carregando-texto {
-  color: #a1a1aa;
+  color: var(--texto-fraco);
   font-size: 13.5px;
   letter-spacing: 0.02em;
 }
@@ -442,7 +442,7 @@
   margin: 4px 0 0;
   font-size: 12px;
   line-height: 1.45;
-  color: #71717a;
+  color: var(--texto-sutil);
 }
 
 .girando {

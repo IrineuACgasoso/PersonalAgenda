@@ -3,16 +3,31 @@
    tanto na Agenda quanto na Visão Geral, incluindo o drag-and-drop de
    datas importantes entre dias do calendário. */
 
+/* Zoom (#24): --agenda-zoom (1 = 100%) vem inline do VisaoAgenda. Em 100%
+   a semana inteira cabe na largura; acima disso a grade cresce nos dois
+   sentidos e rola para o lado DENTRO do .agenda-wrap. As colunas são
+   minmax(0, 1fr) para um nome comprido não alargar o próprio dia. */
 .agenda-wrap {
+  --agenda-col-hora: 48px;
+  --agenda-hora: 44px;
   border: 1px solid var(--vidro-borda);
   border-radius: var(--raio-md);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  /* Pinça é tratada em useZoomAgenda; o navegador só rola. */
+  touch-action: pan-x pan-y;
   box-shadow: var(--vidro-sombra);
+}
+
+.agenda-grid-head,
+.agenda-body {
+  width: calc(100% * var(--agenda-zoom, 1));
 }
 
 .agenda-grid-head {
   display: grid;
-  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-columns: var(--agenda-col-hora) repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid var(--vidro-borda);
   background: var(--vidro-grad), rgba(20, 22, 27, 0.7);
 }
@@ -26,20 +41,20 @@
   text-align: center;
   font-size: 12.5px;
   font-weight: 700;
-  color: #a9a9b2;
+  color: var(--texto-fraco);
   border-right: 1px solid var(--vidro-borda);
 }
 
 .agenda-body {
   display: grid;
-  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-columns: var(--agenda-col-hora) repeat(7, minmax(0, 1fr));
   background: rgba(255, 255, 255, 0.015);
 }
 
 .agenda-hora-label {
-  height: 44px;
+  height: calc(var(--agenda-hora) * var(--agenda-zoom, 1));
   font-size: 11px;
-  color: #6b6b74;
+  color: var(--texto-sutil);
   text-align: right;
   padding-right: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -51,11 +66,14 @@
 }
 
 .agenda-linha {
-  height: 44px;
+  height: calc(var(--agenda-hora) * var(--agenda-zoom, 1));
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .agenda-bloco {
+  /* Container query abaixo: o conteúdo se adapta à largura do PRÓPRIO bloco
+     (muda com a tela e com o zoom). */
+  container-type: inline-size;
   position: absolute;
   left: 2px;
   right: 2px;
@@ -68,6 +86,8 @@
 
 .agenda-bloco-titulo {
   display: block;
+  overflow-wrap: break-word;
+  hyphens: auto;
   font-size: 11.5px;
   font-weight: 700;
   line-height: 1.2;
@@ -77,6 +97,45 @@
   display: block;
   font-size: 10.5px;
   color: #d8d8e0;
+}
+
+/* Bloco estreito (semana inteira no celular, zoom 100%): só o nome; o
+   horário já se lê pela posição na grade e aparece ao dar zoom. */
+@container (max-width: 64px) {
+  .agenda-bloco-hora {
+    display: none;
+  }
+}
+
+/* Controles − 100% + (no fim da linha dos filtros). */
+.agenda-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.agenda-zoom .icon-btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.agenda-zoom-valor {
+  min-width: 48px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: var(--raio-sm);
+  background: none;
+  color: var(--texto-fraco);
+  font-size: var(--fs-rotulo);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.agenda-zoom-valor:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--texto);
 }
 
 /* ---------- próximas datas ---------- */
@@ -110,7 +169,7 @@
 }
 
 .data-item.passada {
-  opacity: 0.45;
+  opacity: 0.55;
 }
 
 /* Datas que já passaram: seção recolhida no fim (#46). */
@@ -192,7 +251,7 @@
 
 .data-item-data {
   font-size: 12.5px;
-  color: #a9a9b2;
+  color: var(--texto-fraco);
   flex-shrink: 0;
 }
 

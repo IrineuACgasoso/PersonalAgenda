@@ -60,7 +60,7 @@
 .calendario-dia-head {
   text-align: center;
   font-size: 11.5px;
-  color: #6b6b74;
+  color: var(--texto-sutil);
   text-transform: uppercase;
   padding: 4px 0;
   letter-spacing: 0.04em;
@@ -237,7 +237,7 @@
 
 .calendario-mais {
   font-size: 10px;
-  color: #8a8a92;
+  color: var(--texto-sutil);
 }
 
 /* Marcadores no canto da célula (Fase 5): ★ compromisso, livro = avaliação,

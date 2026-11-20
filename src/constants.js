@@ -29,6 +29,8 @@ export const SIDEBAR_STATE_KEY = "painel-academico-sidebar";
 export const ULTIMA_SINCRONIZACAO_KEY = "painel-academico-ultima-sincronizacao";
 // Registro deste aparelho para os lembretes (#23): { id, ativo, token }.
 export const DISPOSITIVO_PUSH_KEY = "painel-academico-dispositivo-push";
+// Zoom da Agenda da semana (#24): preferência de exibição deste aparelho.
+export const ZOOM_AGENDA_KEY = "painel-academico-zoom-agenda";
 
 export const ROTINA_OPCOES = [
   { valor: "nenhuma", label: "Não é rotineiro" },

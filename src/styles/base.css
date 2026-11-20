@@ -33,7 +33,19 @@
   --accent: #6366f1;
   --accent-2: #818cf8;
   --texto: #f0f1f5;
-  --texto-fraco: #a1a1ac;
+  /* Contraste (#24): secundário ≥ 8:1 e terciário ≥ 5,6:1 sobre os cards
+     (#1d1f25). Antes havia cinzas soltos (o mais escuro dava ≈ 3:1) ilegíveis no sol. */
+  --texto-fraco: #b4b4bf;
+  --texto-sutil: #9696a1;
+
+  /* Escala tipográfica (#24): título da tela > título de seção > título de
+     card > item > secundário > rótulo (MAIÚSCULAS, agrupa itens). */
+  --fs-titulo: 26px;
+  --fs-secao: 17px;
+  --fs-card: 16px;
+  --fs-item: 14.5px;
+  --fs-sutil: 13px;
+  --fs-rotulo: 12px;
 
   font-size: 16px;
 }
@@ -78,7 +90,7 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--bg);
-  color: #8a8a92;
+  color: var(--texto-sutil);
 }
 
 .loading-text {
@@ -111,20 +123,21 @@ body {
 }
 
 .titulo-pagina {
-  font-size: 25px;
+  font-size: var(--fs-titulo);
+  font-weight: 750;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+h2.titulo-secao {
+  font-size: var(--fs-secao);
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.01em;
 }
 
-h2.titulo-secao {
-  font-size: 16.5px;
-  font-weight: 600;
-  margin: 0;
-}
-
 .subtle {
-  font-size: 13.5px;
+  font-size: var(--fs-sutil);
   color: var(--texto-fraco);
 }
 
@@ -159,7 +172,7 @@ h2.titulo-secao {
   border-radius: 6px;
   border: none;
   background: rgba(255, 255, 255, 0.06);
-  color: #a9a9b2;
+  color: var(--texto-fraco);
   cursor: pointer;
 }
 

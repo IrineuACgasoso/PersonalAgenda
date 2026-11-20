@@ -58,7 +58,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#23 Lembretes programados e configuráveis** (2026-11-19). Opção (b): FCM + Cloud Function agendada (`functions/index.js`, a cada 1 min). Padrões globais (`lembretes`, compromissos 15 min / avaliações 1 dia) + `lembretes` por compromisso e por avaliação; modal "Lembretes" no menu (ativar no aparelho, teste). **Falta o deploy (usuário):** `firebase deploy --only functions,firestore:rules`. _Ideias futuras (perguntar):_ lembrete de afazer com data (resumo do dia às 8h), de aulas/rotinas.
 
 ### Fase 6 — Visual e performance
-- [~] **#24 Melhora na qualidade de exibição.** Feito (2026-11-20): estilos inline das células e do painel do dia do `VisaoGeral` → `calendario.css` (pixel-idêntico ao antigo, conferido no navegador); título da aba "Minha Agenda". **Falta detalhar com o usuário:** hierarquia tipográfica, contraste, espaçamentos no mobile (propostas no `log.md` (12)).
+- [x] **#24 Melhora na qualidade de exibição** (2026-11-20). Células do calendário sem inline (pixel-idêntico); título da aba "Minha Agenda"; contraste (`--texto-fraco` mais claro + `--texto-sutil` no lugar dos cinzas soltos, ≥ 4,5:1 com teste); escala tipográfica (`--fs-*`; grupos das listas em MAIÚSCULAS); **Agenda da semana**: semana inteira na largura do celular + zoom (pinça, Ctrl+roda, − 100% +), dias/horas fixos ao rolar.
 - [x] **#25 Bundle** (2026-11-20). Chunks estáveis `firebase` (757 kB) · `react` · `vendor` + app (~125 kB); `messaging` continua sob demanda. Lazy load do Firestore/Auth **descartado** (são necessários na abertura offline-first; mexeria no `usePersistedData`). O build aborta se houver ciclo entre chunks (`vite.chunks.js`).
 - [x] **#46 "Próximas datas importantes"** (2026-11-20). Futuras primeiro (↑); as que passaram vão para "Anteriores" (recolhida, mais recente primeiro). `datasImportantes` (`utils/cadeiras.js`).
 
@@ -95,7 +95,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 
 ## ✅ Feito recentemente
 - [x] Ícone do Android com fundo branco: maskable 192 + `id`/`lang` no manifest; precisa reinstalar o app (2026-11-20).
-- [x] #25 chunks do bundle · #46 datas importantes · #24 (parte: CSS das células, título) (2026-11-20).
+- [x] #25 chunks do bundle · #46 datas importantes · #24 exibição + Agenda com zoom (2026-11-20). **Fase 6 concluída.**
 - [x] #56 rotinas sem período, com vigência própria (schema v6) (2026-11-19).
 - [x] #22 Fase 5: Rotinas / Compromissos / Afazeres (schema v5) + #45 lixeira exclui item pontual (2026-11-19).
 - [x] #16 ESLint + Prettier · #17 diálogos próprios · #44 aviso de gravação recusada · #18 desfazer com toast (2026-11-19).

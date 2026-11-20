@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Repeat } from "lucide-react";
+import { BookOpen, Repeat, ZoomIn, ZoomOut } from "lucide-react";
 import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
@@ -8,6 +8,8 @@ import SecaoLista from "./ui/SecaoLista.jsx";
 import { datasImportantes } from "../utils/cadeiras.js";
 import { horariosNaSemana } from "../utils/rotinas.js";
 import { corVisivel } from "../utils/calendario.js";
+import useZoomAgenda from "../hooks/useZoomAgenda.js";
+import { ZOOM_MAX, ZOOM_MIN, textoZoom } from "../utils/zoomAgenda.js";
 
 const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
 
@@ -33,6 +35,8 @@ function minutosParaTopo(hhmm, totalHoras) {
 
 export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, onAbrirRotina }) {
   const [filtros, setFiltros] = useState(lerFiltrosAgendaIniciais);
+  // #24: a semana inteira cabe na tela; pinça / Ctrl+roda / − + ampliam.
+  const { definirArea, zoom, aumentar, diminuir, redefinir } = useZoomAgenda();
 
   const alternarFiltro = (chave) => {
     setFiltros((prev) => {
@@ -104,12 +108,37 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
         <button className={`filtro-chip${filtros.rotinas ? " ativo" : ""}`} onClick={() => alternarFiltro("rotinas")}>
           <Repeat size={13} /> Rotinas
         </button>
+        {blocos.length > 0 && (
+          <div className="agenda-zoom" role="group" aria-label="Zoom da agenda">
+            <button
+              type="button"
+              className="icon-btn-ghost"
+              onClick={diminuir}
+              disabled={zoom <= ZOOM_MIN}
+              title="Diminuir zoom"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <button type="button" className="agenda-zoom-valor" onClick={redefinir} title="Voltar a 100%">
+              {textoZoom(zoom)}
+            </button>
+            <button
+              type="button"
+              className="icon-btn-ghost"
+              onClick={aumentar}
+              disabled={zoom >= ZOOM_MAX}
+              title="Aumentar zoom (ou pinça / Ctrl + roda do mouse)"
+            >
+              <ZoomIn size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {blocos.length === 0 ? (
         <EstadoVazio texto="Cadastre horários nas cadeiras ou rotinas para ver a agenda" />
       ) : (
-        <div className="agenda-wrap">
+        <div className="agenda-wrap" ref={definirArea} style={{ "--agenda-zoom": zoom }}>
           <div className="agenda-grid-head">
             <div className="agenda-hora-col" />
             {DIAS.map((d) => (

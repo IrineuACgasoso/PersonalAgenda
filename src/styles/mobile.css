@@ -161,13 +161,54 @@
   }
 
   /* ---------- agenda semanal ---------- */
+  /* Semana inteira na largura da tela (#24): antes a grade tinha 640px e
+     era preciso arrastar para o lado. Para ver melhor: zoom (pinça / − +). */
   .agenda-wrap {
-    overflow-x: auto;
+    --agenda-col-hora: 30px;
+    /* A grade rola dentro da própria caixa (como no Google Agenda), para a
+       linha dos dias e a coluna das horas ficarem fixas com zoom. No fim
+       da grade a rolagem passa para a página (overscroll-y não é contido). */
+    max-height: max(360px, calc(100dvh - 190px));
+    overflow-y: auto;
   }
 
-  .agenda-grid-head,
-  .agenda-body {
-    min-width: 640px;
+  .agenda-grid-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--bg-elevado);
+  }
+
+  .agenda-hora-col {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg-elevado);
+  }
+
+  .agenda-dia-head {
+    padding: 8px 0;
+    font-size: 11.5px;
+  }
+
+  .agenda-hora-label {
+    padding-right: 4px;
+    font-size: 10px;
+  }
+
+  .agenda-bloco {
+    left: 1px;
+    right: 1px;
+    padding: 2px 3px;
+    border-radius: 4px;
+  }
+
+  .agenda-bloco-titulo {
+    font-size: 10.5px;
+  }
+
+  .agenda-bloco-hora {
+    font-size: 9.5px;
   }
 
   /* ---------- lista "Eventos em DD/MM" (visão geral) ----------
@@ -199,7 +240,7 @@
   }
 
   .titulo-pagina {
-    font-size: 21px;
+    font-size: 22px;
   }
 
   .periodo-seletor-nome {
