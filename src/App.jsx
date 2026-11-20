@@ -10,6 +10,7 @@ import VisaoCompromissos from "./components/VisaoCompromissos";
 import VisaoAgenda from "./components/VisaoAgenda";
 import VisaoAfazeres from "./components/VisaoAfazeres";
 import VisaoGeral from "./components/VisaoGeral";
+import VisaoHoje from "./components/VisaoHoje";
 import PainelCadeira from "./components/PainelCadeira";
 import PainelRotina from "./components/PainelRotina";
 import EstadoVazio from "./components/ui/EstadoVazio";
@@ -62,7 +63,8 @@ export default function App() {
   // Só depois da carga inicial e com dados de verdade (na tela de erro do #7
   // o status alterna loading/error a cada nova tentativa).
   useCloudBackup(user, data, !!data && status !== "loading");
-  const [aba, setAba] = useState("visaogeral");
+  // Tela inicial: Hoje (#31).
+  const [aba, setAba] = useState("hoje");
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
   const [rotinaAbertaId, setRotinaAbertaId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
@@ -602,6 +604,23 @@ export default function App() {
             lembretesPadrao={preferenciasLembretes.compromissos}
             gatilhoNovaData={gatilhoNovoCompromisso}
             onGatilhoConsumido={() => setGatilhoNovoCompromisso(null)}
+          />
+        ) : aba === "hoje" ? (
+          <VisaoHoje
+            cadeiras={data.cadeiras}
+            rotinas={rotinas}
+            compromissos={compromissos}
+            afazeres={afazeres}
+            eventosConcluidos={eventosConcluidos}
+            eventosExcluidos={eventosExcluidos}
+            onAlternarEventoConcluido={alternarEventoConcluido}
+            onExcluirInstanciaEvento={excluirInstanciaEvento}
+            onAlternarFeitoAfazer={alternarFeitoAfazer}
+            onExcluirAfazer={excluirAfazer}
+            onAlternarFeitoCompromisso={alternarFeitoCompromisso}
+            onExcluirCompromisso={excluirCompromisso}
+            onNovoAfazer={abrirNovoAfazerNaData}
+            onNovoCompromisso={abrirNovoCompromissoNaData}
           />
         ) : aba === "visaogeral" ? (
           <VisaoGeral

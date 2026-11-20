@@ -14,6 +14,7 @@ import {
   LogIn,
   LogOut,
   Bell,
+  Sun,
 } from "lucide-react";
 
 // Formata o timestamp da última sincronização real com o servidor: só hora
@@ -93,6 +94,9 @@ export default function Sidebar({
           <div className="sidebar-secao-label">
             <span>Visão geral</span>
           </div>
+          <button className={`nav-btn${aba === "hoje" ? " ativo" : ""}`} onClick={() => irPara("hoje")}>
+            <Sun size={15} /> Hoje
+          </button>
           <button className={`nav-btn${aba === "visaogeral" ? " ativo" : ""}`} onClick={() => irPara("visaogeral")}>
             <LayoutGrid size={15} /> Calendário geral
           </button>

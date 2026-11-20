@@ -110,8 +110,10 @@ describe("Regressões de UI", () => {
   // Bug corrigido em 2026-11-18: no mobile o nome longo do evento era
   // cortado com "..." na lista "Eventos em DD/MM" do calendário geral.
   it("título dos eventos do dia quebra linha em vez de ser cortado", () => {
-    const jsx = ler("src/components/VisaoGeral.jsx");
+    // A lista do dia virou ui/ListaDoDia.jsx (usada no calendário e na Hoje).
+    const jsx = ler("src/components/ui/ListaDoDia.jsx");
     expect(jsx).toContain("data-item-titulo-quebra");
+    expect(ler("src/components/VisaoGeral.jsx")).toContain("<ListaDoDia");
     const regra = ler("src/styles/agenda.css").match(/\.data-item-titulo-quebra\s*\{([^}]*)\}/);
     expect(regra?.[1]).toMatch(/white-space:\s*normal/);
     expect(regra?.[1]).toMatch(/overflow-wrap:\s*anywhere/);
@@ -257,5 +259,25 @@ describe("Lembretes (#23)", () => {
     expect(sw).toMatch(/createHandlerBoundToURL\("\/index\.html"\)/);
     expect(sw).toMatch(/addEventListener\("push"/);
     expect(sw).toMatch(/addEventListener\("notificationclick"/);
+  });
+});
+
+describe("Tela Hoje (#31)", () => {
+  it("é a tela inicial e está na sidebar, em Visão geral", () => {
+    expect(ler("src/App.jsx")).toMatch(/useState\("hoje"\)/);
+    const sidebar = ler("src/components/Sidebar.jsx");
+    expect(sidebar).toMatch(/irPara\("hoje"\)/);
+    expect(sidebar.indexOf('irPara("hoje")')).toBeLessThan(sidebar.indexOf('irPara("visaogeral")'));
+  });
+
+  it("calendário geral mostra a lista do dia EMBAIXO da grade", () => {
+    const jsx = ler("src/components/VisaoGeral.jsx");
+    expect(jsx.indexOf('className="calendario-grid"')).toBeLessThan(jsx.indexOf("<ListaDoDia"));
+  });
+
+  it("'hoje' vem de useHoje (vira à meia-noite, #49), não de new Date() no render", () => {
+    expect(ler("src/components/VisaoHoje.jsx")).toContain("useHoje()");
+    expect(ler("src/components/VisaoGeral.jsx")).toContain("useHoje()");
+    expect(ler("src/hooks/useEventosCalendario.js")).not.toContain("new Date()");
   });
 });

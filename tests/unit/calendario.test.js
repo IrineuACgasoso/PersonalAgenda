@@ -11,6 +11,8 @@ import {
   textoVigencia,
   vigenciaPadraoParaNovaCadeira,
   corVisivel,
+  somarDias,
+  diaPorExtenso,
 } from "../../src/utils/calendario.js";
 import { formatarData } from "../../src/utils/formatarData.js";
 import { cadeira } from "../fixtures/fabricas.js";
@@ -149,5 +151,21 @@ describe("corVisivel", () => {
     expect(corVisivel(undefined)).toBeUndefined();
     expect(corVisivel("")).toBe("");
     expect(corVisivel("azul")).toBe("azul");
+  });
+});
+
+describe("navegação por dias da tela Hoje (#31)", () => {
+  it("somarDias vira mês e ano", () => {
+    expect(somarDias("2026-11-20", 1)).toBe("2026-11-21");
+    expect(somarDias("2026-11-30", 1)).toBe("2026-12-01");
+    expect(somarDias("2026-12-31", 1)).toBe("2027-01-01");
+    expect(somarDias("2026-03-01", -1)).toBe("2026-02-28");
+    expect(somarDias("2026-11-20", 0)).toBe("2026-11-20");
+  });
+
+  it("diaPorExtenso: dia da semana e mês; o ano só se for outro", () => {
+    expect(diaPorExtenso("2026-11-20", "2026-11-20")).toBe("Sexta, 20 de novembro");
+    expect(diaPorExtenso("2026-11-23", "2026-11-20")).toBe("Segunda, 23 de novembro");
+    expect(diaPorExtenso("2027-01-03", "2026-11-20")).toBe("Domingo, 3 de janeiro de 2027");
   });
 });

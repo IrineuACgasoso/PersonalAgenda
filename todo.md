@@ -74,7 +74,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [ ] **#30** Upgrade `vite-plugin-pwa` (fecha os 4 *moderate* do workbox) e avaliar Vite 7/8 e `firebase@13` (major). Vite 6 + Vitest 4 já feitos no #2.
 - [ ] **#47** App aberto em duas instâncias (PWA instalado + aba do navegador): com `persistentSingleTabManager`, a segunda cai para cache só em memória, então ela não abre offline. Avaliar `persistentMultipleTabManager` (`src/firebase.js`).
 - [ ] **#48** Drawers de cadeira/compromisso: apagar o nome e sair do campo não grava (certo), mas o campo fica vazio na tela. No blur inválido, voltar ao nome atual.
-- [ ] **#49** "Hoje" congelado com o app aberto depois da meia-noite: `hoje` em `VisaoGeral` e o memo de afazeres sem data em `useEventosCalendario` só atualizam em outro re-render/troca de mês.
+- [x] **#49** (2026-11-20, `useHoje`) "Hoje" congelado com o app aberto depois da meia-noite: `hoje` em `VisaoGeral` e o memo de afazeres sem data em `useEventosCalendario` só atualizam em outro re-render/troca de mês.
 - [ ] **#51** Acessibilidade: células do calendário e cards de cadeira/compromisso são `div` com `onClick` (sem teclado/`role`); drawers não fecham com Esc nem prendem o foco; o drag só funciona com ponteiro.
 - [ ] **#52** `eventosConcluidos`/`eventosExcluidos` crescem para sempre e guardam chaves órfãs de cadeiras/afazeres já apagados. O documento único tem limite de 1 MB, e cada backup copia tudo. Limpar as chaves do item ao excluí-lo. _Fazer depois de #10 (o formato das chaves muda)._
 - [x] **#55** Cor padrão do afazer (2026-11-19): padrão agora `#8b5cf6`; cores quase pretas (inclusive afazeres antigos `#221e1e`) são clareadas **só na exibição** (`corVisivel`, `utils/calendario.js`) no calendário, nas listas e na agenda. `#221e1e` saiu da paleta de cadeiras novas.
@@ -82,7 +82,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [ ] **#53** Excluir o último período recria em silêncio um "2026.1" (`id: "p1"`, via `sanitizarDados`). Bloquear a exclusão do único período ou avisar. _Combina com #38._
 
 ### Ideias aprovadas pelo usuário (implementar depois das fases acima)
-- [ ] **#31 Tela "Hoje"**: resumo do dia (aulas, compromissos, afazeres urgentes) como home no mobile. Reaproveitar `projetarEventos` de `utils/projecao.js`.
+- [x] **#31 Tela "Hoje"** (2026-11-20). Tela inicial, em "Visão geral" na sidebar: lista do dia com < > para andar pelos dias. Calendário geral: a lista do dia passou para baixo do calendário (mesmo componente `ui/ListaDoDia`). Ordem nova nas duas: horário ↑ (qualquer tipo) → sem hora não-afazer (prova do dia todo) → afazeres do dia (com data ou repetição) → sem data; urgência desempata; concluídos no fim. Afazer mostra "Hoje / N d atrás / Daqui a N d", "Pendente" (sem data) ou "Concluído". _Ideia (perguntar):_ afazeres atrasados (data passada, não feitos) também na Hoje.
 - [ ] **#32 Detecção de conflito de horário** entre aulas e rotinas.
 - [ ] **#33 Exportar `.ics`** (assinar no Google Calendar). Também cobre parte dos lembretes.
 - [ ] **#34 Controle de faltas por cadeira** (contador vs. limite de 25% da carga horária, alerta ao se aproximar).
@@ -94,6 +94,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] #31 Tela Hoje (inicial) + lista do calendário embaixo + ordem nova da lista do dia · #49 "hoje" vira à meia-noite (2026-11-20).
 - [x] Ícone do Android com fundo branco: maskable 192 + `id`/`lang` no manifest; precisa reinstalar o app (2026-11-20).
 - [x] #25 chunks do bundle · #46 datas importantes · #24 exibição + Agenda com zoom (2026-11-20). **Fase 6 concluída.**
 - [x] #56 rotinas sem período, com vigência própria (schema v6) (2026-11-19).

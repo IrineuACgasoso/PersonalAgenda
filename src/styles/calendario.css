@@ -181,12 +181,16 @@
   text-shadow: 0 0 6px rgba(129, 140, 248, 0.8);
 }
 
-/* ---------- detalhe do dia selecionado (acima do calendário) ---------- */
+/* ---------- lista do dia (ui/ListaDoDia.jsx): tela Hoje e embaixo do
+   calendário geral. Sem altura fixa nem rolagem própria: a página rola. */
 .detalhe-dia {
   display: flex;
   flex-direction: column;
-  min-height: 230px;
   margin-bottom: 20px;
+}
+
+.calendario-grid + .detalhe-dia {
+  margin-top: 24px;
 }
 
 .detalhe-dia-cabecalho {
@@ -203,13 +207,6 @@
 .detalhe-dia-corpo {
   position: relative;
   flex: 1;
-}
-
-.detalhe-dia-lista {
-  max-height: 300px;
-  overflow-y: auto;
-  scroll-behavior: smooth;
-  padding-right: 4px;
 }
 
 .detalhe-dia .data-item.sendo-arrastado {

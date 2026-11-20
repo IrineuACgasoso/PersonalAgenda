@@ -166,7 +166,7 @@ export function projetarAfazeres(afazeres, inicioISO, fimISO) {
         dataOriginal,
         titulo: a.nome,
         cor: corVisivel(a.cor || COR_PADRAO_AFAZER_CALENDARIO),
-        origem: concluido ? "concluído" : "pendente",
+        origem: concluido ? "Concluído" : "Pendente",
         feito: concluido,
         datasConcluidas: a.datasConcluidas || [],
         urgencia: a.urgencia || 1,
@@ -199,7 +199,7 @@ export function projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) {
         dataOriginal: hojeISO,
         titulo: a.nome,
         cor: corVisivel(a.cor || COR_PADRAO_AFAZER_CALENDARIO),
-        origem: "pendente",
+        origem: "Pendente",
         feito: false,
         datasConcluidas: [],
         urgencia: a.urgencia || 1,
@@ -211,23 +211,84 @@ export function projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) {
   );
 }
 
-// Prioridade dentro do dia: eventos com horário definido vêm primeiro
-// (ordenados pelo horário); em seguida, afazeres sem horário são
-// ordenados por urgência — e entre "irmãos" de mesma urgência, os que
-// têm uma data real (não projetados por falta de data) ficam à frente
-// dos afazeres sem data que só estão ali por padrão em "hoje".
+// Prioridade dentro do dia (pedido do usuário, tela Hoje):
+//   0. com horário definido — por horário, qualquer tipo (aula, prova,
+//      compromisso, rotina);
+//   1. sem horário e que não é afazer (ex.: avaliação sem hora: é do dia
+//      todo, fica logo depois dos horários e antes dos afazeres);
+//   2. afazeres DESTE dia (data marcada ou ocorrência de repetição);
+//   3. afazeres sem data (só aparecem em "hoje", por padrão).
+// Dentro de 2 e 3 o desempate é sempre a urgência (maior primeiro). O sort
+// é estável: empates mantêm a ordem de chegada.
+function grupoNoDia(ev) {
+  if (ev.hora) return 0;
+  if (ev.tipo !== "afazeres") return 1;
+  return ev.semData ? 3 : 2;
+}
+
 export function compararEventosDoDia(a, b) {
-  const aHora = a.hora || "";
-  const bHora = b.hora || "";
-  if (aHora && bHora) return aHora.localeCompare(bHora);
-  if (!!aHora !== !!bHora) return aHora ? -1 : 1;
-  if (a.tipo === "afazeres" && b.tipo === "afazeres") {
-    const ua = a.urgencia || 1;
-    const ub = b.urgencia || 1;
-    if (ua !== ub) return ub - ua;
-    if (!!a.semData !== !!b.semData) return a.semData ? 1 : -1;
-  }
+  const ga = grupoNoDia(a);
+  const gb = grupoNoDia(b);
+  if (ga !== gb) return ga - gb;
+  if (ga === 0) return a.hora.localeCompare(b.hora);
+  if (ga >= 2) return (b.urgencia || 1) - (a.urgencia || 1);
   return 0;
+}
+
+// Ocorrência concluída? Afazer que se repete: pela data natural da
+// ocorrência (#14, a mesma usada no arrasto); afazer avulso e compromisso:
+// no próprio item; aula/rotina/avaliação: na lista eventosConcluidos.
+export function eventoConcluido(ev, eventosConcluidos = []) {
+  if (ev.tipo === "afazeres") {
+    if (ev.rotina && ev.rotina.tipo !== "nenhuma") {
+      return Array.isArray(ev.datasConcluidas) && ev.datasConcluidas.includes(ev.dataOriginal ?? ev.data);
+    }
+    return !!ev.feito;
+  }
+  if (ev.tipo === "compromissos") return !!ev.feito;
+  return eventosConcluidos.includes(ev.chave);
+}
+
+// Identidade de um item arrastável no calendário (afazer e compromisso
+// podem ter ids iguais).
+export const idArrasto = (ev) => `${ev.tipo}|${ev.id}`;
+
+// Lista do dia (tela Hoje e calendário geral): pendentes na ordem acima,
+// concluídos no fim (na mesma ordem entre si).
+export function ordenarEventosDoDia(eventos, eventosConcluidos = []) {
+  return [...eventos].sort((a, b) => {
+    const ca = eventoConcluido(a, eventosConcluidos) ? 1 : 0;
+    const cb = eventoConcluido(b, eventosConcluidos) ? 1 : 0;
+    return ca - cb || compararEventosDoDia(a, b);
+  });
+}
+
+// Dias inteiros de aISO até bISO (pelo meio-dia: imune a horário de verão).
+// Local para não importar utils/cadeiras.js, que já importa este arquivo.
+function diasAte(aISO, bISO) {
+  const a = parseISO(aISO);
+  const b = parseISO(bISO);
+  a.setHours(12, 0, 0, 0);
+  b.setHours(12, 0, 0, 0);
+  return Math.round((b - a) / 86400000);
+}
+
+// Distância de um dia até hoje: "Hoje", "1 d atrás", "Daqui a 11 d".
+export function textoDistanciaDeHoje(dataISO, hojeISO) {
+  const d = diasAte(hojeISO, dataISO);
+  if (d === 0) return "Hoje";
+  return d < 0 ? `${-d} d atrás` : `Daqui a ${d} d`;
+}
+
+// Linha de baixo do item na lista do dia. Afazer: "Concluído"; sem data:
+// "Pendente"; com data ou repetição: a distância até hoje (o afazer está
+// sempre na lista do próprio dia, então é a distância do dia escolhido).
+// Os demais tipos mostram a origem (cadeira, local, "Compromisso"…).
+export function subtituloEvento(ev, hojeISO, concluido) {
+  if (ev.tipo !== "afazeres") return ev.origem;
+  if (concluido) return "Concluído";
+  if (ev.semData) return "Pendente";
+  return textoDistanciaDeHoje(ev.data, hojeISO);
 }
 
 // Remove ocorrências excluídas e agrupa por dia: { "YYYY-MM-DD": evento[] }.

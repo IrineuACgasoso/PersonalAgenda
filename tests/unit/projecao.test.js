@@ -3,6 +3,10 @@ import { describe, it, expect } from "vitest";
 import {
   projetarEventos,
   compararEventosDoDia,
+  ordenarEventosDoDia,
+  eventoConcluido,
+  textoDistanciaDeHoje,
+  subtituloEvento,
   projetarMarcosVigencia,
   marcadoresDoDia,
   resumirMarcadores,
@@ -259,21 +263,110 @@ describe("chaves de evento por id (#10)", () => {
 });
 
 describe("ordenação dentro do dia", () => {
-  it("com hora primeiro (por hora), depois urgência, com-data antes de sem-data", () => {
+  it("horário primeiro (qualquer tipo), depois afazeres do dia por urgência, depois sem data por urgência", () => {
     const evs = [
       { tipo: "afazeres", titulo: "semdata-alta", urgencia: 3, semData: true },
       { tipo: "afazeres", titulo: "media", urgencia: 2 },
       { tipo: "aulas", titulo: "10h", hora: "10:00" },
+      { tipo: "afazeres", titulo: "semdata-baixa", urgencia: 1, semData: true },
+      { tipo: "compromissos", titulo: "09h", hora: "09:00" },
       { tipo: "afazeres", titulo: "alta", urgencia: 3 },
-      { tipo: "aulas", titulo: "08h", hora: "08:00" },
+      { tipo: "avaliacoes", titulo: "prova 08h", hora: "08:00" },
     ];
+    // Um afazer com data, mesmo de urgência menor, vem antes de qualquer sem data.
     expect([...evs].sort(compararEventosDoDia).map((e) => e.titulo)).toEqual([
-      "08h",
+      "prova 08h",
+      "09h",
       "10h",
       "alta",
-      "semdata-alta",
       "media",
+      "semdata-alta",
+      "semdata-baixa",
     ]);
+  });
+
+  it("avaliação sem hora fica depois dos horários e antes dos afazeres", () => {
+    const evs = [
+      { tipo: "afazeres", titulo: "afazer", urgencia: 3 },
+      { tipo: "avaliacoes", titulo: "prova" },
+      { tipo: "aulas", titulo: "aula", hora: "14:00" },
+    ];
+    expect([...evs].sort(compararEventosDoDia).map((e) => e.titulo)).toEqual(["aula", "prova", "afazer"]);
+  });
+
+  it("ocorrência de afazer repetido conta como afazer do dia (acima dos sem data)", () => {
+    const mapa = projetarEventos({
+      ...NOV,
+      afazeres: [
+        afazer({ id: "s", nome: "Sem data", urgencia: 3 }),
+        afazer({ id: "r", nome: "Academia", data: "2026-11-02", urgencia: 1, rotina: { tipo: "diaria" } }),
+      ],
+    });
+    expect(titulos(mapa, "2026-11-18")).toEqual(["Academia", "Sem data"]);
+  });
+
+  it("ordenarEventosDoDia: concluídos vão para o fim, mantendo a ordem entre si", () => {
+    const evs = [
+      { tipo: "aulas", titulo: "aula 08h", hora: "08:00", chave: "a1" },
+      { tipo: "afazeres", titulo: "feito", urgencia: 3, feito: true },
+      { tipo: "aulas", titulo: "aula 10h", hora: "10:00", chave: "a2" },
+      { tipo: "afazeres", titulo: "pendente", urgencia: 1 },
+    ];
+    expect(ordenarEventosDoDia(evs, ["a1"]).map((e) => e.titulo)).toEqual([
+      "aula 10h",
+      "pendente",
+      "aula 08h",
+      "feito",
+    ]);
+  });
+});
+
+describe("eventoConcluido", () => {
+  it("afazer repetido: pela data natural da ocorrência", () => {
+    const ev = { tipo: "afazeres", rotina: { tipo: "diaria" }, data: "2026-11-19", dataOriginal: "2026-11-18" };
+    expect(eventoConcluido({ ...ev, datasConcluidas: ["2026-11-18"] })).toBe(true);
+    expect(eventoConcluido({ ...ev, datasConcluidas: ["2026-11-19"] })).toBe(false);
+  });
+  it("compromisso e afazer avulso: no item; aula: em eventosConcluidos", () => {
+    expect(eventoConcluido({ tipo: "compromissos", feito: true })).toBe(true);
+    expect(eventoConcluido({ tipo: "afazeres", feito: false })).toBe(false);
+    expect(eventoConcluido({ tipo: "aulas", chave: "k" }, ["k"])).toBe(true);
+    expect(eventoConcluido({ tipo: "aulas", chave: "k" }, [])).toBe(false);
+  });
+});
+
+describe("textos da lista do dia (tela Hoje)", () => {
+  const HOJE = "2026-11-20";
+  it("distância até hoje", () => {
+    expect(textoDistanciaDeHoje("2026-11-20", HOJE)).toBe("Hoje");
+    expect(textoDistanciaDeHoje("2026-11-19", HOJE)).toBe("1 d atrás");
+    expect(textoDistanciaDeHoje("2026-11-03", HOJE)).toBe("17 d atrás");
+    expect(textoDistanciaDeHoje("2026-12-01", HOJE)).toBe("Daqui a 11 d");
+    expect(textoDistanciaDeHoje("2027-01-01", HOJE)).toBe("Daqui a 42 d");
+  });
+
+  it("afazer: Concluído / Pendente (sem data) / distância (com data ou repetido)", () => {
+    const af = { tipo: "afazeres", data: "2026-11-20", origem: "Pendente" };
+    expect(subtituloEvento(af, HOJE, false)).toBe("Hoje");
+    expect(subtituloEvento({ ...af, data: "2026-11-19" }, HOJE, false)).toBe("1 d atrás");
+    expect(subtituloEvento({ ...af, data: "2026-12-01" }, HOJE, false)).toBe("Daqui a 11 d");
+    expect(subtituloEvento({ ...af, semData: true }, HOJE, false)).toBe("Pendente");
+    expect(subtituloEvento(af, HOJE, true)).toBe("Concluído");
+  });
+
+  it("outros tipos mostram a origem", () => {
+    expect(subtituloEvento({ tipo: "aulas", origem: "Sala 3" }, HOJE, false)).toBe("Sala 3");
+  });
+
+  it("projeção usa Pendente/Concluído com maiúscula", () => {
+    const mapa = projetarEventos({
+      ...NOV,
+      afazeres: [
+        afazer({ id: "a", nome: "A", data: "2026-11-10" }),
+        afazer({ id: "b", nome: "B", data: "2026-11-10", feito: true }),
+      ],
+    });
+    expect(mapa["2026-11-10"].map((e) => e.origem).sort()).toEqual(["Concluído", "Pendente"]);
   });
 });
 

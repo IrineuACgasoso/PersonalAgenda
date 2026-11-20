@@ -1,5 +1,6 @@
 // src/utils/calendario.js
-import { toISO } from "./afazeres.js";
+import { toISO, parseISO } from "./afazeres.js";
+import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "./formatarData.js";
 
 export const NOME_MESES = [
@@ -164,4 +165,20 @@ export function vigenciaPadraoParaNovaCadeira(cadeiras = [], periodoId) {
   if (referencia?.dataInicio) patch.dataInicio = referencia.dataInicio;
   if (referencia?.dataFim) patch.dataFim = referencia.dataFim;
   return patch;
+}
+
+// Tela Hoje: anda N dias a partir de uma data "YYYY-MM-DD" (n negativo volta).
+// Pelo calendário local (setDate), nunca somando ms: vira mês/ano sozinho.
+export function somarDias(iso, n) {
+  const d = parseISO(iso);
+  d.setDate(d.getDate() + n);
+  return toISO(d);
+}
+
+// "Sexta, 20 de novembro" (o ano só aparece se não for o de `hojeISO`).
+export function diaPorExtenso(iso, hojeISO) {
+  const d = parseISO(iso);
+  const semana = DIAS_FULL[(d.getDay() + 6) % 7];
+  const ano = hojeISO && iso.slice(0, 4) !== hojeISO.slice(0, 4) ? ` de ${d.getFullYear()}` : "";
+  return `${semana}, ${d.getDate()} de ${NOME_MESES[d.getMonth()].toLowerCase()}${ano}`;
 }

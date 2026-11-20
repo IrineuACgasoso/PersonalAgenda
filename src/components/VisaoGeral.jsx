@@ -1,29 +1,15 @@
 // src/components/VisaoGeral.jsx
 import { useMemo, useRef, useState, useEffect } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  BookMarked,
-  ListChecks,
-  Repeat,
-  Star,
-  Check,
-  Plus,
-  Trash2,
-  Flag,
-  FlagOff,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, BookMarked, ListChecks, Repeat, Star, Flag, FlagOff } from "lucide-react";
 import { DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
+import { useHoje } from "../hooks/useHoje.js";
 import { NOME_MESES, gerarCelulasMes, hexParaRgb } from "../utils/calendario.js";
-import { marcadoresDoDia, resumirMarcadores } from "../utils/projecao.js";
-import useFecharAoClicarFora from "../hooks/useFecharAoClicarFora.js";
+import { idArrasto, marcadoresDoDia, resumirMarcadores } from "../utils/projecao.js";
 import { useFiltrosCalendario } from "../hooks/useFiltrosCalendario.js";
 import { useEventosCalendario } from "../hooks/useEventosCalendario.js";
-import EstadoVazio from "./ui/EstadoVazio.jsx";
-import BarraUrgencia from "./ui/BarraUrgencia.jsx";
+import ListaDoDia from "./ui/ListaDoDia.jsx";
 
 // Os ícones dos filtros são os mesmos dos marcadores das células (Fase 5):
 // livro = avaliação, ★ = compromisso.
@@ -43,14 +29,6 @@ const TEXTO_MARCADOR = {
   inicio: (t) => `Início de ${t}`,
   fim: (t) => `Fim de ${t}`,
 };
-
-// Afazer sem repetição e compromisso acontecem uma vez só: a lixeira do
-// calendário os exclui de verdade (com Desfazer), em vez de só esconder o
-// dia e deixar o item vivo na aba (#45).
-const ehAfazerPontual = (ev) => ev.tipo === "afazeres" && !(ev.rotina && ev.rotina.tipo !== "nenhuma");
-
-// Identidade de um item arrastável (afazer e compromisso podem ter ids iguais).
-const idArrasto = (ev) => `${ev.tipo}|${ev.id}`;
 
 // distância mínima (px) do ponteiro para considerar que o usuário começou a arrastar
 const LIMIAR_ARRASTO = 8;
@@ -77,8 +55,8 @@ export default function VisaoGeral({
   onNovoAfazer,
   onNovoCompromisso,
 }) {
+  const hojeISO = useHoje();
   const hoje = new Date();
-  const hojeISO = toISO(hoje);
   // ano+mes vivem juntos num único estado (em vez de dois setState separados)
   // para que a navegação de mês feita por closures "antigas" (ex: o loop de
   // autoscroll do drag, que dispara mesmo sem o ponteiro se mover) sempre
@@ -86,11 +64,6 @@ export default function VisaoGeral({
   const [cursor, setCursor] = useState({ ano: hoje.getFullYear(), mes: hoje.getMonth() });
   const { ano, mes } = cursor;
   const [diaSelecionado, setDiaSelecionado] = useState(hojeISO);
-  // Menu do "+" da lista do dia: novo afazer ou novo compromisso nessa data.
-  const [menuNovoAberto, setMenuNovoAberto] = useState(false);
-  const menuNovoRef = useRef(null);
-  useFecharAoClicarFora(menuNovoRef, menuNovoAberto, () => setMenuNovoAberto(false));
-
   const { filtros, alternarFiltro } = useFiltrosCalendario();
   const { eventosPorDia, marcosVigencia } = useEventosCalendario({
     cadeiras,
@@ -101,6 +74,7 @@ export default function VisaoGeral({
     mes,
     filtros,
     eventosExcluidos,
+    hojeISO,
   });
 
   const celulas = useMemo(() => gerarCelulasMes(ano, mes), [ano, mes]);
@@ -188,72 +162,8 @@ export default function VisaoGeral({
     }
   };
 
-  const eventoEstaConcluido = (ev) => {
-    if (ev.tipo === "afazeres") {
-      // Se for um afazer rotineiro, checa se a data desta ocorrência específica está marcada
-      if (ev.rotina && ev.rotina.tipo !== "nenhuma") {
-        // Pela data natural da ocorrência (#14), a mesma usada no drag.
-        return Array.isArray(ev.datasConcluidas) && ev.datasConcluidas.includes(ev.dataOriginal ?? ev.data);
-      }
-      return !!ev.feito;
-    }
-    // Compromisso pontual (v5): a conclusão fica no próprio item.
-    if (ev.tipo === "compromissos") return !!ev.feito;
-    return eventosConcluidos.includes(ev.chave);
-  };
-
-  const alternarConcluido = (ev) => {
-    if (ev.tipo === "afazeres") {
-      if (onAlternarFeitoAfazer) {
-        // Passa a data específica da ocorrência para alterar apenas aquele dia
-        onAlternarFeitoAfazer(ev.id, ev.dataOriginal ?? ev.data);
-      }
-    } else if (ev.tipo === "compromissos") {
-      onAlternarFeitoCompromisso?.(ev.id);
-    } else if (onAlternarEventoConcluido) {
-      onAlternarEventoConcluido(ev.chave);
-    }
-  };
-
-  // Lixeira da lista do dia. Recorrentes (aula, rotina, afazer que se
-  // repete): remove só esta ocorrência — o resto continua. Avaliação: some
-  // do calendário (a data continua na cadeira). Compromisso e afazer sem
-  // repetição: excluídos de verdade (#45). Sem confirm(): o App mostra um
-  // toast com "Desfazer" (#18).
-  const excluirInstancia = (ev) => {
-    if (ev.tipo === "compromissos") return onExcluirCompromisso?.(ev.id);
-    if (ehAfazerPontual(ev)) return onExcluirAfazer?.(ev.id);
-    if (!onExcluirInstanciaEvento) return;
-    const texto =
-      ev.tipo === "avaliacoes" ? `"${ev.titulo}" removido da agenda` : `"${ev.titulo}" removido só deste dia`;
-    onExcluirInstanciaEvento(ev.chave, texto);
-  };
-
-  const tituloLixeira = (ev) => {
-    if (ev.tipo === "compromissos") return "Excluir compromisso";
-    if (ehAfazerPontual(ev)) return "Excluir afazer";
-    return ev.tipo === "avaliacoes" ? "Remover da agenda" : "Remover só este dia";
-  };
-  // pendentes primeiro (por horário/urgência), concluídos vão para o final —
-  // dentro dos pendentes, afazeres de maior urgência sobem para o topo; sort
-  // é estável, então a ordem por horário dentro de cada grupo é preservada
   const marcosDoDiaSelecionado = (diaSelecionado && marcosVigencia[diaSelecionado]) || [];
-
-  const eventosDoDiaSelecionado = useMemo(() => {
-    const lista = diaSelecionado ? eventosPorDia[diaSelecionado] || [] : [];
-    return [...lista].sort((a, b) => {
-      const ca = eventoEstaConcluido(a) ? 1 : 0;
-      const cb = eventoEstaConcluido(b) ? 1 : 0;
-      if (ca !== cb) return ca - cb;
-      // Avaliações têm prioridade máxima de exibição, independente de urgência/horário
-      const aa = a.tipo === "avaliacoes" ? 1 : 0;
-      const ab = b.tipo === "avaliacoes" ? 1 : 0;
-      if (aa !== ab) return ab - aa;
-      return (b.urgencia || 0) - (a.urgencia || 0);
-    });
-    // eventoEstaConcluido só lê eventosConcluidos (já nas deps).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diaSelecionado, eventosPorDia, eventosConcluidos]);
+  const eventosDoDiaSelecionado = (diaSelecionado && eventosPorDia[diaSelecionado]) || [];
 
   // ---- handlers de drag (só afazeres podem ser arrastados) ----
   // No mouse o arrasto começa assim que o ponteiro se move além do limiar.
@@ -435,147 +345,6 @@ export default function VisaoGeral({
         ))}
       </div>
 
-      <div className="detalhe-dia">
-        <div className="detalhe-dia-cabecalho">
-          <h2 className="titulo-secao">
-            {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
-          </h2>
-          {diaSelecionado && (onNovoAfazer || onNovoCompromisso) && (
-            <div className="menu-novo" ref={menuNovoRef}>
-              <button
-                type="button"
-                className="icon-btn-ghost"
-                onClick={() => setMenuNovoAberto((v) => !v)}
-                title={`Criar em ${formatarData(diaSelecionado)}`}
-                aria-haspopup="menu"
-                aria-expanded={menuNovoAberto}
-              >
-                <Plus size={16} />
-              </button>
-              {menuNovoAberto && (
-                <div className="menu-novo-opcoes" role="menu">
-                  {onNovoAfazer && (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setMenuNovoAberto(false);
-                        onNovoAfazer(diaSelecionado);
-                      }}
-                    >
-                      <ListChecks size={14} /> Afazer
-                    </button>
-                  )}
-                  {onNovoCompromisso && (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setMenuNovoAberto(false);
-                        onNovoCompromisso(diaSelecionado);
-                      }}
-                    >
-                      <Star size={14} /> Compromisso
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="detalhe-dia-corpo">
-          {!diaSelecionado && (
-            <EstadoVazio texto="Clique em qualquer dia do calendário para ver a programação detalhada." pequeno />
-          )}
-          {/* Início/fim de vigência das cadeiras (#19): só informativo, sem
-              check nem lixeira — muda-se no drawer da cadeira. */}
-          {marcosDoDiaSelecionado.length > 0 && (
-            <div className="marcos-vigencia">
-              {marcosDoDiaSelecionado.map((m) => {
-                const Icone = m.tipo === "inicio" ? Flag : FlagOff;
-                return (
-                  <div key={`${m.tipo}|${m.idCadeira}`} className="marco-vigencia">
-                    <Icone size={13} color={m.cor} />
-                    <span>
-                      {m.tipo === "inicio" ? "Início" : "Fim"} de <strong>{m.nome}</strong>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {diaSelecionado && eventosDoDiaSelecionado.length === 0 && marcosDoDiaSelecionado.length === 0 && (
-            <EstadoVazio texto="Nenhum evento neste dia" pequeno />
-          )}
-          {diaSelecionado && eventosDoDiaSelecionado.length > 0 && (
-            <div className="lista-proximas-datas detalhe-dia-lista">
-              {eventosDoDiaSelecionado.map((ev, i) => {
-                const concluido = eventoEstaConcluido(ev);
-                const arrastavel = podeArrastar(ev);
-                const sendoArrastado = itemArrastando && itemArrastando.chave === idArrasto(ev);
-                const pronto = itemPronto === idArrasto(ev) && !sendoArrastado;
-                return (
-                  <div
-                    key={ev.chave || i}
-                    className={`data-item${concluido ? " passada" : ""}${arrastavel ? " arrastavel" : ""}${pronto ? " pronto-arrasto" : ""}${sendoArrastado ? " sendo-arrastado" : ""}`}
-                    onPointerDown={arrastavel ? (e) => iniciarPossivelArrasto(e, ev) : undefined}
-                    onPointerMove={arrastavel ? moverArrasto : undefined}
-                    onPointerUp={arrastavel ? finalizarArrasto : undefined}
-                    onPointerCancel={arrastavel ? finalizarArrasto : undefined}
-                  >
-                    <button
-                      type="button"
-                      className={`check-btn${concluido ? " marcado" : ""}`}
-                      style={{ borderColor: concluido ? "transparent" : ev.cor }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => alternarConcluido(ev)}
-                      title={concluido ? "Marcar como não realizado" : "Marcar como realizado"}
-                    >
-                      {concluido && <Check size={13} />}
-                    </button>
-                    <div className="data-item-faixa" style={{ background: ev.cor }} />
-                    {/* Título quebra linha (nunca é cortado com "..."): no
-                        mobile nomes longos ficavam ilegíveis. O item cresce em
-                        altura e a faixa colorida acompanha (align-self: stretch). */}
-                    <div className="data-item-texto">
-                      <div className="data-item-titulo data-item-titulo-quebra">
-                        {ev.tipo === "compromissos" && (
-                          <Star size={12} fill={ev.cor} color={ev.cor} className="data-item-icone" />
-                        )}
-                        {ev.tipo === "avaliacoes" && (
-                          <BookMarked size={12} color={ev.cor} className="data-item-icone" />
-                        )}
-                        {ev.titulo}
-                      </div>
-                      <div className="subtle data-item-sub">{ev.origem}</div>
-                    </div>
-                    <div className="data-item-urgencia">
-                      {ev.tipo === "afazeres" && <BarraUrgencia nivel={ev.urgencia || 1} />}
-                    </div>
-                    <div className="data-item-data data-item-hora">{ev.hora || ""}</div>
-                    {onExcluirInstanciaEvento && (
-                      <button
-                        type="button"
-                        className="icon-btn-ghost"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => excluirInstancia(ev)}
-                        title={tituloLixeira(ev)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        {itemArrastando && (
-          <div className="subtle detalhe-dia-dica">Arraste até um dia do calendário para mudar a data.</div>
-        )}
-      </div>
-
       <div className="calendario-header">
         <button ref={prevBtnRef} className="icon-btn-ghost" onClick={irMesAnterior}>
           <ChevronLeft size={18} />
@@ -660,6 +429,43 @@ export default function VisaoGeral({
           );
         })}
       </div>
+
+      {/* Lista do dia selecionado: EMBAIXO do calendário (antes ficava em
+          cima), igual à tela Hoje — mesmo componente, mesma ordem. */}
+      <ListaDoDia
+        diaISO={diaSelecionado}
+        hojeISO={hojeISO}
+        cabecalho={
+          <h2 className="titulo-secao">
+            {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
+          </h2>
+        }
+        eventos={eventosDoDiaSelecionado}
+        marcos={marcosDoDiaSelecionado}
+        eventosConcluidos={eventosConcluidos}
+        textoSemDia="Clique em qualquer dia do calendário para ver a programação detalhada."
+        onAlternarEventoConcluido={onAlternarEventoConcluido}
+        onExcluirInstanciaEvento={onExcluirInstanciaEvento}
+        onAlternarFeitoAfazer={onAlternarFeitoAfazer}
+        onExcluirAfazer={onExcluirAfazer}
+        onAlternarFeitoCompromisso={onAlternarFeitoCompromisso}
+        onExcluirCompromisso={onExcluirCompromisso}
+        onNovoAfazer={onNovoAfazer}
+        onNovoCompromisso={onNovoCompromisso}
+        arrasto={{
+          podeArrastar,
+          iniciar: iniciarPossivelArrasto,
+          mover: moverArrasto,
+          finalizar: finalizarArrasto,
+          chaveArrastando: itemArrastando?.chave ?? null,
+          chavePronta: itemPronto,
+        }}
+        rodape={
+          itemArrastando && (
+            <div className="subtle detalhe-dia-dica">Arraste até um dia do calendário para mudar a data.</div>
+          )
+        }
+      />
 
       {itemArrastando && (
         <div

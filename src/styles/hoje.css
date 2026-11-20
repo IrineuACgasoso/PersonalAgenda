@@ -1,0 +1,33 @@
+/* hoje.css — tela Hoje (VisaoHoje.jsx). A lista em si é a mesma do
+   calendário geral (.detalhe-dia / .data-item em calendario.css e agenda.css). */
+
+/* < Sexta, 20 de novembro >  [Hoje]   — o "+" da lista fica à direita. */
+.hoje-nav {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hoje-nav-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  flex: 0 1 260px;
+  text-align: center;
+}
+
+.hoje-nav-data .titulo-secao {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.hoje-voltar {
+  padding: 4px 10px;
+  font-size: var(--fs-rotulo);
+  margin-left: 4px;
+}

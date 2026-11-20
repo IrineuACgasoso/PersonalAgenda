@@ -4,7 +4,6 @@
 // cada dia, chaves, ordenação) vive em utils/projecao.js, que é pura e
 // coberta por tests/.
 import { useMemo } from "react";
-import { toISO } from "../utils/afazeres.js";
 import { getIntervaloMes } from "../utils/calendario.js";
 import {
   projetarAvaliacoes,
@@ -26,6 +25,8 @@ export function useEventosCalendario({
   mes,
   filtros,
   eventosExcluidos = [],
+  // Vem de useHoje (#49): os afazeres sem data acompanham a virada do dia.
+  hojeISO,
 }) {
   const { inicioISO, fimISO } = useMemo(() => getIntervaloMes(ano, mes), [ano, mes]);
 
@@ -55,8 +56,8 @@ export function useEventosCalendario({
   );
 
   const eventosAfazeresSemData = useMemo(
-    () => (filtros.afazeres ? projetarAfazeresSemData(afazeres, inicioISO, fimISO, toISO(new Date())) : []),
-    [afazeres, filtros.afazeres, inicioISO, fimISO],
+    () => (filtros.afazeres ? projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) : []),
+    [afazeres, filtros.afazeres, inicioISO, fimISO, hojeISO],
   );
 
   // Marcos de início/fim das cadeiras (#19): seguem o filtro de aulas.

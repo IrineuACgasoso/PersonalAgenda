@@ -22,12 +22,15 @@
 | Marcadores na célula do calendário (★ compromisso, livro, bandeiras) | `marcadoresDoDia` / `resumirMarcadores` (`utils/projecao.js`) + render em `VisaoGeral.jsx` (`.calendario-marcos` em `calendario.css`) |
 | Formato das chaves de evento (concluído/excluído no calendário) | `src/utils/projecao.js` → `chaveAula/chaveRotina/chaveCompromisso/chaveAvaliacao`; mudar formato ⇒ migração |
 | O que aparece em cada dia do calendário geral | `src/utils/projecao.js` (puro): `projetarAvaliacoes/Aulas/Rotinas/Compromissos/Afazeres/AfazeresSemData`, `compararEventosDoDia` (ordenação), `agruparPorDia`, `projetarEventos` (tudo de uma vez). O hook `useEventosCalendario.js` só memoiza |
+| Tela Hoje (#31, tela inicial) | `src/components/VisaoHoje.jsx` (< > por `deslocamento` a partir de hoje; projeta só o dia com `projetarEventos`); datas: `somarDias`/`diaPorExtenso` (`utils/calendario.js`); CSS `hoje.css` |
+| Ordem da lista do dia (horário → sem hora não-afazer → afazeres do dia → sem data; urgência desempata; concluídos no fim) e textos "Hoje / N d atrás / Daqui a N d / Pendente / Concluído" | `compararEventosDoDia`, `ordenarEventosDoDia`, `subtituloEvento`, `textoDistanciaDeHoje` (`utils/projecao.js`) |
+| "Hoje" que vira à meia-noite (#49) | `src/hooks/useHoje.js` (timer até 00:00 + `visibilitychange`/`focus`); usado por `VisaoHoje`, `VisaoGeral` → `useEventosCalendario({ hojeISO })` |
 | Rodar/escrever testes | `tests/README.md`; dados de exemplo em `tests/fixtures/fabricas.js` |
 | Vigência da cadeira (#19) | Regra: `src/utils/calendario.js` → `vigenciaDaCadeira`, `cadeiraEstaAtivaNaData`, `erroDeVigencia`, `vigenciaPadraoParaNovaCadeira`; edição no drawer `PainelCadeira.jsx` (bloco "Vigência"); marcos no calendário: `projetarMarcosVigencia` (`projecao.js`) + `VisaoGeral.jsx` (`.calendario-marcos`, `.marco-vigencia` em `calendario.css`) |
 | Grade do mês (células, dias de meses vizinhos) | `src/utils/calendario.js` → `gerarCelulasMes()` ~40 |
-| Lista "Eventos em DD/MM" do calendário geral | `src/components/VisaoGeral.jsx` render ~366–420; estilos `.data-item-*` em `agenda.css` (fim do arquivo) e `mobile.css` |
-| Drag-and-drop de afazeres e compromissos no calendário | `src/components/VisaoGeral.jsx` (`podeArrastar`, `finalizarArrasto`; identidade `idArrasto` = tipo + id) |
-| Lixeira da lista do dia (exclui pontual × remove só o dia) | `VisaoGeral.jsx` → `excluirInstancia` / `tituloLixeira` (#45) |
+| Lista do dia (Hoje e "Eventos em DD/MM" embaixo do calendário) | `src/components/ui/ListaDoDia.jsx` (check, lixeira, "+", marcos; arrasto opcional via prop `arrasto`); estilos `.detalhe-dia` em `calendario.css`, `.data-item-*` em `agenda.css` (fim do arquivo) e `mobile.css` |
+| Drag-and-drop de afazeres e compromissos no calendário | `src/components/VisaoGeral.jsx` (`podeArrastar`, `finalizarArrasto`; identidade `idArrasto` = tipo + id, em `projecao.js`) |
+| Lixeira da lista do dia (exclui pontual × remove só o dia) | `ui/ListaDoDia.jsx` → `excluirInstancia` / `tituloLixeira` (#45) |
 | Estilo da célula do calendário (hoje/selecionada/avaliação/destino do arrasto) | `src/styles/calendario.css` (classes + `--sombra-estado`/`--sombra-avaliacao` que somam; #24). `VisaoGeral.jsx` só passa `--cor-rgb` da avaliação |
 | Lista "Próximas datas importantes" (futuras primeiro, "Anteriores" recolhida, #46) | `datasImportantes` (`utils/cadeiras.js`) + `VisaoAgenda.jsx` |
 | Divisão do bundle em chunks / build falha com ciclo entre chunks (#25) | `vite.chunks.js` (`nomeDoChunk`, `cicloEntreChunks`, plugin `semCiclosEntreChunks`) |
@@ -89,8 +92,9 @@ Chaves de evento (v2+, montadas em `utils/projecao.js` → `chaveAula/chaveCompr
 usePersistedData ──data──▶ App.jsx (deriva periodoAtivo, cadeirasDoPeriodo, compromissosDoPeriodo)
       ▲                       │ props + callbacks (criarX/atualizarX/excluirX)
       └── persist((d) => novo) ◀┘   (updater recebe o estado mais recente; devolve { ok, motivo })
+VisaoHoje  → projetarEventos(janela de 1 dia) ─┐
 VisaoGeral → useEventosCalendario(cadeiras TODAS + rotinas TODAS (filtradas pela vigência) + compromissos + afazeres)
-           → utils/projecao.js (puro) → { "YYYY-MM-DD": evento[] }
+           → utils/projecao.js (puro) → { "YYYY-MM-DD": evento[] } → ui/ListaDoDia (ordenarEventosDoDia)
 ```
 
 ## Árvore arquivo por arquivo
@@ -158,7 +162,7 @@ UFPE/
     │                    watchdog de 12s no loading (reload no máx. 1×/sessão, depois TelaErroCarga), TODAS as ações CRUD, alternar concluído,
     │                    mover instância, excluir instância, limpar concluídos, export/import/restore,
     │                    gravar() (persist + aviso de recusa, #44), excluir com Desfazer (#18), entrar() (aviso de login),
-    │                    roteamento por `aba` ("visaogeral" | "afazeres" | "compromissos" | "rotinas" | "cadeiras" | "agenda");
+    │                    roteamento por `aba` ("hoje" = inicial | "visaogeral" | "afazeres" | "compromissos" | "rotinas" | "cadeiras" | "agenda");
     │                    cadeiras/agenda exigem período ativo; rotinas/compromissos/afazeres não
     ├── sw.js            Service worker (injectManifest): precache do app shell + fallback /index.html, `push` (mostra a
     │                    notificação a partir de `data` {titulo, corpo, tag, url}), `notificationclick` (foca/abre o app)
@@ -182,6 +186,7 @@ UFPE/
 │   │                         erroCarga + tentarDeNovo(): carga sem base local falhou → App mostra TelaErroCarga;
 │   │                         nova tentativa automática no `online` e a cada 30s (sem reload, #7)
     │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js → { eventosPorDia, marcosVigencia }
+    │   ├── useHoje.js            hojeISO que vira à meia-noite (timer + visibilitychange/focus, #49)
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, rotinas, compromissos, afazeres} em localStorage ("rotinas" herda o antigo "compromissos")
     │   ├── useFecharAoClicarFora.js Fecha popover (seletor de data, menu "+") ao clicar fora / Esc
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h contadas do backup mais
@@ -225,7 +230,8 @@ UFPE/
     │   ├── projecao.js           PURO: projeta eventos de uma janela [inicioISO, fimISO] — avaliações, aulas (vigência),
     │   │                         rotinas, compromissos pontuais, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
     │   │                         marcadoresDoDia/resumirMarcadores (★/livro/bandeiras da célula);
-    │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto)
+    │   │                         agruparPorDia (remove eventosExcluidos + ordena), projetarEventos (tudo junto);
+    │   │                         lista do dia: compararEventosDoDia, eventoConcluido, ordenarEventosDoDia, subtituloEvento, textoDistanciaDeHoje, idArrasto
     │   ├── formatarData.js       "YYYY-MM-DD" → "DD/MM/YYYY"
     │   ├── links.js              normalizarUrl, hrefSeguro (só http(s) vira href, #50)
     │   ├── dialogos.js           enfileirarDialogo (dedupe por chave), removerDialogo, mensagemDeRecusa (#44), resumoDoBackup (migra antes de contar)
@@ -233,9 +239,10 @@ UFPE/
     │   ├── id.js                 uid() — 8 chars aleatórios
     │   └── data.js               ⚠ dadosVazios() + doc de schema DESATUALIZADO, sem uso
     ├── components/
-    │   ├── Sidebar.jsx           Nav (Cadeiras, Rotinas, Compromissos, Afazeres, Agenda, Calendário geral), Backup
+    │   ├── Sidebar.jsx           Nav (Cadeiras, Rotinas, Compromissos, Afazeres, Agenda · Visão geral: Hoje, Calendário geral), Backup
     │   │                         (exportar/importar/restaurar nuvem), conta/login, status de sync. Menu deslizante no mobile
-    │   ├── VisaoGeral.jsx        Tela inicial: filtros, painel "Eventos em DD/MM" (check, lixeira, "+" com menu Afazer/Compromisso),
+    │   ├── VisaoHoje.jsx         Tela inicial (#31): < data > + ListaDoDia do dia (sem filtros, sem arrasto); botão "Hoje" volta
+    │   ├── VisaoGeral.jsx        Calendário geral: filtros, calendário e, EMBAIXO, a ListaDoDia "Eventos em DD/MM";
     │   │                         calendário mensal com pontos coloridos, marcadores ★/livro/bandeiras, glow em dias de avaliação, drag-and-drop (afazer e compromisso)
     │   │                         (mouse direto; toque com long-press 350ms; autoscroll; troca de mês sobre as setas)
     │   ├── VisaoAfazeres.jsx     FormularioAfazer (nome, dia/começa em, repetição, dias da semana, termina em, urgência, cor, frase-resumo)
@@ -252,6 +259,7 @@ UFPE/
     │   │   └── AbaDatas.jsx      CRUD de datas importantes {titulo, data, hora}
     │   └── ui/
     │       ├── BarraUrgencia.jsx   "Bateria" de 3 segmentos
+    │       ├── ListaDoDia.jsx      Lista de um dia (Hoje e calendário): ordem/textos de projecao.js, check, lixeira, "+", marcos, arrasto opcional
     │       ├── CarregandoPainel.jsx Tela de loading (capacete + órbitas CSS)
     │       ├── EstadoVazio.jsx     Mensagem de vazio + botão opcional
     │       ├── Dialogos.jsx        DialogosProvider (fila de diálogos + toast com ação) e a casca `Modal` (Esc, foco preso)
@@ -281,7 +289,8 @@ UFPE/
         ├── rotinas.css         .resumo-rotina, .faixa-semana
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
         ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
-        ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia)
+        ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)
+        ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)
         └── mobile.css          Todas as regras ≤860px
 ```
