@@ -95,6 +95,27 @@ export function proximasAvaliacoes(cadeira, hojeISO) {
 }
 
 /**
+ * Lista "Datas importantes" da Agenda (#46). Antes era uma lista só em ordem
+ * crescente, então no fim do semestre as próximas provas ficavam embaixo de
+ * todas as que já passaram. Agora:
+ * - `proximas`: de hoje em diante, da mais próxima para a mais distante;
+ * - `anteriores`: as que já passaram, da mais recente para a mais antiga.
+ * Hoje conta como próxima (mesmo que a hora já tenha passado), como no card.
+ * Cada item: avaliação + { cadeiraId, cadeiraNome, cor } (cor crua da cadeira).
+ */
+export function datasImportantes(cadeiras, hojeISO) {
+  const momento = (d) => `${d.data}T${d.hora || "00:00"}`;
+  const todas = (cadeiras || []).flatMap((c) =>
+    (c?.datas || [])
+      .filter((d) => d && d.data)
+      .map((d) => ({ ...d, cadeiraId: c.id, cadeiraNome: c.nome, cor: c.cor })),
+  );
+  const proximas = todas.filter((d) => d.data >= hojeISO).sort((a, b) => momento(a).localeCompare(momento(b)));
+  const anteriores = todas.filter((d) => d.data < hojeISO).sort((a, b) => momento(b).localeCompare(momento(a)));
+  return { proximas, anteriores };
+}
+
+/**
  * Quanto da vigência já passou (0 a 1). Só existe com início E fim.
  * Antes do início = 0; depois do fim = 1.
  */

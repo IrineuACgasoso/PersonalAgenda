@@ -2,6 +2,7 @@
 // "Agora" nos testes = quarta 18/11/2026 10:00 (tests/setup.js).
 import { describe, it, expect } from "vitest";
 import {
+  datasImportantes,
   diasEntre,
   proximaAula,
   proximasAvaliacoes,
@@ -124,5 +125,47 @@ describe("textos do resumo", () => {
   it("textoQuandoAvaliacao", () => {
     expect(textoQuandoAvaliacao({ avaliacao: { titulo: "P2", data: "2026-11-26" }, dias: 8 })).toBe("26/11 · em 8d");
     expect(textoQuandoAvaliacao({ avaliacao: { titulo: "L", data: "2026-11-18" }, dias: 0 })).toBe("18/11 · hoje");
+  });
+});
+
+describe("datasImportantes (#46)", () => {
+  const cadeiras = [
+    cadeira({
+      id: "c1",
+      nome: "Cálculo",
+      datas: [
+        { id: "a", titulo: "P1", data: "2026-10-10" },
+        { id: "b", titulo: "P2", data: "2026-11-26", hora: "10:00" },
+        { id: "c", titulo: "Lista", data: "2026-11-18", hora: "08:00" },
+      ],
+    }),
+    cadeira({
+      id: "c2",
+      nome: "Física",
+      datas: [
+        { id: "d", titulo: "Relatório", data: "2026-11-17" },
+        { id: "e", titulo: "P2 Física", data: "2026-11-26", hora: "08:00" },
+        { id: "f", titulo: "Sem data", data: "" },
+      ],
+    }),
+  ];
+
+  it("próximas primeiro, da mais perto para a mais longe (hoje conta como próxima)", () => {
+    expect(datasImportantes(cadeiras, HOJE).proximas.map((d) => d.id)).toEqual(["c", "e", "b"]);
+  });
+
+  it("anteriores da mais recente para a mais antiga", () => {
+    expect(datasImportantes(cadeiras, HOJE).anteriores.map((d) => d.id)).toEqual(["d", "a"]);
+  });
+
+  it("cada item leva a cadeira de origem; sem data fica de fora", () => {
+    const { proximas, anteriores } = datasImportantes(cadeiras, HOJE);
+    expect(proximas[1]).toMatchObject({ titulo: "P2 Física", cadeiraId: "c2", cadeiraNome: "Física" });
+    expect([...proximas, ...anteriores].some((d) => d.id === "f")).toBe(false);
+  });
+
+  it("aguenta lista vazia e cadeira sem datas", () => {
+    expect(datasImportantes([], HOJE)).toEqual({ proximas: [], anteriores: [] });
+    expect(datasImportantes([{ id: "x" }], HOJE)).toEqual({ proximas: [], anteriores: [] });
   });
 });

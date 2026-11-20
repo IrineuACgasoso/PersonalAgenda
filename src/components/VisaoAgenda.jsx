@@ -4,6 +4,8 @@ import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
+import SecaoLista from "./ui/SecaoLista.jsx";
+import { datasImportantes } from "../utils/cadeiras.js";
 import { horariosNaSemana } from "../utils/rotinas.js";
 import { corVisivel } from "../utils/calendario.js";
 
@@ -64,9 +66,25 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
     });
   }
 
-  const proximasDatas = cadeiras
-    .flatMap((c) => c.datas.map((d) => ({ ...d, cadeiraNome: c.nome, cor: corVisivel(c.cor), cadeiraId: c.id })))
-    .sort((a, b) => `${a.data}T${a.hora || "00:00"}`.localeCompare(`${b.data}T${b.hora || "00:00"}`));
+  // Futuras primeiro; as que já passaram ficam recolhidas no fim (#46).
+  const { proximas, anteriores } = datasImportantes(cadeiras, hojeStr);
+  const itemData = (d) => (
+    <div
+      key={d.id}
+      className={`data-item${d.data < hojeStr ? " passada" : ""}`}
+      onClick={() => onAbrirCadeira(d.cadeiraId)}
+    >
+      <div className="data-item-faixa" style={{ background: corVisivel(d.cor) }} />
+      <div className="data-item-texto">
+        <div className="data-item-titulo">{d.titulo}</div>
+        <div className="subtle">{d.cadeiraNome}</div>
+      </div>
+      <div className="data-item-data">
+        {formatarData(d.data)}
+        {d.hora ? ` · ${d.hora}` : ""}
+      </div>
+    </div>
+  );
 
   const totalHoras = HORA_FIM - HORA_INICIO;
 
@@ -149,28 +167,21 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
 
       <div className="proximas-datas">
         <h2 className="titulo-secao">Próximas datas importantes</h2>
-        {proximasDatas.length === 0 ? (
+        {proximas.length + anteriores.length === 0 ? (
           <EstadoVazio texto="Nenhuma data importante cadastrada" />
         ) : (
-          <div className="lista-proximas-datas">
-            {proximasDatas.map((d) => (
-              <div
-                key={d.id}
-                className={`data-item${d.data < hojeStr ? " passada" : ""}`}
-                onClick={() => onAbrirCadeira(d.cadeiraId)}
-              >
-                <div className="data-item-faixa" style={{ background: d.cor }} />
-                <div style={{ flex: 1 }}>
-                  <div className="data-item-titulo">{d.titulo}</div>
-                  <div className="subtle">{d.cadeiraNome}</div>
-                </div>
-                <div className="data-item-data">
-                  {formatarData(d.data)}
-                  {d.hora ? ` · ${d.hora}` : ""}
-                </div>
-              </div>
-            ))}
-          </div>
+          <>
+            {proximas.length === 0 ? (
+              <p className="subtle proximas-datas-nenhuma">Nenhuma data pela frente.</p>
+            ) : (
+              <div className="lista-proximas-datas">{proximas.map(itemData)}</div>
+            )}
+            <div className="proximas-datas-anteriores">
+              <SecaoLista titulo="Anteriores" itens={anteriores} recolhivel>
+                {anteriores.map(itemData)}
+              </SecaoLista>
+            </div>
+          </>
         )}
       </div>
     </div>

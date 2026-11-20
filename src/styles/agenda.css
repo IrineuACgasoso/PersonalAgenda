@@ -113,6 +113,15 @@
   opacity: 0.45;
 }
 
+/* Datas que já passaram: seção recolhida no fim (#46). */
+.proximas-datas-anteriores {
+  margin-top: 18px;
+}
+
+.proximas-datas-nenhuma {
+  margin-top: 12px;
+}
+
 .data-item.arrastavel {
   cursor: grab;
   /* pan-y libera o scroll vertical nativo por padrão; o próprio componente

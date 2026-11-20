@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { inflateSync } from "node:zlib";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const ler = (rel) => readFileSync(join(RAIZ, rel), "utf8");
@@ -16,7 +17,45 @@ describe("PWA", () => {
     const faltando = arquivos.filter((f) => !existsSync(join(RAIZ, "public", f)));
     expect(faltando).toEqual([]);
   });
+
+  // #24: a aba dizia "Painel acadêmico" enquanto o app instalado se chama
+  // "Minha Agenda" (manifest e iOS).
+  it("título da aba = nome curto do app", () => {
+    const curto = ler("vite.config.js").match(/short_name:\s*"([^"]+)"/)[1];
+    expect(ler("index.html")).toContain(`<title>${curto}</title>`);
+    expect(ler("index.html")).toContain(`apple-mobile-web-app-title" content="${curto}"`);
+  });
+
+  // Sem maskable válido o Android desenha o ícone transparente sobre fundo
+  // branco na tela inicial. O PNG maskable precisa ser opaco (cor de fundo
+  // própria) — lê o canal alfa do canto superior esquerdo do arquivo.
+  it("manifest tem ícones maskable 192 e 512, opacos", () => {
+    const cfg = ler("vite.config.js");
+    const maskables = [...cfg.matchAll(/src:\s*"([^"]+)",\s*sizes:\s*"(\d+)x\d+",[^}]*purpose:\s*"maskable"/g)];
+    expect(maskables.map((m) => m[2]).sort()).toEqual(["192", "512"]);
+    maskables.forEach(([, arquivo]) => expect(cantoOpaco(join(RAIZ, "public", arquivo)), arquivo).toBe(true));
+  });
 });
+
+// Lê só o 1º pixel de um PNG RGBA 8 bits, sem dependência: junta os IDAT,
+// descomprime e olha o alfa. No 1º pixel da 1ª linha todo filtro PNG prevê 0,
+// então o byte é o valor cru.
+function cantoOpaco(caminho) {
+  const buf = readFileSync(caminho);
+  const tipoCor = buf[25];
+  if (tipoCor === 2) return true; // RGB sem alfa
+  expect(tipoCor, "esperado PNG RGBA").toBe(6);
+  const idats = [];
+  for (let i = 8; i < buf.length;) {
+    const tam = buf.readUInt32BE(i);
+    const tipo = buf.toString("ascii", i + 4, i + 8);
+    if (tipo === "IDAT") idats.push(buf.subarray(i + 8, i + 8 + tam));
+    i += 12 + tam;
+  }
+  const cru = inflateSync(Buffer.concat(idats));
+  // cru[0] = filtro da linha; cru[1..4] = RGBA do 1º pixel.
+  return cru[4] === 255;
+}
 
 describe("CSS", () => {
   it("app.css importa mobile.css por último", () => {

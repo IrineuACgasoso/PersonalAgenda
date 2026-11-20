@@ -435,12 +435,9 @@ export default function VisaoGeral({
         ))}
       </div>
 
-      <div
-        className="proximas-datas"
-        style={{ marginTop: 0, marginBottom: 20, minHeight: "230px", display: "flex", flexDirection: "column" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <h2 className="titulo-secao" style={{ marginBottom: 0 }}>
+      <div className="detalhe-dia">
+        <div className="detalhe-dia-cabecalho">
+          <h2 className="titulo-secao">
             {diaSelecionado ? `Eventos em ${formatarData(diaSelecionado)}` : "Selecione um dia para ver os detalhes"}
           </h2>
           {diaSelecionado && (onNovoAfazer || onNovoCompromisso) && (
@@ -487,7 +484,7 @@ export default function VisaoGeral({
           )}
         </div>
 
-        <div style={{ flex: 1, position: "relative" }}>
+        <div className="detalhe-dia-corpo">
           {!diaSelecionado && (
             <EstadoVazio texto="Clique em qualquer dia do calendário para ver a programação detalhada." pequeno />
           )}
@@ -512,10 +509,7 @@ export default function VisaoGeral({
             <EstadoVazio texto="Nenhum evento neste dia" pequeno />
           )}
           {diaSelecionado && eventosDoDiaSelecionado.length > 0 && (
-            <div
-              className="lista-proximas-datas"
-              style={{ maxHeight: "300px", overflowY: "auto", scrollBehavior: "smooth", paddingRight: "4px" }}
-            >
+            <div className="lista-proximas-datas detalhe-dia-lista">
               {eventosDoDiaSelecionado.map((ev, i) => {
                 const concluido = eventoEstaConcluido(ev);
                 const arrastavel = podeArrastar(ev);
@@ -524,8 +518,7 @@ export default function VisaoGeral({
                 return (
                   <div
                     key={ev.chave || i}
-                    className={`data-item${concluido ? " passada" : ""}${arrastavel ? " arrastavel" : ""}${pronto ? " pronto-arrasto" : ""}`}
-                    style={sendoArrastado ? { opacity: 0.35 } : undefined}
+                    className={`data-item${concluido ? " passada" : ""}${arrastavel ? " arrastavel" : ""}${pronto ? " pronto-arrasto" : ""}${sendoArrastado ? " sendo-arrastado" : ""}`}
                     onPointerDown={arrastavel ? (e) => iniciarPossivelArrasto(e, ev) : undefined}
                     onPointerMove={arrastavel ? moverArrasto : undefined}
                     onPointerUp={arrastavel ? finalizarArrasto : undefined}
@@ -579,9 +572,7 @@ export default function VisaoGeral({
           )}
         </div>
         {itemArrastando && (
-          <div className="subtle" style={{ marginTop: 8, fontSize: 11 }}>
-            Arraste até um dia do calendário para mudar a data.
-          </div>
+          <div className="subtle detalhe-dia-dica">Arraste até um dia do calendário para mudar a data.</div>
         )}
       </div>
 
@@ -618,56 +609,10 @@ export default function VisaoGeral({
           const marcadores = marcadoresDoDia(eventos, marcosVigencia[dataISO] || []);
           const { visiveis: marcadoresVisiveis, ocultos: marcadoresOcultos } = resumirMarcadores(marcadores);
 
-          let celulaStyle = { transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)" };
-          if (ehHoje && !selecionada) {
-            celulaStyle = {
-              ...celulaStyle,
-              border: "1px solid rgba(255, 255, 255, 0.55)",
-              backgroundColor: "rgba(255, 255, 255, 0.06)",
-            };
-          } else if (selecionada && !ehHoje) {
-            celulaStyle = {
-              ...celulaStyle,
-              borderColor: "#818cf8",
-              backgroundColor: "rgba(129, 140, 248, 0.18)",
-              boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(129, 140, 248, 0.3)",
-              transform: "scale(1.05)",
-              zIndex: 2,
-            };
-          } else if (selecionada && ehHoje) {
-            celulaStyle = {
-              ...celulaStyle,
-              border: "2px solid rgba(255, 255, 255, 0.7)",
-              backgroundColor: "rgba(129, 140, 248, 0.22)",
-              boxShadow: "0 0 0 2px #818cf8, 0 4px 12px rgba(255, 255, 255, 0.3)",
-              transform: "scale(1.05)",
-              zIndex: 2,
-            };
-          }
-          if (ehAlvoDrag) {
-            celulaStyle = {
-              ...celulaStyle,
-              borderColor: "#f59e0b",
-              backgroundColor: "rgba(245, 158, 11, 0.22)",
-              boxShadow: "0 0 0 2px #f59e0b, 0 4px 14px rgba(245, 158, 11, 0.4)",
-              transform: "scale(1.08)",
-              zIndex: 3,
-            };
-          }
-          // Data com prova/trabalho/avaliação de alguma cadeira: preenchimento com
-          // opacidade média + glow na cor DA PRÓPRIA CADEIRA, somado (não
-          // substituindo) a qualquer destaque já aplicado acima.
-          if (temAvaliacao) {
-            const rgb = hexParaRgb(eventoImportante.cor);
-            const glowAvaliacao = `0 0 11px rgba(${rgb}, 0.6)`;
-            celulaStyle = {
-              ...celulaStyle,
-              backgroundColor: celulaStyle.backgroundColor || `rgba(${rgb}, 0.16)`,
-              boxShadow: celulaStyle.boxShadow
-                ? `${celulaStyle.boxShadow}, ${glowAvaliacao}`
-                : `0 0 0 1px rgba(${rgb}, 0.55), ${glowAvaliacao}`,
-            };
-          }
+          // Estados (hoje/selecionada/destino do arrasto/avaliação) ficam em
+          // calendario.css (#24). Só a cor da cadeira da avaliação vem daqui,
+          // como variável: o glow dela SOMA com o destaque do estado.
+          const celulaStyle = temAvaliacao ? { "--cor-rgb": hexParaRgb(eventoImportante.cor) } : undefined;
 
           return (
             <div
@@ -684,27 +629,7 @@ export default function VisaoGeral({
               }}
               style={celulaStyle}
             >
-              <span
-                className="calendario-numero"
-                style={
-                  ehHoje
-                    ? {
-                        background: "#f4f4f5",
-                        color: "#09090b",
-                        fontWeight: "700",
-                        borderRadius: "12px",
-                        padding: "1px 7px",
-                        display: "inline-block",
-                        fontSize: "0.82rem",
-                        boxShadow: "0 2px 4px rgba(255, 255, 255, 0.25)",
-                      }
-                    : selecionada
-                      ? { fontWeight: 800, color: "#ffffff", textShadow: "0 0 6px rgba(129, 140, 248, 0.8)" }
-                      : {}
-                }
-              >
-                {dia}
-              </span>
+              <span className="calendario-numero">{dia}</span>
               {/* Marcadores (Fase 5): ★ compromisso, livro = avaliação, bandeiras =
                   vigência. Um ícone por tipo (número = quantos), até 3; passou
                   disso, 2 + "+N". Só informativos: o clique é da célula. */}

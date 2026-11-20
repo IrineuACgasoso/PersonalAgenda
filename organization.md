@@ -28,7 +28,9 @@
 | Lista "Eventos em DD/MM" do calendário geral | `src/components/VisaoGeral.jsx` render ~366–420; estilos `.data-item-*` em `agenda.css` (fim do arquivo) e `mobile.css` |
 | Drag-and-drop de afazeres e compromissos no calendário | `src/components/VisaoGeral.jsx` (`podeArrastar`, `finalizarArrasto`; identidade `idArrasto` = tipo + id) |
 | Lixeira da lista do dia (exclui pontual × remove só o dia) | `VisaoGeral.jsx` → `excluirInstancia` / `tituloLixeira` (#45) |
-| Estilo da célula do calendário (hoje/selecionada/avaliação) | `src/components/VisaoGeral.jsx` ~458–480 (inline) + `src/styles/calendario.css` |
+| Estilo da célula do calendário (hoje/selecionada/avaliação/destino do arrasto) | `src/styles/calendario.css` (classes + `--sombra-estado`/`--sombra-avaliacao` que somam; #24). `VisaoGeral.jsx` só passa `--cor-rgb` da avaliação |
+| Lista "Próximas datas importantes" (futuras primeiro, "Anteriores" recolhida, #46) | `datasImportantes` (`utils/cadeiras.js`) + `VisaoAgenda.jsx` |
+| Divisão do bundle em chunks / build falha com ciclo entre chunks (#25) | `vite.chunks.js` (`nomeDoChunk`, `cicloEntreChunks`, plugin `semCiclosEntreChunks`) |
 | Formulário de afazer (repetição, data de fim, urgência, cor) | `src/components/VisaoAfazeres.jsx` → `FormularioAfazer` (`rascunho`, `submit`); frase-resumo `descreverAfazer` |
 | Formulário/lista de compromissos | `src/components/VisaoCompromissos.jsx`; validação `erroDoCompromisso` (`utils/compromissos.js`) |
 | Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` + `src/styles/cadeiras.css`; resumo (próx. aula/avaliação, barra da vigência) em `ui/ResumoCadeira.jsx`, lógica pura em `src/utils/cadeiras.js` (#21) |
@@ -45,7 +47,7 @@
 | Navegação por Enter em formulários | `src/hooks/useNavegacaoEnter.js` |
 | Constantes (cores, dias, rotinas, urgência, chaves de storage) | `src/constants.js` |
 | Qualquer coisa de layout mobile | `src/styles/mobile.css` (único `@media (max-width: 860px)`) |
-| Manifest/ícones/service worker | `vite.config.js` (VitePWA) + `public/` |
+| Manifest/ícones/service worker | `vite.config.js` (VitePWA) + `public/`. Ícone da tela inicial do Android = os `maskable` (`web-app-manifest-*.png`, fundo opaco); os `icon-*.png` são transparentes |
 | Login Google / e-mail permitido | `src/firebase.js` |
 | Lembretes (#23): quando disparam, textos do push, padrões | `src/utils/lembretes.js` (PURO, **sem imports**; cópia em `functions/compartilhado/` via `npm run funcoes:sincronizar`) |
 | Lembretes: envio no servidor (agendador 1/min, FCM, tokens inválidos, testes) | `functions/index.js` (deploy pelo usuário: `firebase deploy --only functions`) |
@@ -98,8 +100,9 @@ UFPE/
 ├── organization.md      Este mapa
 ├── todo.md              Backlog priorizado
 ├── README.md            Doc pública (portfólio) com screenshots — atualizar quando features mudarem
-├── index.html           Shell HTML, metas iOS/PWA, favicons; título "Painel acadêmico"
-├── vite.config.js       Vite + React + VitePWA (manifest, workbox precache, navigateFallback)
+├── index.html           Shell HTML, metas iOS/PWA, favicons; título "Minha Agenda" (= short_name, teste em integridade)
+├── vite.config.js       Vite + React + VitePWA (manifest com id/lang, ícones any + maskable 192/512, injectManifest) + manualChunks
+├── vite.chunks.js       #25: nomeDoChunk (firebase · react · vendor; messaging fica sob demanda) + plugin que aborta o build com ciclo entre chunks
 ├── package.json         scripts: dev, build, preview, test (vitest run), test:watch, lint (eslint + prettier --check, `src`
 │                        explícito: OneDrive faz o Node ver a pasta como symlink), format, check (lint + test + build)
 ├── eslint.config.js     ESLint 10 flat: recommended + react-hooks + react-refresh + prettier; catch vazio e `_` liberados
@@ -134,12 +137,13 @@ UFPE/
 │       ├── links.test.js          normalizarUrl / hrefSeguro (#50)
 │       ├── dialogos.test.js       Fila/dedupe de diálogos (#17), mensagemDeRecusa (#44), resumoDoBackup
 │       ├── desfazer.test.js       reinserirPorId / reinserirVarios / separarRemovidos (#18)
-│       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos
+│       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos, datasImportantes (#46)
+│       ├── chunks.test.js         #25: nomeDoChunk (Firebase num chunk só, messaging sob demanda) e cicloEntreChunks
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, rotinas, compromissos, afazeres) + ordenação + marcos + marcadores
 │       ├── rotinas.test.js        Faixa da semana, horas/semana, próxima ocorrência da rotina
 │       ├── compromissos.test.js   Validação, seções e textos dos compromissos
 │       ├── lembretes.test.js      #23: sanitização, fuso, listarLembretes (padrão/próprio/[]/feito/excluída/vigência/sem hora), textos do push, dedupe, estado do aparelho
-│       └── integridade.test.js    Estático: ícones PWA, ordem/escopo do CSS, .env, regressões de UI,
+│       └── integridade.test.js    Estático: ícones PWA (existem; maskable 192/512 opacos), título da aba, ordem/escopo do CSS, .env, regressões de UI,
 │                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO),
 │                                  sem alert/confirm/prompt nativos (#17), check roda o lint (#16)
 ├── public/
@@ -211,7 +215,7 @@ UFPE/
     │   │                         instanteLocal/partesLocais (Recife UTC-3 fixo), listarLembretes, montarNotificacao, lembretesPendentes, podarEnviados
     │   ├── aparelho.js           PURO: estadoDoAparelho (sem-login/ios-instalar/sem-suporte/bloqueado/ativo/inativo), descreverAparelho
     │   ├── compromissos.js       PURO (Fase 5): erroDoCompromisso, secoesDosCompromissos, textoHorarioCompromisso, textoDataComSemana, rotuloRelativo
-    │   ├── cadeiras.js           PURO (#21): diasEntre, proximoHorarioSemanal (genérico, usado por rotinas), proximaAula (vigência + excluídas), proximasAvaliacoes (destaque ≤7 dias), progressoVigencia,
+    │   ├── cadeiras.js           PURO (#21): diasEntre, proximoHorarioSemanal (genérico, usado por rotinas), proximaAula (vigência + excluídas), proximasAvaliacoes (destaque ≤7 dias), datasImportantes (#46: próximas ↑ / anteriores ↓), progressoVigencia,
     │   │                         rotuloDias, textoProximaAula, textoQuandoAvaliacao — usados por ui/ResumoCadeira.jsx
     │   ├── projecao.js           PURO: projeta eventos de uma janela [inicioISO, fimISO] — avaliações, aulas (vigência),
     │   │                         rotinas, compromissos pontuais, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
@@ -272,7 +276,7 @@ UFPE/
         ├── rotinas.css         .resumo-rotina, .faixa-semana
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
         ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
-        ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células, pontos, marcadores, menu "+"
+        ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)
         └── mobile.css          Todas as regras ≤860px
 ```

@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint --max-warnings 0 src tests functions *.config.js && prettier --check . src functions",
-    "format": "prettier --write . src functions && eslint --fix src tests functions *.config.js",
+    "lint": "eslint --max-warnings 0 src tests functions *.config.js vite.chunks.js && prettier --check . src functions",
+    "format": "prettier --write . src functions && eslint --fix src tests functions *.config.js vite.chunks.js",
     "check": "npm run lint && vitest run && vite build",
     "funcoes:sincronizar": "node -e \"require('fs').copyFileSync('src/utils/lembretes.js','functions/compartilhado/lembretes.js')\""
   },
