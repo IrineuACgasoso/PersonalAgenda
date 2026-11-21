@@ -5,6 +5,7 @@ import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorPeriodo from "./ui/SeletorPeriodo.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 import ResumoCadeira from "./ui/ResumoCadeira.jsx";
+import { propsDeBotao } from "../utils/acessibilidade.js";
 
 export default function VisaoCadeiras({
   periodos,
@@ -65,7 +66,12 @@ export default function VisaoCadeiras({
       ) : (
         <div className="grid-cadeiras">
           {cadeiras.map((c) => (
-            <div key={c.id} className="card-cadeira" style={{ "--cor-card": c.cor }} onClick={() => onAbrir(c.id)}>
+            <div
+              key={c.id}
+              className="card-cadeira"
+              style={{ "--cor-card": c.cor }}
+              {...propsDeBotao(() => onAbrir(c.id), { "aria-label": `Abrir ${c.nome}` })}
+            >
               <div className="card-faixa" style={{ background: c.cor }} />
               <div className="card-body">
                 <div className="card-title-row">

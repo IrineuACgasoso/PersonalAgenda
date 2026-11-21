@@ -211,6 +211,58 @@
     font-size: 9.5px;
   }
 
+  /* Celular em pé: grade DEITADA (VisaoAgenda põe .agenda-girada quando
+     casa "(max-width: 860px) and (orientation: portrait)"). A caixa ocupa a
+     largura útil e a altura que sobra da tela; a grade dentro dela é
+     desenhada com largura = altura da caixa e altura = largura da caixa, e
+     girada 90° no sentido horário (topo da grade na borda direita: basta
+     deitar o celular para a esquerda). Tudo cabe: sem rolagem nem zoom.
+     cqw/cqh = largura/altura da caixa (container-type: size). */
+  .agenda-girada {
+    container-type: size;
+    position: relative;
+    height: max(460px, calc(100dvh - 186px));
+  }
+
+  .agenda-girada .agenda-wrap {
+    /* 34px da linha dos dias + 1px da borda dela + 2px da borda da caixa. */
+    --agenda-col-hora: 34px;
+    --agenda-hora: calc((100cqw - 37px) / var(--agenda-horas));
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100cqh;
+    height: 100cqw;
+    max-height: none;
+    overflow: hidden;
+    transform-origin: top left;
+    transform: translateX(100cqw) rotate(90deg);
+  }
+
+  .agenda-girada .agenda-grid-head {
+    position: static;
+    height: 34px;
+    align-items: center;
+  }
+
+  .agenda-girada .agenda-hora-col {
+    position: static;
+  }
+
+  .agenda-girada .agenda-dia-head {
+    padding: 0;
+    font-size: 12px;
+    line-height: 34px;
+  }
+
+  .agenda-girada .agenda-bloco {
+    padding: 2px 4px;
+  }
+
+  .agenda-girada .agenda-bloco-titulo {
+    font-size: 11px;
+  }
+
   /* ---------- lista "Eventos em DD/MM" (visão geral) ----------
      Colunas fixas mais estreitas para sobrar largura pro nome do evento,
      que quebra linha (ver .data-item-titulo-quebra em agenda.css). */

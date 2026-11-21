@@ -8,6 +8,7 @@ import { Plus, Trash2 } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import ResumoRotina from "./ui/ResumoRotina.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
+import { propsDeBotao } from "../utils/acessibilidade.js";
 
 export default function VisaoRotinas({ rotinas, eventosExcluidos = [], onCriar, onAbrir, onExcluir }) {
   const [novoNome, setNovoNome] = useState("");
@@ -50,7 +51,12 @@ export default function VisaoRotinas({ rotinas, eventosExcluidos = [], onCriar, 
       ) : (
         <div className="grid-cadeiras">
           {rotinas.map((r) => (
-            <div key={r.id} className="card-cadeira" style={{ "--cor-card": r.cor }} onClick={() => onAbrir(r.id)}>
+            <div
+              key={r.id}
+              className="card-cadeira"
+              style={{ "--cor-card": r.cor }}
+              {...propsDeBotao(() => onAbrir(r.id), { "aria-label": `Abrir ${r.nome}` })}
+            >
               <div className="card-faixa" style={{ background: r.cor }} />
               <div className="card-body">
                 <div className="card-title-row">

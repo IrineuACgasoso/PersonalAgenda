@@ -153,3 +153,15 @@ export function textoProximaAula(prox, hojeISO) {
 export function textoQuandoAvaliacao({ avaliacao, dias }) {
   return `${avaliacao.data.slice(8, 10)}/${avaliacao.data.slice(5, 7)} · ${rotuloDias(dias)}`;
 }
+
+/**
+ * #53: excluir o ÚNICO período deixava a lista vazia e o sanitizarDados
+ * recriava em silêncio um "2026.1" (id "p1"). Agora a exclusão é bloqueada
+ * com este aviso (null = pode excluir). Arquivar períodos é o #38.
+ */
+export function motivoParaNaoExcluirPeriodo(periodos, id) {
+  const lista = Array.isArray(periodos) ? periodos : [];
+  if (!lista.some((p) => p?.id === id)) return null; // já não existe: nada a bloquear
+  if (lista.length <= 1) return "Este é o único período. Crie outro antes de excluir este.";
+  return null;
+}

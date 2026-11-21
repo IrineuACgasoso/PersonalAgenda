@@ -25,7 +25,6 @@ export const CORES = [
 export const HORA_INICIO = 6; // grade das 6h às 23h
 export const HORA_FIM = 23;
 export const STORAGE_KEY = "painel-academico-data";
-export const SIDEBAR_STATE_KEY = "painel-academico-sidebar";
 export const ULTIMA_SINCRONIZACAO_KEY = "painel-academico-ultima-sincronizacao";
 // Registro deste aparelho para os lembretes (#23): { id, ativo, token }.
 export const DISPOSITIVO_PUSH_KEY = "painel-academico-dispositivo-push";

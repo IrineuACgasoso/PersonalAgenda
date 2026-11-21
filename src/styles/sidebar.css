@@ -161,20 +161,6 @@
   gap: 2px;
 }
 
-.chevron-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border: none;
-  background: transparent;
-  color: var(--texto-sutil);
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-}
-
 .sidebar-secao-titulo {
   flex: 1;
   cursor: pointer;

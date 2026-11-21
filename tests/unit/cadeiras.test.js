@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import {
   datasImportantes,
   diasEntre,
+  motivoParaNaoExcluirPeriodo,
   proximaAula,
   proximasAvaliacoes,
   progressoVigencia,
@@ -167,5 +168,18 @@ describe("datasImportantes (#46)", () => {
   it("aguenta lista vazia e cadeira sem datas", () => {
     expect(datasImportantes([], HOJE)).toEqual({ proximas: [], anteriores: [] });
     expect(datasImportantes([{ id: "x" }], HOJE)).toEqual({ proximas: [], anteriores: [] });
+  });
+});
+
+describe("motivoParaNaoExcluirPeriodo (#53)", () => {
+  it("bloqueia excluir o único período (antes recriava um '2026.1' em silêncio)", () => {
+    expect(motivoParaNaoExcluirPeriodo([{ id: "p1", nome: "2026.2" }], "p1")).toMatch(/único período/);
+  });
+  it("com outros períodos, pode excluir", () => {
+    expect(motivoParaNaoExcluirPeriodo([{ id: "p1" }, { id: "p2" }], "p1")).toBeNull();
+  });
+  it("id inexistente ou lista inválida não bloqueia", () => {
+    expect(motivoParaNaoExcluirPeriodo([{ id: "p1" }], "pX")).toBeNull();
+    expect(motivoParaNaoExcluirPeriodo(undefined, "p1")).toBeNull();
   });
 });

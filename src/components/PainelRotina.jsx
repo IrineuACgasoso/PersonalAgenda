@@ -9,6 +9,8 @@ import AbaHorarios from "./abas/AbaHorarios";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import ResumoRotina from "./ui/ResumoRotina.jsx";
 import CampoVigencia from "./ui/CampoVigencia.jsx";
+import useCaixaModal from "../hooks/useCaixaModal";
+import { nomeAoSair } from "../utils/nomes.js";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
@@ -17,14 +19,17 @@ export default function PainelRotina({ rotina, eventosExcluidos = [], onFechar, 
   const [nomeEdit, setNomeEdit] = useState(rotina.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
+  // #51: Esc fecha, Tab fica no drawer e o foco volta ao card ao fechar.
+  const aoTeclar = useCaixaModal(painelRef, onFechar, { focoInicial: "caixa" });
 
   // Só ao trocar de rotina (mesmo motivo do PainelCadeira).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setNomeEdit(rotina.nome), [rotina.id]);
 
   const salvarNome = () => {
-    const v = nomeEdit.trim();
-    if (v && v !== rotina.nome) onAtualizar({ nome: v });
+    const { salvar, exibir } = nomeAoSair(nomeEdit, rotina.nome);
+    if (salvar) onAtualizar({ nome: salvar });
+    setNomeEdit(exibir);
   };
 
   /* horários: leem a rotina mais recente; excluir tem "Desfazer" (#18) */
@@ -36,7 +41,16 @@ export default function PainelRotina({ rotina, eventosExcluidos = [], onFechar, 
 
   return (
     <div className="overlay" onClick={onFechar}>
-      <div className="painel-lateral" ref={painelRef} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="painel-lateral"
+        ref={painelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Rotina ${rotina.nome}`}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={aoTeclar}
+      >
         <div className="painel-header">
           <span className="cor-dot" style={{ background: rotina.cor }} />
           <input

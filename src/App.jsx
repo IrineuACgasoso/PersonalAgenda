@@ -28,6 +28,8 @@ import { toISO, ehRotina, afazerConcluido } from "./utils/afazeres";
 import { mensagemDeRecusa } from "./utils/dialogos";
 import { vigenciaPadraoParaNovaCadeira } from "./utils/calendario";
 import { reinserirPorId, reinserirVarios, separarRemovidos } from "./utils/desfazer";
+import { devolverChaves, limparChavesOrfas } from "./utils/chavesOrfas";
+import { motivoParaNaoExcluirPeriodo } from "./utils/cadeiras";
 import {
   TEMPO_LIMITE_CARREGAMENTO_MS,
   CHAVE_WATCHDOG_RECARREGOU,
@@ -181,6 +183,11 @@ export default function App() {
   // Período leva junto as cadeiras dele: continua pedindo
   // confirmação, e ainda dá para desfazer (#18).
   const excluirPeriodo = async (id) => {
+    const bloqueio = motivoParaNaoExcluirPeriodo(data.periodos, id); // #53
+    if (bloqueio) {
+      avisar(bloqueio, { titulo: "Excluir período" });
+      return;
+    }
     const ok = await confirmar("Excluir este período? As cadeiras dele também serão removidas.", {
       titulo: "Excluir período",
       textoConfirmar: "Excluir",
@@ -190,29 +197,38 @@ export default function App() {
     let removido = null;
     const r = gravar((d) => {
       const p = separarRemovidos(d.periodos, (x) => x.id === id);
-      if (p.removidos.length === 0) return d;
+      // Nunca deixar a lista vazia (#53), nem se o estado mudou durante o confirm.
+      if (p.removidos.length === 0 || p.restantes.length === 0) return d;
       const c = separarRemovidos(d.cadeiras, (x) => x.periodoId === id);
-      removido = {
-        periodos: p.removidos,
-        cadeiras: c.removidos,
-        eraAtivo: d.periodoAtivoId === id,
-      };
-      return {
+      // #52: concluídos/removidos das aulas e provas dessas cadeiras saem junto.
+      const limpo = limparChavesOrfas({
         ...d,
         periodos: p.restantes,
         cadeiras: c.restantes,
         periodoAtivoId: d.periodoAtivoId === id ? (p.restantes[0]?.id ?? null) : d.periodoAtivoId,
+      });
+      removido = {
+        periodos: p.removidos,
+        cadeiras: c.removidos,
+        eraAtivo: d.periodoAtivoId === id,
+        chaves: limpo.removidas,
       };
+      return limpo.dados;
     });
     if (cadeiraAberta?.periodoId === id) setCadeiraAbertaId(null);
     if (!gravouAlgo(r) || !removido) return;
-    const { periodos, cadeiras, eraAtivo } = removido;
-    avisarComDesfazer(`Período "${periodos[0].item.nome}" excluído`, (d) => ({
-      ...d,
-      periodos: reinserirVarios(d.periodos, periodos),
-      cadeiras: reinserirVarios(d.cadeiras, cadeiras),
-      periodoAtivoId: eraAtivo ? id : d.periodoAtivoId,
-    }));
+    const { periodos, cadeiras, eraAtivo, chaves } = removido;
+    avisarComDesfazer(`Período "${periodos[0].item.nome}" excluído`, (d) =>
+      devolverChaves(
+        {
+          ...d,
+          periodos: reinserirVarios(d.periodos, periodos),
+          cadeiras: reinserirVarios(d.cadeiras, cadeiras),
+          periodoAtivoId: eraAtivo ? id : d.periodoAtivoId,
+        },
+        chaves,
+      ),
+    );
   };
 
   // Exclui um item de uma lista de primeiro nível (cadeiras, rotinas,
@@ -221,15 +237,21 @@ export default function App() {
   // devolve no mesmo lugar sem duplicar.
   const excluirComDesfazer = (campo, id, textoExcluido) => {
     let removido = null;
+    let chaves = {};
     const r = gravar((d) => {
       const { restantes, removidos } = separarRemovidos(d[campo] || [], (x) => x.id === id);
       if (removidos.length === 0) return d;
       removido = removidos[0];
-      return { ...d, [campo]: restantes };
+      // #52: as chaves de concluído/removido do item saem junto (e voltam no Desfazer).
+      const limpo = limparChavesOrfas({ ...d, [campo]: restantes });
+      chaves = limpo.removidas;
+      return limpo.dados;
     });
     if (!gravouAlgo(r) || !removido) return;
     const { item, indice } = removido;
-    avisarComDesfazer(textoExcluido(item), (d) => ({ ...d, [campo]: reinserirPorId(d[campo] || [], item, indice) }));
+    avisarComDesfazer(textoExcluido(item), (d) =>
+      devolverChaves({ ...d, [campo]: reinserirPorId(d[campo] || [], item, indice) }, chaves),
+    );
   };
 
   /* ---- ações cadeiras ---- */
@@ -326,19 +348,21 @@ export default function App() {
   const limparCompromissosPassados = () => {
     const hoje = toISO(new Date());
     let removidos = [];
+    let chaves = {};
     const r = gravar((d) => {
       const sep = separarRemovidos(d.compromissos || [], (c) => !c.data || c.data < hoje);
       if (sep.removidos.length === 0) return d;
       removidos = sep.removidos;
-      return { ...d, compromissos: sep.restantes };
+      const limpo = limparChavesOrfas({ ...d, compromissos: sep.restantes }); // #52
+      chaves = limpo.removidas;
+      return limpo.dados;
     });
     if (!gravouAlgo(r) || removidos.length === 0) return;
     const n = removidos.length;
     const s = n !== 1 ? "s" : "";
-    avisarComDesfazer(`${n} compromisso${s} passado${s} apagado${s}`, (d) => ({
-      ...d,
-      compromissos: reinserirVarios(d.compromissos || [], removidos),
-    }));
+    avisarComDesfazer(`${n} compromisso${s} passado${s} apagado${s}`, (d) =>
+      devolverChaves({ ...d, compromissos: reinserirVarios(d.compromissos || [], removidos) }, chaves),
+    );
   };
 
   const abrirCalendarioNaData = (dataISO) => {
@@ -458,20 +482,22 @@ export default function App() {
   // Sem confirm(): dá para desfazer pelo toast (#18).
   const limparAfazeresConcluidos = () => {
     let removidos = [];
+    let chaves = {};
     const r = gravar((d) => {
       // Rotinas nunca entram aqui (#11), mesmo com um `feito` antigo.
       const sep = separarRemovidos(d.afazeres || [], afazerConcluido);
       if (sep.removidos.length === 0) return d;
       removidos = sep.removidos;
-      return { ...d, afazeres: sep.restantes };
+      const limpo = limparChavesOrfas({ ...d, afazeres: sep.restantes }); // #52
+      chaves = limpo.removidas;
+      return limpo.dados;
     });
     if (!gravouAlgo(r) || removidos.length === 0) return;
     const n = removidos.length;
     const s = n !== 1 ? "s" : "";
-    avisarComDesfazer(`${n} afazer${n !== 1 ? "es" : ""} concluído${s} apagado${s}`, (d) => ({
-      ...d,
-      afazeres: reinserirVarios(d.afazeres || [], removidos),
-    }));
+    avisarComDesfazer(`${n} afazer${n !== 1 ? "es" : ""} concluído${s} apagado${s}`, (d) =>
+      devolverChaves({ ...d, afazeres: reinserirVarios(d.afazeres || [], removidos) }, chaves),
+    );
   };
 
   /* ---- backup: exportar / importar ---- */

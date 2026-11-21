@@ -180,6 +180,14 @@ describe("Segurança", () => {
   });
 });
 
+describe("Firestore offline (#47)", () => {
+  it("cache compartilhado entre instâncias (PWA + aba): MultipleTab, não SingleTab", () => {
+    const fonte = ler("src/firebase.js");
+    expect(fonte).toMatch(/tabManager:\s*persistentMultipleTabManager\(\)/);
+    expect(fonte).not.toMatch(/persistentSingleTabManager/);
+  });
+});
+
 describe("Firestore Rules (firestore.rules)", () => {
   const rules = ler("firestore.rules");
 

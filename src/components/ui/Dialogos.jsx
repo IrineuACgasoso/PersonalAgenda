@@ -9,12 +9,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Info, X } from "lucide-react";
 import { DialogosContexto } from "../../hooks/useDialogos";
+import useCaixaModal from "../../hooks/useCaixaModal";
 import { enfileirarDialogo, removerDialogo } from "../../utils/dialogos";
 
 const DURACAO_TOAST_MS = 6000;
-
-// Elementos que recebem foco por Tab dentro do modal (para prender o foco).
-const SELETOR_FOCAVEL = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
 /**
  * Casca comum dos modais: overlay centralizado, Esc fecha, foco preso dentro
@@ -27,37 +25,7 @@ export function Modal({ titulo, onFechar, children, largo = false, rotuloId }) {
   useEffect(() => {
     onFecharRef.current = onFechar;
   });
-
-  useEffect(() => {
-    const anterior = document.activeElement;
-    // Foca o elemento marcado com data-autofoco, senão o primeiro focável.
-    const caixa = caixaRef.current;
-    const alvo = caixa?.querySelector("[data-autofoco]") || caixa?.querySelector(SELETOR_FOCAVEL);
-    alvo?.focus();
-    return () => {
-      if (anterior && typeof anterior.focus === "function") anterior.focus();
-    };
-  }, []);
-
-  const aoTeclar = (e) => {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      onFecharRef.current?.();
-      return;
-    }
-    if (e.key !== "Tab") return;
-    const focaveis = [...(caixaRef.current?.querySelectorAll(SELETOR_FOCAVEL) || [])];
-    if (focaveis.length === 0) return;
-    const primeiro = focaveis[0];
-    const ultimo = focaveis[focaveis.length - 1];
-    if (e.shiftKey && document.activeElement === primeiro) {
-      e.preventDefault();
-      ultimo.focus();
-    } else if (!e.shiftKey && document.activeElement === ultimo) {
-      e.preventDefault();
-      primeiro.focus();
-    }
-  };
+  const aoTeclar = useCaixaModal(caixaRef, onFechar);
 
   return (
     <div className="modal-overlay" onClick={() => onFecharRef.current?.()}>

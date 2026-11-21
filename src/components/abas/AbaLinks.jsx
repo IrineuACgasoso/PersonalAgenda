@@ -75,10 +75,19 @@ export default function AbaLinks({ links, onAdd, onRemover, onEditar }) {
     }
   };
 
-  const copiarCodigo = (e, id, codigo) => {
+  // #28: a área de transferência pode não existir (http sem TLS, navegador
+  // antigo) ou recusar (permissão, página sem foco). Antes o "Copiado!"
+  // aparecia mesmo assim; agora o código é mostrado para copiar à mão.
+  const copiarCodigo = async (e, id, codigo) => {
     e.preventDefault();
     e.stopPropagation();
-    navigator.clipboard.writeText(codigo);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("sem clipboard");
+      await navigator.clipboard.writeText(codigo);
+    } catch {
+      avisar(`Não deu para copiar automaticamente. Código: ${codigo}`, { titulo: "Copie o código" });
+      return;
+    }
     setCopiadoId(id);
     setTimeout(() => setCopiadoId(null), 2000);
   };

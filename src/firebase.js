@@ -1,6 +1,6 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -25,13 +25,15 @@ export const app = initializeApp(firebaseConfig);
 // Cache local persistente (IndexedDB): permite ler/escrever offline. Escritas
 // feitas sem rede ficam na fila do próprio SDK do Firestore e sobem para o
 // servidor sozinhas assim que a conexão volta — não precisamos reimplementar
-// essa sincronização na mão. `persistentSingleTabManager` evita conflito
-// entre abas: só a aba ativa usa o cache (mais simples que coordenar múltiplas).
+// essa sincronização na mão. `persistentMultipleTabManager` (#47): o cache é
+// compartilhado entre abas/instâncias (PWA instalado + aba do navegador). Com
+// o SingleTab, a segunda instância caía para cache só em memória e não abria
+// offline. As escritas continuam passando pelo persist() de cada instância.
 // `ignoreUndefinedProperties`: rede de segurança do #43 — sem ela, um único
 // campo `undefined` no estado fazia TODO setDoc falhar. O sanitizarDados já
 // remove os undefined; isto cobre qualquer caminho que escape dele.
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }),
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
   ignoreUndefinedProperties: true,
 });
 export const auth = getAuth(app);

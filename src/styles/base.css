@@ -60,18 +60,6 @@ body {
   font-size: 15px;
 }
 
-/* mixin "de fato" via classe utilitária — qualquer bloco que precise da
-   superfície metálica/translúcida padrão pode usar `.vidro` diretamente;
-   os componentes existentes recebem o mesmo efeito através das próprias
-   classes (ver arquivos de cada tela), sem precisar remarcar o JSX. */
-.vidro {
-  background: var(--vidro-grad), var(--vidro-cor);
-  backdrop-filter: var(--vidro-blur);
-  -webkit-backdrop-filter: var(--vidro-blur);
-  border: 1px solid var(--vidro-borda);
-  box-shadow: var(--vidro-sombra);
-}
-
 /* ---------- layout raiz ---------- */
 .app {
   display: flex;
@@ -91,10 +79,6 @@ body {
   justify-content: center;
   background: var(--bg);
   color: var(--texto-sutil);
-}
-
-.loading-text {
-  font-size: 15px;
 }
 
 /* ---------- área principal ----------

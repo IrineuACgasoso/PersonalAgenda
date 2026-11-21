@@ -10,6 +10,7 @@ import { idArrasto, marcadoresDoDia, resumirMarcadores } from "../utils/projecao
 import { useFiltrosCalendario } from "../hooks/useFiltrosCalendario.js";
 import { useEventosCalendario } from "../hooks/useEventosCalendario.js";
 import ListaDoDia from "./ui/ListaDoDia.jsx";
+import { propsDeBotao } from "../utils/acessibilidade.js";
 
 // Os ícones dos filtros são os mesmos dos marcadores das células (Fase 5):
 // livro = avaliação, ★ = compromisso.
@@ -401,14 +402,17 @@ export default function VisaoGeral({
               key={idx}
               data-dia-iso={dataISO}
               className={`calendario-celula${ehHoje ? " hoje" : ""}${selecionada ? " selecionada" : ""}${ehAlvoDrag ? " destino-drag" : ""}${temAvaliacao ? " tem-avaliacao" : ""}${cel.foraDoMes ? " fora-do-mes" : ""}`}
-              onClick={() => {
-                if (cel.foraDoMes) {
-                  setCursor({ ano: cel.ano, mes: cel.mes });
-                  setDiaSelecionado(dataISO);
-                } else {
-                  setDiaSelecionado(selecionada ? null : dataISO);
-                }
-              }}
+              {...propsDeBotao(
+                () => {
+                  if (cel.foraDoMes) {
+                    setCursor({ ano: cel.ano, mes: cel.mes });
+                    setDiaSelecionado(dataISO);
+                  } else {
+                    setDiaSelecionado(selecionada ? null : dataISO);
+                  }
+                },
+                { "aria-label": formatarData(dataISO), "aria-pressed": selecionada },
+              )}
               style={celulaStyle}
             >
               <span className="calendario-numero">{dia}</span>

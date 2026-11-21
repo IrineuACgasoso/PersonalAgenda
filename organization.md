@@ -39,8 +39,9 @@
 | Formulário/lista de compromissos | `src/components/VisaoCompromissos.jsx`; validação `erroDoCompromisso` (`utils/compromissos.js`) |
 | Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` + `src/styles/cadeiras.css`; resumo (próx. aula/avaliação, barra da vigência) em `ui/ResumoCadeira.jsx`, lógica pura em `src/utils/cadeiras.js` (#21) |
 | Drawer da cadeira (resumo + seções recolhíveis Horários/Links/Datas) | `src/components/PainelCadeira.jsx` (`Secao`) + `src/components/abas/*` (conteúdo de cada seção); CSS `.painel-secao*` em `painel.css` |
-| Grade semanal 06h–23h | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css` (no celular: `mobile.css`, grade com altura máx. e dias/horas `sticky`) |
-| Zoom da Agenda (pinça, Ctrl+roda, − 100% +) | `src/hooks/useZoomAgenda.js` (listeners nativos não passivos, foco sob os dedos, salva em `ZOOM_AGENDA_KEY`) + puro em `src/utils/zoomAgenda.js`; CSS via `--agenda-zoom` |
+| Grade semanal (faixa de horas = 1º início → último fim, dentro de 06h–23h) | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css`; faixa/posição em `src/utils/agendaSemanal.js` |
+| Agenda **deitada** no celular em pé (girar o aparelho para ler) | `VisaoAgenda.jsx` (`useMediaQuery` → classe `.agenda-girada`, sem zoom) + `mobile.css` (caixa `container-type: size`, grade girada 90° com cqw/cqh) |
+| Zoom da Agenda (pinça, Ctrl+roda, − 100% +; só desktop/paisagem) | `src/hooks/useZoomAgenda.js` (listeners nativos não passivos, foco sob os dedos, salva em `ZOOM_AGENDA_KEY`) + puro em `src/utils/zoomAgenda.js`; CSS via `--agenda-zoom` |
 | Cores de texto e escala tipográfica (#24) | tokens em `src/styles/base.css` (`--texto`, `--texto-fraco`, `--texto-sutil`, `--fs-*`); teste de contraste em `integridade.test.js` |
 | Menu lateral, backup, login, indicador de status | `src/components/Sidebar.jsx` + `src/styles/sidebar.css` |
 | Backup na nuvem (snapshots a cada 3h) | `src/hooks/useCloudBackup.js`; decisões puras (quando fazer, rotação) em `src/utils/backupNuvem.js` |
@@ -51,6 +52,8 @@
 | Desfazer exclusão (#18) | `src/App.jsx` → `excluirComDesfazer`, `excluirPeriodo`, `excluirInstanciaEvento`, `limparAfazeresConcluidos`; listas internas dos drawers em `src/hooks/useListaInterna.js`; puro em `src/utils/desfazer.js` |
 | Lint / formatação | `eslint.config.js`, `.prettierrc.json`, `.prettierignore`; `npm run lint` / `npm run format` |
 | Navegação por Enter em formulários | `src/hooks/useNavegacaoEnter.js` |
+| Acessibilidade (#51): Esc/foco preso nos modais e drawers; `div` clicável como botão | `src/hooks/useCaixaModal.js` (Modal + PainelCadeira/PainelRotina); `propsDeBotao` em `src/utils/acessibilidade.js` (cards, células do calendário, blocos/datas da Agenda) |
+| Limpar chaves órfãs ao excluir (#52) | `src/utils/chavesOrfas.js` (`limparChavesOrfas`/`devolverChaves`), usado em `excluirComDesfazer`, `excluirPeriodo` e nos "apagar" em massa do `App.jsx` |
 | Constantes (cores, dias, rotinas, urgência, chaves de storage) | `src/constants.js` |
 | Qualquer coisa de layout mobile | `src/styles/mobile.css` (único `@media (max-width: 860px)`) |
 | Manifest/ícones/service worker | `vite.config.js` (VitePWA) + `public/`. Ícone da tela inicial do Android = os `maskable` (`web-app-manifest-*.png`, fundo opaco); os `icon-*.png` são transparentes |
@@ -144,8 +147,13 @@ UFPE/
 │       ├── links.test.js          normalizarUrl / hrefSeguro (#50)
 │       ├── dialogos.test.js       Fila/dedupe de diálogos (#17), mensagemDeRecusa (#44), resumoDoBackup
 │       ├── desfazer.test.js       reinserirPorId / reinserirVarios / separarRemovidos (#18)
-│       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos, datasImportantes (#46)
+│       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos, datasImportantes (#46), motivoParaNaoExcluirPeriodo (#53)
 │       ├── zoomAgenda.test.js     #24: limites, pinça, passos de 25%, foco sob os dedos
+│       ├── agendaSemanal.test.js  faixaDeHoras (corte, mínimo de 8 h, limites, lixo) e percentualNaGrade
+│       ├── chavesOrfas.test.js    #52: donoDaChave (formatos da projeção), limparChavesOrfas, devolverChaves
+│       ├── acessibilidade.test.js #51: propsDeBotao (Enter/Espaço, botão de dentro)
+│       ├── nomes.test.js          #48: nomeAoSair (vazio volta ao atual)
+│       ├── id.test.js             #29: uid() UUID + fallback sem contexto seguro
 │       ├── chunks.test.js         #25: nomeDoChunk (Firebase num chunk só, messaging sob demanda) e cicloEntreChunks
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, rotinas, compromissos, afazeres) + ordenação + marcos + marcadores
 │       ├── rotinas.test.js        Faixa da semana, horas/semana, próxima ocorrência da rotina
@@ -169,10 +177,10 @@ UFPE/
     │                    notificação a partir de `data` {titulo, corpo, tag, url}), `notificationclick` (foca/abre o app)
     ├── notificacoes.js  Lembretes (#23) no aparelho: estadoNotificacoes, ativar (permissão + getToken com o SW + setDoc em
     │                    dispositivos + testeEm), desativar, testar, renovarTokenSeAtivo (App, 1×/login). SDK messaging via import()
-    ├── firebase.js      `app` exportado (FCM), initializeApp, Firestore com persistentLocalCache(singleTab) + ignoreUndefinedProperties, auth,
+    ├── firebase.js      `app` exportado (FCM), initializeApp, Firestore com persistentLocalCache(multipleTab, #47) + ignoreUndefinedProperties, auth,
     │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail; devolve { ok, user | mensagem }), fazerLogout()
     ├── constants.js     DIAS, DIAS_FULL, CORES (paleta p/ novas cadeiras), HORA_INICIO/FIM (6–23),
-    │                    STORAGE_KEY, SIDEBAR_STATE_KEY (sem uso), ULTIMA_SINCRONIZACAO_KEY,
+    │                    STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY,
     │                    ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS
     ├── hooks/
     │   ├── usePersistedData.js   {data, persist, status, online, ultimaSincronizacao, user, login, logout}
@@ -189,7 +197,9 @@ UFPE/
     │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js → { eventosPorDia, marcosVigencia }
     │   ├── useHoje.js            hojeISO que vira à meia-noite (timer + visibilitychange/focus, #49)
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, rotinas, compromissos, afazeres} em localStorage ("rotinas" herda o antigo "compromissos")
-    │   ├── useFecharAoClicarFora.js Fecha popover (seletor de data, menu "+") ao clicar fora / Esc
+    │   ├── useFecharAoClicarFora.js Fecha popover (seletor de data, menu "+") ao clicar fora / Esc (Esc na captura: não fecha o drawer junto)
+    │   ├── useCaixaModal.js      #51: Esc fecha, Tab preso, foco volta ao fechar; focoInicial "primeiro" (Modal) | "caixa" (drawers)
+    │   ├── useMediaQuery.js      true enquanto a media query casa (Agenda girada)
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h contadas do backup mais
     │   │                         recente NO SERVIDOR (checa a cada 15min; timer não depende de `data`; 1 por vez;
     │   │                         offline não tenta — #8), mantém 10. listarBackupsCloud(uid)
@@ -199,6 +209,10 @@ UFPE/
     │   └── useListaInterna.js    adicionar/editar/remover (com Desfazer) nas listas internas de cadeira/rotina;
     │                             usa onAtualizar(fn) → lê o item mais recente
     ├── utils/
+    │   ├── agendaSemanal.js      PURO: faixaDeHoras(blocos) (mín. 8 h), percentualNaGrade
+    │   ├── chavesOrfas.js        PURO (#52): donoDaChave, limparChavesOrfas, devolverChaves
+    │   ├── acessibilidade.js     propsDeBotao(acao, extras) (#51)
+    │   ├── nomes.js              nomeAoSair(digitado, atual) (#48, drawers)
     │   ├── zoomAgenda.js         PURO (#24): limitarZoom, zoomDaPinca, zoomNoPasso (múltiplos de 25%), deslocamentoParaFoco, textoZoom
     │   ├── sanitizarDados.js     DADOS_PADRAO (período "p1", versao atual), sanitizarDados() (1º migra, depois
     │   │                         normaliza; whitelist de afazeres/rotina; listas internas de cadeira
@@ -227,7 +241,7 @@ UFPE/
     │   ├── aparelho.js           PURO: estadoDoAparelho (sem-login/ios-instalar/sem-suporte/bloqueado/ativo/inativo), descreverAparelho
     │   ├── compromissos.js       PURO (Fase 5): erroDoCompromisso, secoesDosCompromissos, textoHorarioCompromisso, textoDataComSemana, rotuloRelativo
     │   ├── cadeiras.js           PURO (#21): diasEntre, proximoHorarioSemanal (genérico, usado por rotinas), proximaAula (vigência + excluídas), proximasAvaliacoes (destaque ≤7 dias), datasImportantes (#46: próximas ↑ / anteriores ↓), progressoVigencia,
-    │   │                         rotuloDias, textoProximaAula, textoQuandoAvaliacao — usados por ui/ResumoCadeira.jsx
+    │   │                         rotuloDias, textoProximaAula, textoQuandoAvaliacao — usados por ui/ResumoCadeira.jsx; motivoParaNaoExcluirPeriodo (#53)
     │   ├── projecao.js           PURO: projeta eventos de uma janela [inicioISO, fimISO] — avaliações, aulas (vigência),
     │   │                         rotinas, compromissos pontuais, afazeres (ocorrenciasNoIntervalo), afazeres sem data (em "hoje");
     │   │                         marcadoresDoDia/resumirMarcadores (★/livro/bandeiras da célula);
@@ -238,8 +252,7 @@ UFPE/
     │   ├── links.js              normalizarUrl, hrefSeguro (só http(s) vira href, #50)
     │   ├── dialogos.js           enfileirarDialogo (dedupe por chave), removerDialogo, mensagemDeRecusa (#44), resumoDoBackup (migra antes de contar)
     │   ├── desfazer.js           reinserirPorId, reinserirVarios, separarRemovidos (#18)
-    │   ├── id.js                 uid() — 8 chars aleatórios
-    │   └── data.js               ⚠ dadosVazios() + doc de schema DESATUALIZADO, sem uso
+    │   └── id.js                 uid() — crypto.randomUUID (#29); sem contexto seguro, 16 chars aleatórios
     ├── components/
     │   ├── Sidebar.jsx           Nav (Cadeiras, Rotinas, Compromissos, Afazeres, Agenda · Visão geral: Hoje, Calendário geral), Backup
     │   │                         (exportar/importar/restaurar nuvem), conta/login, status de sync. Menu deslizante no mobile
@@ -264,7 +277,7 @@ UFPE/
     │       ├── ListaDoDia.jsx      Lista de um dia (Hoje e calendário): ordem/textos de projecao.js, check, lixeira, "+", marcos, arrasto opcional
     │       ├── CarregandoPainel.jsx Tela de loading (capacete + órbitas CSS)
     │       ├── EstadoVazio.jsx     Mensagem de vazio + botão opcional
-    │       ├── Dialogos.jsx        DialogosProvider (fila de diálogos + toast com ação) e a casca `Modal` (Esc, foco preso)
+    │       ├── Dialogos.jsx        DialogosProvider (fila de diálogos + toast com ação) e a casca `Modal` (Esc/foco via useCaixaModal)
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período), sobre a casca `Modal`
     │       ├── ModalRestaurarNuvem.jsx  Lista de backups da nuvem (data + resumo); confirmação/gravação no App
 │       ├── ModalLembretes.jsx  #23: este aparelho (ativar/testar/desativar) + padrões de compromissos e avaliações

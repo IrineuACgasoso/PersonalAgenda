@@ -93,12 +93,6 @@
   border-color: var(--vidro-borda-forte);
 }
 
-.calendario-celula.vazia {
-  border: none;
-  background: transparent;
-  cursor: default;
-}
-
 /* Dias que pertencem ao mês anterior/seguinte: continuam clicáveis (levam
    direto pro mês correspondente) mas ficam visualmente "apagados", pra não
    competir com os dias do mês atual — sem nunca virar uma célula vazia. */

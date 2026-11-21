@@ -8,6 +8,8 @@ import AbaDatas from "./abas/AbaDatas";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import ResumoCadeira from "./ui/ResumoCadeira.jsx";
 import CampoVigencia from "./ui/CampoVigencia.jsx";
+import useCaixaModal from "../hooks/useCaixaModal";
+import { nomeAoSair } from "../utils/nomes.js";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
@@ -40,6 +42,8 @@ export default function PainelCadeira({
   const [nomeEdit, setNomeEdit] = useState(cadeira.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
+  // #51: Esc fecha, Tab fica no drawer e o foco volta ao card ao fechar.
+  const aoTeclar = useCaixaModal(painelRef, onFechar, { focoInicial: "caixa" });
 
   // Só ao trocar de cadeira: reagir a `cadeira.nome` apagaria o que está
   // sendo digitado a cada sync vindo de outro aparelho.
@@ -47,8 +51,9 @@ export default function PainelCadeira({
   useEffect(() => setNomeEdit(cadeira.nome), [cadeira.id]);
 
   const salvarNome = () => {
-    const v = nomeEdit.trim();
-    if (v && v !== cadeira.nome) onAtualizar({ nome: v });
+    const { salvar, exibir } = nomeAoSair(nomeEdit, cadeira.nome);
+    if (salvar) onAtualizar({ nome: salvar });
+    setNomeEdit(exibir);
   };
 
   /* listas internas: leem a cadeira mais recente; excluir tem "Desfazer" (#18) */
@@ -61,7 +66,16 @@ export default function PainelCadeira({
 
   return (
     <div className="overlay" onClick={onFechar}>
-      <div className="painel-lateral" ref={painelRef} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="painel-lateral"
+        ref={painelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Cadeira ${cadeira.nome}`}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={aoTeclar}
+      >
         <div className="painel-header">
           <span className="cor-dot" style={{ background: cadeira.cor }} />
           <input

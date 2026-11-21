@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BookOpen, Repeat, ZoomIn, ZoomOut } from "lucide-react";
-import { DIAS, DIAS_FULL, HORA_INICIO, HORA_FIM } from "../constants.js";
+import { DIAS, DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
@@ -9,7 +9,10 @@ import { datasImportantes } from "../utils/cadeiras.js";
 import { horariosNaSemana } from "../utils/rotinas.js";
 import { corVisivel } from "../utils/calendario.js";
 import useZoomAgenda from "../hooks/useZoomAgenda.js";
+import useMediaQuery from "../hooks/useMediaQuery.js";
+import { faixaDeHoras, percentualNaGrade } from "../utils/agendaSemanal.js";
 import { ZOOM_MAX, ZOOM_MIN, textoZoom } from "../utils/zoomAgenda.js";
+import { propsDeBotao } from "../utils/acessibilidade.js";
 
 const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
 
@@ -27,15 +30,18 @@ function lerFiltrosAgendaIniciais() {
   }
 }
 
-function minutosParaTopo(hhmm, totalHoras) {
-  const [h, m] = hhmm.split(":").map(Number);
-  const frac = (h + m / 60 - HORA_INICIO) / totalHoras;
-  return Math.max(0, Math.min(1, frac)) * 100;
-}
+// Celular em pé: a grade é desenhada DEITADA (girada 90°) e o usuário gira o
+// aparelho para ler — a semana inteira aparece na proporção de uma tela
+// deitada, sem espremer os 7 dias na largura. O PWA trava em retrato
+// (manifest), por isso o giro é feito no CSS e não pelo sistema.
+const CONSULTA_AGENDA_GIRADA = "(max-width: 860px) and (orientation: portrait)";
 
 export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, onAbrirRotina }) {
   const [filtros, setFiltros] = useState(lerFiltrosAgendaIniciais);
   // #24: a semana inteira cabe na tela; pinça / Ctrl+roda / − + ampliam.
+  // Girada, a grade já ocupa a tela toda: sem zoom (a pinça em coordenadas
+  // giradas ampliaria no lugar errado).
+  const girada = useMediaQuery(CONSULTA_AGENDA_GIRADA);
   const { definirArea, zoom, aumentar, diminuir, redefinir } = useZoomAgenda();
 
   const alternarFiltro = (chave) => {
@@ -76,7 +82,7 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
     <div
       key={d.id}
       className={`data-item${d.data < hojeStr ? " passada" : ""}`}
-      onClick={() => onAbrirCadeira(d.cadeiraId)}
+      {...propsDeBotao(() => onAbrirCadeira(d.cadeiraId))}
     >
       <div className="data-item-faixa" style={{ background: corVisivel(d.cor) }} />
       <div className="data-item-texto">
@@ -90,7 +96,8 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
     </div>
   );
 
-  const totalHoras = HORA_FIM - HORA_INICIO;
+  const faixa = faixaDeHoras(blocos);
+  const totalHoras = faixa.fim - faixa.inicio;
 
   return (
     <div>
@@ -108,7 +115,7 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
         <button className={`filtro-chip${filtros.rotinas ? " ativo" : ""}`} onClick={() => alternarFiltro("rotinas")}>
           <Repeat size={13} /> Rotinas
         </button>
-        {blocos.length > 0 && (
+        {blocos.length > 0 && !girada && (
           <div className="agenda-zoom" role="group" aria-label="Zoom da agenda">
             <button
               type="button"
@@ -138,58 +145,67 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
       {blocos.length === 0 ? (
         <EstadoVazio texto="Cadastre horários nas cadeiras ou rotinas para ver a agenda" />
       ) : (
-        <div className="agenda-wrap" ref={definirArea} style={{ "--agenda-zoom": zoom }}>
-          <div className="agenda-grid-head">
-            <div className="agenda-hora-col" />
-            {DIAS.map((d) => (
-              <div key={d} className="agenda-dia-head">
-                {d}
-              </div>
-            ))}
-          </div>
-          <div className="agenda-body">
-            <div className="agenda-hora-col">
-              {Array.from({ length: totalHoras }, (_, i) => (
-                <div key={i} className="agenda-hora-label">
-                  {HORA_INICIO + i}h
+        <div className={girada ? "agenda-girada" : undefined}>
+          <div
+            className="agenda-wrap"
+            ref={girada ? undefined : definirArea}
+            style={{ "--agenda-zoom": girada ? 1 : zoom, "--agenda-horas": totalHoras }}
+          >
+            <div className="agenda-grid-head">
+              <div className="agenda-hora-col" />
+              {DIAS.map((d) => (
+                <div key={d} className="agenda-dia-head">
+                  {d}
                 </div>
               ))}
             </div>
-            {DIAS_FULL.map((dia, idx) => (
-              <div key={dia} className="agenda-coluna">
+            <div className="agenda-body">
+              <div className="agenda-hora-col">
                 {Array.from({ length: totalHoras }, (_, i) => (
-                  <div key={i} className="agenda-linha" />
+                  <div key={i} className="agenda-hora-label">
+                    {faixa.inicio + i}h
+                  </div>
                 ))}
-                {blocos
-                  .filter((b) => b.dia === idx)
-                  .map((b) => {
-                    const top = minutosParaTopo(b.inicio, totalHoras);
-                    const bottom = minutosParaTopo(b.fim, totalHoras);
-                    return (
-                      <div
-                        key={b.id}
-                        className="agenda-bloco"
-                        style={{
-                          top: `${top}%`,
-                          height: `${Math.max(bottom - top, 4)}%`,
-                          background: b.cor + "22",
-                          borderLeft: `3px solid ${b.cor}`,
-                        }}
-                        onClick={() => (b.tipo === "rotina" ? onAbrirRotina(b.origemId) : onAbrirCadeira(b.origemId))}
-                        title={`${b.origemNome} · ${b.inicio}–${b.fim}`}
-                      >
-                        <span className="agenda-bloco-titulo" style={{ color: b.cor }}>
-                          {b.origemNome}
-                        </span>
-                        <span className="agenda-bloco-hora">
-                          {b.inicio}–{b.fim}
-                          {b.local ? ` · ${b.local}` : ""}
-                        </span>
-                      </div>
-                    );
-                  })}
               </div>
-            ))}
+              {DIAS_FULL.map((dia, idx) => (
+                <div key={dia} className="agenda-coluna">
+                  {Array.from({ length: totalHoras }, (_, i) => (
+                    <div key={i} className="agenda-linha" />
+                  ))}
+                  {blocos
+                    .filter((b) => b.dia === idx)
+                    .map((b) => {
+                      const top = percentualNaGrade(b.inicio, faixa.inicio, faixa.fim);
+                      const bottom = percentualNaGrade(b.fim, faixa.inicio, faixa.fim);
+                      return (
+                        <div
+                          key={b.id}
+                          className="agenda-bloco"
+                          style={{
+                            top: `${top}%`,
+                            height: `${Math.max(bottom - top, 4)}%`,
+                            background: b.cor + "22",
+                            borderLeft: `3px solid ${b.cor}`,
+                          }}
+                          {...propsDeBotao(
+                            () => (b.tipo === "rotina" ? onAbrirRotina(b.origemId) : onAbrirCadeira(b.origemId)),
+                            { "aria-label": `${b.origemNome}, ${DIAS_FULL[idx]}, ${b.inicio} a ${b.fim}` },
+                          )}
+                          title={`${b.origemNome} · ${b.inicio}–${b.fim}`}
+                        >
+                          <span className="agenda-bloco-titulo" style={{ color: b.cor }}>
+                            {b.origemNome}
+                          </span>
+                          <span className="agenda-bloco-hora">
+                            {b.inicio}–{b.fim}
+                            {b.local ? ` · ${b.local}` : ""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 PWA pessoal (single-user) para vida acadêmica + rotina: **períodos → cadeiras** (horários, links, datas importantes), **compromissos** semanais, **afazeres** com recorrência e um **calendário geral** que cruza tudo. Offline-first, sync via Firebase quando logado.
 
-**Stack:** React 18 · Vite 6 · Firebase 12 (Auth Google + Firestore com cache IndexedDB) · vite-plugin-pwa · lucide-react · CSS puro (dark) · Vitest 4. Sem TypeScript, sem state manager, sem framework de UI.
+**Stack:** React 18 · Vite 7 · Firebase 12 (Auth Google + Firestore com cache IndexedDB) · vite-plugin-pwa · lucide-react · CSS puro (dark) · Vitest 4. Sem TypeScript, sem state manager, sem framework de UI.
 
 ## Antes de trabalhar (economia de tokens)
 1. Leia **`log.md`** (o que mudou recentemente + pendências da última sessão).

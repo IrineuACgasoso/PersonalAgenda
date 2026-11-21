@@ -448,3 +448,9 @@
 .girando {
   animation: fluxo-girar 1s linear infinite;
 }
+
+/* #51: o drawer recebe o foco ao abrir (para Esc/Tab funcionarem) sem
+   ganhar o contorno de foco dos botões. */
+.painel-lateral:focus-visible {
+  outline: none;
+}

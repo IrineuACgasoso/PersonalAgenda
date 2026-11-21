@@ -58,7 +58,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#23 Lembretes programados e configuráveis** (2026-11-19). Opção (b): FCM + Cloud Function agendada (`functions/index.js`, a cada 1 min). Padrões globais (`lembretes`, compromissos 15 min / avaliações 1 dia) + `lembretes` por compromisso e por avaliação; modal "Lembretes" no menu (ativar no aparelho, teste). **Falta o deploy (usuário):** `firebase deploy --only functions,firestore:rules`. _Ideias futuras (perguntar):_ lembrete de afazer com data (resumo do dia às 8h), de aulas/rotinas.
 
 ### Fase 6 — Visual e performance
-- [x] **#24 Melhora na qualidade de exibição** (2026-11-20). Células do calendário sem inline (pixel-idêntico); título da aba "Minha Agenda"; contraste (`--texto-fraco` mais claro + `--texto-sutil` no lugar dos cinzas soltos, ≥ 4,5:1 com teste); escala tipográfica (`--fs-*`; grupos das listas em MAIÚSCULAS); **Agenda da semana**: semana inteira na largura do celular + zoom (pinça, Ctrl+roda, − 100% +), dias/horas fixos ao rolar.
+- [x] **#24 Melhora na qualidade de exibição** (2026-11-20). Células do calendário sem inline (pixel-idêntico); título da aba "Minha Agenda"; contraste (`--texto-fraco` mais claro + `--texto-sutil` no lugar dos cinzas soltos, ≥ 4,5:1 com teste); escala tipográfica (`--fs-*`; grupos das listas em MAIÚSCULAS); **Agenda da semana**: semana inteira na largura do celular + zoom (pinça, Ctrl+roda, − 100% +), dias/horas fixos ao rolar. _2026-11-21:_ no celular em pé a grade passou a ser **deitada** (girar o aparelho), sem zoom; zoom fica no desktop.
 - [x] **#25 Bundle** (2026-11-20). Chunks estáveis `firebase` (757 kB) · `react` · `vendor` + app (~125 kB); `messaging` continua sob demanda. Lazy load do Firestore/Auth **descartado** (são necessários na abertura offline-first; mexeria no `usePersistedData`). O build aborta se houver ciclo entre chunks (`vite.chunks.js`).
 - [x] **#46 "Próximas datas importantes"** (2026-11-20). Futuras primeiro (↑); as que passaram vão para "Anteriores" (recolhida, mais recente primeiro). `datasImportantes` (`utils/cadeiras.js`).
 
@@ -66,25 +66,22 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 
 ## 🟢 BAIXO
 
-### Limpeza técnica
-- [ ] **#26** Remover código morto: `utils/data.js`, `primeiroDiaDoMes/ultimoDiaDoMes`, `SIDEBAR_STATE_KEY`, `.calendario-celula.vazia`. _Review (varredura de CSS):_ também sem uso `.loading-text` e `.vidro` (`base.css` ~50/~78) e `.chevron-btn` (`sidebar.css` ~151). (`useAutoBackup` já removido no #9.)
-- [ ] **#27** `.gitignore`: `node_modules` duplicado; `.zip` → `*.zip`.
-- [ ] **#28** `AbaLinks`: tratar o erro de `navigator.clipboard.writeText`.
-- [ ] **#29** `uid()` → `crypto.randomUUID()` (mantendo os ids antigos).
-- [ ] **#30** Upgrade `vite-plugin-pwa` (fecha os 4 *moderate* do workbox) e avaliar Vite 7/8 e `firebase@13` (major). Vite 6 + Vitest 4 já feitos no #2.
-- [ ] **#47** App aberto em duas instâncias (PWA instalado + aba do navegador): com `persistentSingleTabManager`, a segunda cai para cache só em memória, então ela não abre offline. Avaliar `persistentMultipleTabManager` (`src/firebase.js`).
-- [ ] **#48** Drawers de cadeira/compromisso: apagar o nome e sair do campo não grava (certo), mas o campo fica vazio na tela. No blur inválido, voltar ao nome atual.
-- [x] **#49** (2026-11-20, `useHoje`) "Hoje" congelado com o app aberto depois da meia-noite: `hoje` em `VisaoGeral` e o memo de afazeres sem data em `useEventosCalendario` só atualizam em outro re-render/troca de mês.
-- [ ] **#51** Acessibilidade: células do calendário e cards de cadeira/compromisso são `div` com `onClick` (sem teclado/`role`); drawers não fecham com Esc nem prendem o foco; o drag só funciona com ponteiro.
-- [ ] **#52** `eventosConcluidos`/`eventosExcluidos` crescem para sempre e guardam chaves órfãs de cadeiras/afazeres já apagados. O documento único tem limite de 1 MB, e cada backup copia tudo. Limpar as chaves do item ao excluí-lo. _Fazer depois de #10 (o formato das chaves muda)._
-- [x] **#55** Cor padrão do afazer (2026-11-19): padrão agora `#8b5cf6`; cores quase pretas (inclusive afazeres antigos `#221e1e`) são clareadas **só na exibição** (`corVisivel`, `utils/calendario.js`) no calendário, nas listas e na agenda. `#221e1e` saiu da paleta de cadeiras novas.
-- [x] **#56 Rotinas sem período** (2026-11-19). `periodoId` removido; vigência própria opcional (`dataInicio`/`dataFim`) limita calendário, agenda semanal e "Próxima". **Schema v6**: a rotina herda menor início / maior fim das cadeiras do seu período.
-- [ ] **#53** Excluir o último período recria em silêncio um "2026.1" (`id: "p1"`, via `sanitizarDados`). Bloquear a exclusão do único período ou avisar. _Combina com #38._
+### Limpeza técnica — concluída (2026-11-21)
+- [x] **#26** Código morto removido: `utils/data.js`, `SIDEBAR_STATE_KEY`, `.calendario-celula.vazia`, `.loading-text`, `.vidro`, `.chevron-btn` (`primeiroDiaDoMes/ultimoDiaDoMes` já não existiam).
+- [x] **#27** `.gitignore`: sem `node_modules` duplicado; `*.zip`.
+- [x] **#28** `AbaLinks`: falha do `clipboard.writeText` mostra o código num aviso (antes dizia "Copiado!" mesmo falhando).
+- [x] **#29** `uid()` → `crypto.randomUUID()` (fallback fora de contexto seguro); ids antigos seguem valendo.
+- [x] **#30** `vite-plugin-pwa` 2.0 + override `glob@14` no `workbox-build` ⇒ **0 vulnerabilidades**; **Vite 7.3**. Avaliados e **não** aplicados: Vite 8 (o `@vitejs/plugin-react` 6 exigido conflita nas peer deps do Babel com o workbox; esperar o ecossistema) e `firebase@13` (major do SDK de dados — login/sync não dá para testar sem a conta; o 12.x segue suportado).
+- [x] **#47** Firestore com `persistentMultipleTabManager`: PWA + aba do navegador abrem offline ao mesmo tempo.
+- [x] **#48** Drawers de cadeira/rotina: nome apagado volta ao atual ao sair do campo (`nomeAoSair`).
+- [x] **#49** (2026-11-20, `useHoje`) "Hoje" vira à meia-noite.
+- [x] **#51** Acessibilidade: cards, células do calendário e blocos/datas da Agenda com `role="button"` + Tab + Enter/Espaço; drawers com Esc, foco preso e devolvido (`useCaixaModal`, também no `Modal`). Arrasto sem teclado continua, mas tem alternativa (editar a data no item).
+- [x] **#52** Excluir cadeira/rotina/compromisso/afazer/período (e os "apagar" em massa) tira as chaves órfãs de `eventosConcluidos`/`eventosExcluidos`; o Desfazer as devolve. Horário/avaliação apagados de dentro da cadeira ainda deixam as suas (conservador).
+- [x] **#53** Excluir o único período é bloqueado com aviso (antes recriava "2026.1" em silêncio). Arquivar continua no #38.
 
 ### Ideias aprovadas pelo usuário (implementar depois das fases acima)
 - [x] **#31 Tela "Hoje"** (2026-11-20). Tela inicial, em "Visão geral" na sidebar: lista do dia com < > para andar pelos dias. Calendário geral: a lista do dia passou para baixo do calendário (mesmo componente `ui/ListaDoDia`). Ordem nova nas duas: horário ↑ (qualquer tipo) → sem hora não-afazer (prova do dia todo) → afazeres do dia (com data ou repetição) → sem data; urgência desempata; concluídos no fim. Afazer mostra "Hoje / N d atrás / Daqui a N d", "Pendente" (sem data) ou "Concluído". Atrasados (afazer avulso/compromisso com data passada e sem check) **não** entram na lista: aviso no topo da Hoje que abre o calendário no dia, para marcar como feito ou arrastar (adiar).
 - [ ] **#32 Detecção de conflito de horário** entre aulas e rotinas.
-- [ ] **#33 Exportar `.ics`** (assinar no Google Calendar). Também cobre parte dos lembretes.
 - [ ] **#34 Controle de faltas por cadeira** (contador vs. limite de 25% da carga horária, alerta ao se aproximar).
 - [ ] **#35 Notas e média por cadeira** (pesos por avaliação, quanto precisa tirar na próxima).
 - [ ] **#36 Agenda semanal navegável** (semana anterior/próxima) incluindo afazeres e compromissos pontuais.
@@ -94,6 +91,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] Agenda da semana **deitada** no celular em pé (girar o aparelho) + faixa de horas cortada ao usado · **Limpeza técnica concluída** (#26–#30, #47, #48, #51–#53) (2026-11-21).
 - [x] #31 Tela Hoje (inicial) + lista do calendário embaixo + ordem nova da lista do dia · #49 "hoje" vira à meia-noite · aviso de atrasados na Hoje (2026-11-20).
 - [x] Ícone do Android com fundo branco: maskable 192 + `id`/`lang` no manifest; precisa reinstalar o app (2026-11-20).
 - [x] #25 chunks do bundle · #46 datas importantes · #24 exibição + Agenda com zoom (2026-11-20). **Fase 6 concluída.**

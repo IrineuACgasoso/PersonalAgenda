@@ -16,10 +16,12 @@ export default function useFecharAoClicarFora(ref, aberto, fechar) {
       }
     };
     document.addEventListener("pointerdown", aoTocar);
-    document.addEventListener("keydown", aoTeclar);
+    // Captura (#51): o Esc fecha só o popover, antes de chegar ao drawer
+    // em volta (que fecharia junto no onKeyDown do React).
+    document.addEventListener("keydown", aoTeclar, true);
     return () => {
       document.removeEventListener("pointerdown", aoTocar);
-      document.removeEventListener("keydown", aoTeclar);
+      document.removeEventListener("keydown", aoTeclar, true);
     };
   }, [ref, aberto, fechar]);
 }
