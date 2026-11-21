@@ -32,6 +32,14 @@ import { devolverChaves, limparChavesOrfas } from "./utils/chavesOrfas";
 import { motivoParaNaoExcluirPeriodo } from "./utils/cadeiras";
 import { conflitosDoHorario, fontesDeHorarios } from "./utils/conflitos";
 import {
+  alternarConclusaoEvento,
+  ehFalta,
+  marcarFalta,
+  partesDaChaveAula,
+  resumoFaltas,
+  textoDepoisDaFalta,
+} from "./utils/frequencia";
+import {
   TEMPO_LIMITE_CARREGAMENTO_MS,
   CHAVE_WATCHDOG_RECARREGOU,
   telaInicial,
@@ -451,14 +459,22 @@ export default function App() {
   const eventosConcluidos = data.eventosConcluidos || [];
   const eventosExcluidos = data.eventosExcluidos || [];
 
-  const alternarEventoConcluido = (chave) => {
-    gravar((d) => {
-      const concluidos = d.eventosConcluidos || [];
-      return {
-        ...d,
-        eventosConcluidos: concluidos.includes(chave) ? concluidos.filter((c) => c !== chave) : [...concluidos, chave],
-      };
+  // Aula com falta (#34): desmarcar tira a falta. Resto: alterna o check.
+  const alternarEventoConcluido = (chave) => gravar((d) => alternarConclusaoEvento(d, chave));
+
+  // ✗ na lista do dia (#34): falta registrada + quanto ainda pode faltar.
+  // Desfazer devolve a aula a "não marcada".
+  const marcarFaltaAula = (chave) => {
+    let texto = "";
+    const r = gravar((d) => {
+      const novo = marcarFalta(d, chave);
+      // Lê a cadeira já COM a falta, no mesmo estado que foi gravado.
+      const cadeira = novo.cadeiras.find((c) => c.id === partesDaChaveAula(chave)?.idCadeira);
+      if (cadeira) texto = textoDepoisDaFalta(cadeira.nome, resumoFaltas(cadeira, novo.eventosExcluidos));
+      return novo;
     });
+    if (!gravouAlgo(r) || !texto) return;
+    avisarComDesfazer(texto, (d) => (ehFalta(d.cadeiras, chave) ? alternarConclusaoEvento(d, chave) : d));
   };
 
   // Remove só esta ocorrência (dia) de um evento da agenda — usado quando
@@ -650,6 +666,7 @@ export default function App() {
             eventosConcluidos={eventosConcluidos}
             eventosExcluidos={eventosExcluidos}
             onAlternarEventoConcluido={alternarEventoConcluido}
+            onMarcarFalta={marcarFaltaAula}
             onExcluirInstanciaEvento={excluirInstanciaEvento}
             onAlternarFeitoAfazer={alternarFeitoAfazer}
             onExcluirAfazer={excluirAfazer}
@@ -668,6 +685,7 @@ export default function App() {
             eventosConcluidos={eventosConcluidos}
             eventosExcluidos={eventosExcluidos}
             onAlternarEventoConcluido={alternarEventoConcluido}
+            onMarcarFalta={marcarFaltaAula}
             onExcluirInstanciaEvento={excluirInstanciaEvento}
             onAlternarFeitoAfazer={alternarFeitoAfazer}
             onAtualizarAfazer={atualizarAfazer}

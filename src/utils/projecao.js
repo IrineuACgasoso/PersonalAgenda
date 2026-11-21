@@ -75,6 +75,8 @@ export function projetarAulas(cadeiras, inicioISO, fimISO) {
             cor: corVisivel(c.cor),
             origem: h.local || DIAS_FULL[diaSemana],
             chave: chaveAula(dataISO, c, h),
+            // #34: ✗ registrou falta (também conta como concluída).
+            falta: Array.isArray(c.faltas) && c.faltas.includes(chaveAula(dataISO, c, h)),
           });
         });
     });
@@ -249,6 +251,7 @@ export function eventoConcluido(ev, eventosConcluidos = []) {
     return !!ev.feito;
   }
   if (ev.tipo === "compromissos") return !!ev.feito;
+  if (ev.falta) return true;
   return eventosConcluidos.includes(ev.chave);
 }
 
@@ -288,6 +291,7 @@ export function textoDistanciaDeHoje(dataISO, hojeISO) {
 // sempre na lista do próprio dia, então é a distância do dia escolhido).
 // Os demais tipos mostram a origem (cadeira, local, "Compromisso"…).
 export function subtituloEvento(ev, hojeISO, concluido) {
+  if (ev.tipo === "aulas" && ev.falta) return "Falta";
   if (ev.tipo !== "afazeres") return ev.origem;
   if (concluido) return "Concluído";
   if (ev.semData) return "Pendente";

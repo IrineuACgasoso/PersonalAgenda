@@ -234,3 +234,42 @@
 .resumo-vigencia-datas {
   white-space: nowrap;
 }
+
+/* #34 faltas e #35 média: chips embaixo da vigência (card e drawer). */
+.resumo-desempenho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.resumo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-rotulo);
+  border: 1px solid var(--vidro-borda);
+  color: var(--texto-fraco);
+}
+
+.resumo-chip svg {
+  flex-shrink: 0;
+}
+
+.resumo-chip.tom-bom {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+.resumo-chip.tom-atencao {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.resumo-chip.tom-ruim {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.08);
+}

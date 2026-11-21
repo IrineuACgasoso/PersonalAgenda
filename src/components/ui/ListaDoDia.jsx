@@ -5,7 +5,7 @@
 // (ordenarEventosDoDia, subtituloEvento); aqui só desenha e chama as ações.
 // O arrasto para outro dia só existe no calendário: ele passa `arrasto`.
 import { useMemo, useRef, useState } from "react";
-import { BookMarked, Check, Flag, FlagOff, ListChecks, Plus, Star, Trash2 } from "lucide-react";
+import { BookMarked, Check, Flag, FlagOff, ListChecks, Plus, Star, Trash2, X } from "lucide-react";
 import { formatarData } from "../../utils/formatarData.js";
 import { eventoConcluido, idArrasto, ordenarEventosDoDia, subtituloEvento } from "../../utils/projecao.js";
 import useFecharAoClicarFora from "../../hooks/useFecharAoClicarFora.js";
@@ -26,6 +26,8 @@ export default function ListaDoDia({
   eventosConcluidos = [],
   textoSemDia = "Selecione um dia.",
   onAlternarEventoConcluido,
+  // #34: ✗ ao lado da lixeira (só aulas não concluídas) = faltei.
+  onMarcarFalta,
   onExcluirInstanciaEvento,
   onAlternarFeitoAfazer,
   onExcluirAfazer,
@@ -162,13 +164,21 @@ export default function ListaDoDia({
                 >
                   <button
                     type="button"
-                    className={`check-btn${concluido ? " marcado" : ""}`}
+                    className={`check-btn${concluido ? " marcado" : ""}${ev.falta ? " falta" : ""}`}
                     style={{ borderColor: concluido ? "transparent" : ev.cor }}
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => alternarConcluido(ev)}
-                    title={concluido ? "Marcar como não realizado" : "Marcar como realizado"}
+                    title={
+                      ev.falta
+                        ? "Tirar a falta"
+                        : concluido
+                          ? "Marcar como não realizado"
+                          : ev.tipo === "aulas"
+                            ? "Fui (presença)"
+                            : "Marcar como realizado"
+                    }
                   >
-                    {concluido && <Check size={13} />}
+                    {concluido && (ev.falta ? <X size={14} strokeWidth={3} /> : <Check size={13} />)}
                   </button>
                   <div className="data-item-faixa" style={{ background: ev.cor }} />
                   {/* Título quebra linha (nunca é cortado com "..."): no
@@ -182,12 +192,26 @@ export default function ListaDoDia({
                       {ev.tipo === "avaliacoes" && <BookMarked size={12} color={ev.cor} className="data-item-icone" />}
                       {ev.titulo}
                     </div>
-                    <div className="subtle data-item-sub">{subtituloEvento(ev, hojeISO, concluido)}</div>
+                    <div className={`subtle data-item-sub${ev.falta ? " data-item-falta" : ""}`}>
+                      {subtituloEvento(ev, hojeISO, concluido)}
+                    </div>
                   </div>
                   <div className="data-item-urgencia">
                     {ev.tipo === "afazeres" && <BarraUrgencia nivel={ev.urgencia || 1} />}
                   </div>
                   <div className="data-item-data data-item-hora">{ev.hora || ""}</div>
+                  {onMarcarFalta && ev.tipo === "aulas" && !concluido && (
+                    <button
+                      type="button"
+                      className="icon-btn-ghost botao-falta"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => onMarcarFalta(ev.chave)}
+                      title="Faltei (conclui a aula como falta)"
+                      aria-label={`Faltei em ${ev.titulo}`}
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
                   {onExcluirInstanciaEvento && (
                     <button
                       type="button"

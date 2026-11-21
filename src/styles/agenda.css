@@ -319,3 +319,13 @@
 .data-item .data-item-faixa {
   min-height: 28px;
 }
+
+/* #34: "Falta" embaixo do nome da aula e o ✗ ao lado da lixeira. */
+.data-item-sub.data-item-falta {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.botao-falta:hover {
+  color: #f87171;
+}

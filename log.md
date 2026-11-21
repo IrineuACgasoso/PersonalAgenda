@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-11-21 (20) — #34 Faltas (✗ na aula) e #35 Notas (árvore com peso/bônus)
+- **Decisões do usuário:** concluir aula = presença (vale para cancelada/APS/sem chamada); **✗ ao lado da lixeira** = falta, e a aula fica concluída com "Falta" embaixo do nome. Regra UFPE: ≥ 7 passa direto, ≥ 3 vai para a final, (média + final)/2 ≥ 5. Avaliação criada a partir de "Datas importantes" e ligada à data.
+- **#34** `utils/frequencia.js` (puro): falta vai para `cadeira.faltas[]` (mesma chave da aula; nunca junto com `eventosConcluidos`), `marcarFalta`, `alternarConclusaoEvento` (desmarcar falta = volta a não marcada), `resumoFaltas` em HORAS × 25% da `cadeira.cargaHoraria` (vazia = estimada pelos horários × vigência), níveis atenção ≥50% / perigo ≥75% / estourou >100%. Projeção marca `ev.falta` (concluída, subtítulo "Falta", check vermelho com ✗). Toast "Falta em X · 4h de 20,5h (pode faltar mais 16,5h) · Desfazer". Campo "Carga horária" no drawer.
+- **#35** `utils/notas.js` (puro): `cadeira.notas` = árvore (nota | grupo, até 3 níveis), cada item por **peso** (média ponderada, pesos livres) ou **bônus +X** (soma até X, limitado a 10); `cadeira.notaFinal`. Média parcial, `notaNecessaria` (mesma nota em cada pendente; bônus pendente = 0; busca binária, arredonda p/ cima em décimos), `situacaoDasNotas`, grupo vazio conta como pendente. Edição: inserir/editar/remover (Desfazer)/mover de grupo/duplicar grupo (Unidade 1 → 2). UI: seção "Notas" no drawer (`abas/AbaNotas.jsx`, `ui/CampoNumero.jsx` grava no blur); em Datas importantes, 🎓 cria a nota ligada e foca o campo (chip com a nota depois). Card/drawer: chips "Faltas: …" e "Média …".
+- **Schema:** só campos novos com padrão (`faltas`, `cargaHoraria`, `notas`, `notaFinal`) no `sanitizarDados` — sem migração nem Rules.
+- **Verificado no navegador** (Chrome headless via playwright-core no scratchpad, 1280 e 390px): ✗ na Hoje → "Falta" + toast; drawer com carga, chips, aviso de conflito; criar avaliação de "Prova 2" focou "Nota de Prova 2", 7,5 lançada; Agenda com conflito lado a lado; sem erros no console. Achado e corrigido no caminho: grupo vazio dava "Aprovado" cedo. `npm run check` ✅ (447 testes).
+- **➡ Próximo:** escopo ideal (#1–#35) concluído. Usuário testar no app: lançar as notas reais das duas cadeiras.
+
 ## 2026-11-21 (19) — #32 Conflito de horário (aulas × rotinas), só aviso
 - **Pedido:** "vamos fazer o 32, 34 e 35 … pro 32 não bloqueie caso dar conflito, só avise". #36–#38 saíram do todo (escopo ideal encerra no #35).
 - **Lógica pura** `utils/conflitos.js`: `horariosSeSobrepoem` (mesmo dia, encostar não conta), `vigenciasSeCruzam` (rotina que já acabou não acusa), `fontesDeHorarios` (cadeiras do período ativo + todas as rotinas), `conflitosDoHorario` (ignora o próprio horário pelo id; outro horário do mesmo dono conta como `mesmoDono`), `avisoDeConflitos`, `distribuirEmColunas` (Agenda). 15 testes em `conflitos.test.js`.

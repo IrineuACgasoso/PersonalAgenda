@@ -82,12 +82,13 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ### Ideias aprovadas pelo usuário (implementar depois das fases acima)
 - [x] **#31 Tela "Hoje"** (2026-11-20). Tela inicial, em "Visão geral" na sidebar: lista do dia com < > para andar pelos dias. Calendário geral: a lista do dia passou para baixo do calendário (mesmo componente `ui/ListaDoDia`). Ordem nova nas duas: horário ↑ (qualquer tipo) → sem hora não-afazer (prova do dia todo) → afazeres de data única → afazeres repetidos (2026-11-21) → sem data; urgência desempata; concluídos no fim. Afazer mostra "Hoje / N d atrás / Daqui a N d", "Pendente" (sem data) ou "Concluído". Atrasados (afazer avulso/compromisso com data passada e sem check) **não** entram na lista: aviso no topo da Hoje que abre o calendário no dia, para marcar como feito ou arrastar (adiar).
 - [x] **#32 Detecção de conflito de horário** entre aulas e rotinas (2026-11-21). Só avisa: âmbar no drawer (rascunho e lista de horários) e blocos lado a lado com ⚠ na Agenda. Vigências que não se cruzam não acusam. `utils/conflitos.js`.
-- [ ] **#34 Controle de faltas por cadeira** (contador vs. limite de 25% da carga horária, alerta ao se aproximar).
-- [ ] **#35 Notas e média por cadeira** (pesos por avaliação, quanto precisa tirar na próxima).
+- [x] **#34 Controle de faltas por cadeira** (2026-11-21). Check = presença; ✗ ao lado da lixeira = falta (aula concluída com "Falta"). Horas × 25% da carga horária (informada ou estimada); chip no card e toast com quanto ainda pode faltar. `utils/frequencia.js`.
+- [x] **#35 Notas e média por cadeira** (2026-11-21). Árvore de notas/grupos com peso ou bônus; média parcial, nota necessária, final (regra UFPE); nota criada a partir das datas importantes. `utils/notas.js`, `abas/AbaNotas.jsx`.
 
 ---
 
 ## ✅ Feito recentemente
+- [x] #34 faltas (✗) · #35 notas e média (2026-11-21). **Escopo ideal concluído.**
 - [x] #32 conflito de horário (aviso, sem bloquear) (2026-11-21).
 - [x] Agenda da semana **deitada** no celular em pé (girar o aparelho) + faixa de horas cortada ao usado · **Limpeza técnica concluída** (#26–#30, #47, #48, #51–#53) (2026-11-21).
 - [x] #31 Tela Hoje (inicial) + lista do calendário embaixo + ordem nova da lista do dia · #49 "hoje" vira à meia-noite · aviso de atrasados na Hoje (2026-11-20).

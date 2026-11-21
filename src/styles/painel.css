@@ -474,3 +474,201 @@
 .painel-lateral:focus-visible {
   outline: none;
 }
+
+/* ---------- Carga horária (#34) ---------- */
+.painel-carga-input.input {
+  width: 72px;
+}
+
+/* ---------- Notas da cadeira (#35) ---------- */
+.notas-dica {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.notas-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+}
+
+.notas-resumo-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.notas-resumo-linha strong {
+  color: var(--texto);
+}
+
+.notas-situacao {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-rotulo);
+  font-weight: 600;
+}
+
+.notas-bom {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.notas-atencao {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.notas-resumo-linha strong.notas-ruim,
+.notas-ruim {
+  color: #f87171;
+}
+
+.notas-situacao.notas-ruim {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.notas-final {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.notas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nota-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  background: rgba(22, 24, 29, 0.6);
+}
+
+.nota-grupo {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.nota-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nota-config {
+  flex-wrap: wrap;
+}
+
+.nota-linha .input {
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.nota-titulo.input,
+.nota-titulo {
+  flex: 1;
+  min-width: 0;
+}
+
+.nota-titulo-vinculado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.nota-data {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--texto-sutil);
+}
+
+.nota-valor.input {
+  width: 58px;
+  flex: none;
+  text-align: center;
+  font-weight: 700;
+}
+
+.nota-valor-grupo {
+  min-width: 58px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--texto-fraco);
+}
+
+.nota-modo.input {
+  width: auto;
+  flex: none;
+}
+
+.nota-peso.input {
+  width: 56px;
+  flex: none;
+  text-align: center;
+}
+
+.nota-pai.input {
+  width: auto;
+  flex: 1 1 110px;
+  min-width: 0;
+  max-width: 180px;
+}
+
+.nota-acoes {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.nota-filhos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--vidro-borda-forte);
+}
+
+.notas-botoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Nota ligada a uma data importante (AbaDatas). */
+.chip-nota {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--vidro-borda-forte);
+  background: transparent;
+  color: var(--texto);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip-nota:hover {
+  border-color: var(--accent-2);
+}

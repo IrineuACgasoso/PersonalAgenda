@@ -1,13 +1,24 @@
 // src/components/cadeira/AbaDatas.jsx
 import { useState } from "react";
-import { Plus, Trash2, Edit2, Calendar, Check, X, Bell, BellOff } from "lucide-react";
+import { Plus, Trash2, Edit2, Calendar, Check, X, Bell, BellOff, GraduationCap } from "lucide-react";
 import { formatarData } from "../../utils/formatarData.js";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
 import SeletorLembretes from "../ui/SeletorLembretes.jsx";
 import useDialogos from "../../hooks/useDialogos";
 import { OPCOES_LEMBRETE, LEMBRETES_PADRAO, textoListaLembretes } from "../../utils/lembretes.js";
+import { formatarNota } from "../../utils/notas.js";
 
-export default function AbaDatas({ datas, lembretesPadrao = LEMBRETES_PADRAO.avaliacoes, onAdd, onRemover, onEditar }) {
+// #35: `onAvaliacao(data)` cria a nota ligada a esta data (ou leva até ela);
+// `notasDasDatas` = { dataId: nota } para mostrar a nota na linha.
+export default function AbaDatas({
+  datas,
+  notasDasDatas = {},
+  onAvaliacao,
+  lembretesPadrao = LEMBRETES_PADRAO.avaliacoes,
+  onAdd,
+  onRemover,
+  onEditar,
+}) {
   const { avisar } = useDialogos();
   const [titulo, setTitulo] = useState("");
   const [data, setData] = useState("");
@@ -105,6 +116,28 @@ export default function AbaDatas({ datas, lembretesPadrao = LEMBRETES_PADRAO.ava
                   )}
                 </div>
               </div>
+              {onAvaliacao &&
+                (notasDasDatas[d.id] ? (
+                  <button
+                    type="button"
+                    className="chip-nota"
+                    onClick={() => onAvaliacao(d)}
+                    title="Ver a nota desta avaliação"
+                  >
+                    <GraduationCap size={12} />
+                    {notasDasDatas[d.id].nota === undefined ? "Nota –" : formatarNota(notasDasDatas[d.id].nota)}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="icon-btn-ghost"
+                    onClick={() => onAvaliacao(d)}
+                    title="Criar avaliação (nota ligada a esta data)"
+                    aria-label={`Criar avaliação de ${d.titulo}`}
+                  >
+                    <GraduationCap size={14} />
+                  </button>
+                ))}
               <button className="icon-btn-ghost" onClick={() => iniciarEdicao(d)} title="Editar data">
                 <Edit2 size={13} />
               </button>

@@ -5,6 +5,11 @@ import { DIAS_FULL } from "../constants";
 import AbaHorarios from "./abas/AbaHorarios";
 import AbaLinks from "./abas/AbaLinks";
 import AbaDatas from "./abas/AbaDatas";
+import AbaNotas from "./abas/AbaNotas";
+import CampoNumero from "./ui/CampoNumero.jsx";
+import { uid } from "../utils/id";
+import { notasPorData } from "../utils/notas.js";
+import { cargaHorariaEstimada, LIMITE_FALTAS } from "../utils/frequencia.js";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import ResumoCadeira from "./ui/ResumoCadeira.jsx";
 import CampoVigencia from "./ui/CampoVigencia.jsx";
@@ -38,7 +43,9 @@ export default function PainelCadeira({
   onAtualizar,
   onExcluir,
 }) {
-  const [abertas, setAbertas] = useState({ horarios: true, links: true, datas: true });
+  const [abertas, setAbertas] = useState({ horarios: true, links: true, datas: true, notas: true });
+  // Nota a focar depois de "Criar avaliação" numa data importante (#35).
+  const [focarNotaId, setFocarNotaId] = useState(null);
   const alternarSecao = (secao) => setAbertas((a) => ({ ...a, [secao]: !a[secao] }));
   const [nomeEdit, setNomeEdit] = useState(cadeira.nome);
   const painelRef = useRef(null);
@@ -64,6 +71,21 @@ export default function PainelCadeira({
   const { adicionar: addHorario, remover: rmHorario, editar: editHorario } = horarios;
   const { adicionar: addLink, remover: rmLink, editar: editLink } = links;
   const { adicionar: addData, remover: rmData, editar: editData } = datas;
+
+  // #35: data importante → nota ligada a ela. Já existe? Só leva até ela.
+  const notasDasDatas = notasPorData(cadeira.notas);
+  const abrirAvaliacao = (data) => {
+    setAbertas((a) => ({ ...a, notas: true }));
+    const existente = notasDasDatas[data.id];
+    if (existente) return setFocarNotaId(existente.id);
+    const nova = { id: uid(), titulo: data.titulo, tipo: "nota", modo: "peso", valor: 1, dataId: data.id };
+    const r = onAtualizar((c) => ({ notas: [...(c.notas || []), nova] }));
+    if (r?.ok) setFocarNotaId(nova.id);
+  };
+
+  // #34: carga horária (limite de faltas = 25%). Vazia = estimada pela vigência.
+  const cargaEstimada = cargaHorariaEstimada(cadeira);
+  const cargaEfetiva = cadeira.cargaHoraria || cargaEstimada;
 
   return (
     <div className="overlay" onClick={onFechar}>
@@ -112,6 +134,27 @@ export default function PainelCadeira({
           dicaSemDatas="Sem datas: as aulas aparecem em todas as semanas."
         />
 
+        <div className="painel-vigencia">
+          <label className="painel-vigencia-campo">
+            <span className="painel-vigencia-rotulo">Carga horária</span>
+            <CampoNumero
+              className="input painel-carga-input"
+              valor={cadeira.cargaHoraria}
+              min={1}
+              placeholder={cargaEstimada ? `≈ ${cargaEstimada}` : "ex.: 60"}
+              onSalvar={(cargaHoraria) => onAtualizar({ cargaHoraria })}
+              aria-label="Carga horária em horas"
+            />
+            <span className="subtle">h</span>
+          </label>
+          <span className="subtle painel-vigencia-dica">
+            {cargaEfetiva
+              ? `Limite de faltas: ${Math.round(cargaEfetiva * LIMITE_FALTAS * 10) / 10}h (25%)${cadeira.cargaHoraria ? "" : ", pela carga estimada nos horários × vigência"}.`
+              : "Informe a carga horária (ou a vigência completa) para ver o limite de faltas."}{" "}
+            Falta: ✗ na aula, na Hoje ou no calendário.
+          </span>
+        </div>
+
         <div className="painel-secoes">
           <Secao
             titulo="Horários"
@@ -144,10 +187,25 @@ export default function PainelCadeira({
           >
             <AbaDatas
               datas={cadeira.datas}
+              notasDasDatas={notasDasDatas}
+              onAvaliacao={abrirAvaliacao}
               lembretesPadrao={lembretesPadrao}
               onAdd={addData}
               onRemover={rmData}
               onEditar={editData}
+            />
+          </Secao>
+          <Secao
+            titulo="Notas"
+            contagem={cadeira.notas?.length || 0}
+            aberta={abertas.notas}
+            onAlternar={() => alternarSecao("notas")}
+          >
+            <AbaNotas
+              cadeira={cadeira}
+              onAtualizar={onAtualizar}
+              focarId={focarNotaId}
+              onFocado={() => setFocarNotaId(null)}
             />
           </Secao>
         </div>

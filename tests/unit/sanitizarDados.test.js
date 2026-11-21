@@ -90,9 +90,31 @@ describe("sanitizarDados", () => {
     const r = rotina({ horarios: [h], extra: 8 });
     const comp = compromisso({ fim: "15:00", concluidoEm: 5, extra: 9 });
     const d = sanitizarDados(appData({ versao: 5, cadeiras: [c], rotinas: [r], compromissos: [comp] }));
-    expect(d.cadeiras[0]).toEqual(c);
+    // faltas (#34) e notas (#35) ganham lista vazia como padrão.
+    expect(d.cadeiras[0]).toEqual({ ...c, faltas: [], notas: [] });
     expect(d.rotinas[0]).toEqual(r);
     expect(d.compromissos[0]).toEqual(comp);
+  });
+
+  it("#34/#35: faltas, carga horária, notas e final da cadeira sobrevivem ao persist()", () => {
+    const notas = [
+      {
+        id: "g",
+        titulo: "Unidade 1",
+        tipo: "grupo",
+        modo: "peso",
+        valor: 1,
+        itens: [{ id: "p", titulo: "Prova 1", tipo: "nota", modo: "peso", valor: 60, nota: 8.5, dataId: "d1" }],
+      },
+    ];
+    const c = cadeira({ faltas: ["aulas|2026-11-16|x|h"], cargaHoraria: 60, notas, notaFinal: 6 });
+    const d = sanitizarDados(appData({ cadeiras: [c] }));
+    expect(d.cadeiras[0]).toMatchObject({ faltas: c.faltas, cargaHoraria: 60, notas, notaFinal: 6 });
+    // Lixo vira padrão (e o Firestore não recebe undefined).
+    const lixo = sanitizarDados(appData({ cadeiras: [cadeira({ faltas: "x", cargaHoraria: -1, notaFinal: "a" })] }));
+    expect(lixo.cadeiras[0].faltas).toEqual([]);
+    expect("cargaHoraria" in lixo.cadeiras[0]).toBe(false);
+    expect("notaFinal" in lixo.cadeiras[0]).toBe(false);
   });
 
   it("compromisso com data/hora inválidas não quebra (vira vazio; fim inválido some)", () => {

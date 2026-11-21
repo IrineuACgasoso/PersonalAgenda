@@ -45,6 +45,7 @@ export default function VisaoGeral({
   eventosConcluidos = [],
   eventosExcluidos = [],
   onAlternarEventoConcluido,
+  onMarcarFalta,
   onExcluirInstanciaEvento,
   onAlternarFeitoAfazer,
   onAtualizarAfazer,
@@ -462,6 +463,7 @@ export default function VisaoGeral({
         eventosConcluidos={eventosConcluidos}
         textoSemDia="Clique em qualquer dia do calendário para ver a programação detalhada."
         onAlternarEventoConcluido={onAlternarEventoConcluido}
+        onMarcarFalta={onMarcarFalta}
         onExcluirInstanciaEvento={onExcluirInstanciaEvento}
         onAlternarFeitoAfazer={onAlternarFeitoAfazer}
         onExcluirAfazer={onExcluirAfazer}

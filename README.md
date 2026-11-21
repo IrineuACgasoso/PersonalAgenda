@@ -33,6 +33,8 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Cada **cadeira** tem cor própria, **horários de aula** (dia, início, fim, local), **links/materiais** e **datas importantes** (provas, trabalhos).
 - O card (e o topo do painel da cadeira) mostra a **próxima aula** e as **próximas avaliações** em caixas na cor da cadeira (avaliações a uma semana ou menos ficam em destaque), e uma **barra de progresso** com o % concluído da vigência. Cadeira já encerrada fica com caixas cinzas compactas. No painel, horários, links e datas ficam em seções recolhíveis.
 - Suporte a **códigos de turma do Google Classroom**, sempre listados antes dos links comuns.
+- **Faltas:** concluir a aula = presença; o **✗** ao lado da lixeira registra falta (a aula fica concluída com "Falta"). O card mostra as horas de falta contra o limite de 25% da **carga horária** (informada ou estimada pelos horários × vigência), em amarelo/vermelho ao se aproximar.
+- **Notas e média:** notas e grupos (unidades) que entram por **peso** (1/1, 60/30/10…) ou como **bônus +X** (ex.: mini-provas que valem +1 na prova). Mostra média parcial, **quanto precisa tirar** nas que faltam para passar direto (≥ 7) ou ir à final (≥ 3), e a nota necessária na final ((média + final)/2 ≥ 5). Uma data importante vira avaliação com um toque, já ligada à nota.
 
 <p align="center">
   <img src="docs/screenshots/tela-cadeiras.jpeg" alt="Cadeiras" width="300" />
@@ -87,6 +89,7 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 ### 🧭 Agenda da semana
 - Grade semanal (06h–23h) combinando horários de cadeiras e rotinas, com filtro por origem.
 - Clicar num bloco abre o painel de edição correspondente.
+- **Conflitos de horário** (aula × rotina) aparecem lado a lado com ⚠; o painel avisa ao cadastrar um horário que choca, sem bloquear.
 - Lista de próximas datas importantes.
 
 <p align="center">

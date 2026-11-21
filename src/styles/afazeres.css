@@ -95,6 +95,12 @@
   border-color: #10b981;
 }
 
+/* Aula concluída como FALTA (#34): ✗ vermelho no lugar do ✓ verde. */
+.check-btn.marcado.falta {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
 /* Repetição que já terminou (passou da data de fim) */
 .check-btn:disabled {
   opacity: 0.35;

@@ -11,6 +11,7 @@
 
 import { VERSAO_ATUAL, migrarDados, versaoDos } from "./migracoes.js";
 import { ehDataISO } from "./calendario.js";
+import { sanitizarItensNota, sanitizarNota } from "./notas.js";
 import { LEMBRETES_PADRAO, sanitizarListaLembretes, sanitizarPreferenciasLembretes } from "./lembretes.js";
 
 export const DADOS_PADRAO = {
@@ -50,6 +51,13 @@ function sanitizarCadeira(c) {
     // (undefined é removido por removerUndefined; "" = sem limite).
     dataInicio: ehDataISO(c.dataInicio) ? c.dataInicio : undefined,
     dataFim: ehDataISO(c.dataFim) ? c.dataFim : undefined,
+    // Faltas (#34): chaves de aula marcadas com ✗ (só strings).
+    faltas: Array.isArray(c.faltas) ? c.faltas.filter((k) => typeof k === "string") : [],
+    // Carga horária em horas (#34), opcional: ausente = estimada pela vigência.
+    cargaHoraria: Number(c.cargaHoraria) > 0 ? Number(c.cargaHoraria) : undefined,
+    // Notas (#35): árvore de notas/grupos (peso ou bônus) + nota da prova final.
+    notas: sanitizarItensNota(c.notas),
+    notaFinal: sanitizarNota(c.notaFinal),
   };
 }
 

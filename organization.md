@@ -40,6 +40,8 @@
 | Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` + `src/styles/cadeiras.css`; resumo (próx. aula/avaliação, barra da vigência) em `ui/ResumoCadeira.jsx`, lógica pura em `src/utils/cadeiras.js` (#21) |
 | Drawer da cadeira (resumo + seções recolhíveis Horários/Links/Datas) | `src/components/PainelCadeira.jsx` (`Secao`) + `src/components/abas/*` (conteúdo de cada seção); CSS `.painel-secao*` em `painel.css` |
 | Conflito de horário aulas × rotinas (#32, só aviso) | puro em `src/utils/conflitos.js` (`conflitosDoHorario`, `fontesDeHorarios`, `distribuirEmColunas`); aviso em `abas/AbaHorarios.jsx` (prop `conflitosDe`, montada no `App`); Agenda: blocos lado a lado + ⚠ em `VisaoAgenda.jsx`; CSS `.aviso-conflito` (painel.css), `.agenda-bloco.conflito` (agenda.css) |
+| Faltas (#34): ✗ na lista do dia, contagem em horas × 25% da carga | puro em `src/utils/frequencia.js` (`marcarFalta`, `alternarConclusaoEvento`, `resumoFaltas`, `cargaHorariaEstimada`); `ev.falta` em `projetarAulas`/`eventoConcluido`/`subtituloEvento` (`projecao.js`); botão em `ui/ListaDoDia.jsx` (`onMarcarFalta`); ação `marcarFaltaAula` no `App`; campo "Carga horária" em `PainelCadeira.jsx`; chip em `ui/ResumoCadeira.jsx` |
+| Notas e média (#35) | puro em `src/utils/notas.js` (cálculo, situação UFPE, edição da árvore, sanitização); UI `abas/AbaNotas.jsx` (seção "Notas" do drawer) + `ui/CampoNumero.jsx`; criar nota a partir de uma data: `abrirAvaliacao` (`PainelCadeira.jsx`) + botão em `abas/AbaDatas.jsx`; CSS `.nota*`/`.notas-*` no fim de `painel.css`, `.resumo-chip` em `cadeiras.css` |
 | Grade semanal (faixa de horas = 1º início → último fim, dentro de 06h–23h) | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css`; faixa/posição em `src/utils/agendaSemanal.js` |
 | Agenda **deitada** no celular em pé (girar o aparelho para ler) | `VisaoAgenda.jsx` (`useMediaQuery` → classe `.agenda-girada`, sem zoom) + `mobile.css` (caixa `container-type: size`, grade girada 90° com cqw/cqh) |
 | Zoom da Agenda (pinça, Ctrl+roda, − 100% +; só desktop/paisagem) | `src/hooks/useZoomAgenda.js` (listeners nativos não passivos, foco sob os dedos, salva em `ZOOM_AGENDA_KEY`) + puro em `src/utils/zoomAgenda.js`; CSS via `--agenda-zoom` |
@@ -72,7 +74,9 @@
 versao            int — versão do schema (atual: 6; ausente = 0). Ver utils/migracoes.js
 periodos[]        { id, nome }                                   ← sem datas desde a v4 (#20)
 periodoAtivoId    string | null
-cadeiras[]        { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[], links[], datas[] }  ← vigência (#19)
+cadeiras[]        { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[], links[], datas[],   ← vigência (#19)
+                    faltas[] (chaves de aula com ✗, #34), cargaHoraria? (h, #34),
+                    notas[] (árvore #35: { id, titulo, tipo nota|grupo, modo peso|bonus, valor, nota?, itens?, dataId? }), notaFinal? }
   horarios[]      { id, dia(0=Seg..6=Dom), inicio "HH:MM", fim, local? }
   links[]         { id, titulo, url, isClassroom?, codigoClassroom? }
   datas[]         { id, titulo, data "YYYY-MM-DD", hora?, lembretes?: number[] }  ← avaliações
@@ -151,6 +155,8 @@ UFPE/
 │       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos, datasImportantes (#46), motivoParaNaoExcluirPeriodo (#53)
 │       ├── zoomAgenda.test.js     #24: limites, pinça, passos de 25%, foco sob os dedos
 │       ├── agendaSemanal.test.js  faixaDeHoras (corte, mínimo de 8 h, limites, lixo) e percentualNaGrade
+│       ├── frequencia.test.js     #34: falta/check, projeção com "Falta", horas × carga, níveis, estimativa
+│       ├── notas.test.js          #35: casos reais (Lógica com bônus, unidades 60/30/10), necessária, situação UFPE, árvore
 │       ├── conflitos.test.js      #32: sobreposição, vigência, próprio horário/mesmo dono, aviso, colunas da Agenda
 │       ├── chavesOrfas.test.js    #52: donoDaChave (formatos da projeção), limparChavesOrfas, devolverChaves
 │       ├── acessibilidade.test.js #51: propsDeBotao (Enter/Espaço, botão de dentro)
@@ -212,6 +218,9 @@ UFPE/
     │                             usa onAtualizar(fn) → lê o item mais recente
     ├── utils/
     │   ├── agendaSemanal.js      PURO: faixaDeHoras(blocos) (mín. 8 h), percentualNaGrade
+    │   ├── frequencia.js         PURO (#34): partesDaChaveAula, marcarFalta, alternarConclusaoEvento, ehFalta, cargaHorariaEstimada, resumoFaltas, textoFaltas, textoDepoisDaFalta
+    │   ├── notas.js              PURO (#35): sanitizarItensNota/sanitizarNota, mediaParcial, notasPendentes, notaNecessaria, situacaoDasNotas, resumoCurtoDasNotas,
+    │   │                         formatarNota (corta em 2 casas), edição da árvore (inserir/editar/remover/mover/duplicar, destinosPossiveis), notasPorData
     │   ├── conflitos.js          PURO (#32): horariosSeSobrepoem, vigenciasSeCruzam, fontesDeHorarios, conflitosDoHorario, avisoDeConflitos, distribuirEmColunas (Agenda)
     │   ├── chavesOrfas.js        PURO (#52): donoDaChave, limparChavesOrfas, devolverChaves
     │   ├── acessibilidade.js     propsDeBotao(acao, extras) (#51)
@@ -274,9 +283,11 @@ UFPE/
     │   ├── abas/
     │   │   ├── AbaHorarios.jsx   CRUD de {dia, inicio, fim, local}; valida início < fim
     │   │   ├── AbaLinks.jsx      CRUD de links web e códigos Classroom (copiar), drop de URL; Classroom primeiro
-    │   │   └── AbaDatas.jsx      CRUD de datas importantes {titulo, data, hora}
+    │   │   ├── AbaDatas.jsx      CRUD de datas importantes {titulo, data, hora}; 🎓 cria/abre a nota ligada (#35)
+    │   │   └── AbaNotas.jsx      #35: resumo (média, quanto precisa, final) + árvore de notas/grupos editável
     │   └── ui/
     │       ├── BarraUrgencia.jsx   "Bateria" de 3 segmentos
+    │       ├── CampoNumero.jsx     Número com vírgula que grava no blur/Enter (vazio = undefined)
     │       ├── ListaDoDia.jsx      Lista de um dia (Hoje e calendário): ordem/textos de projecao.js, check, lixeira, "+", marcos, arrasto opcional
     │       ├── CarregandoPainel.jsx Tela de loading (capacete + órbitas CSS)
     │       ├── EstadoVazio.jsx     Mensagem de vazio + botão opcional

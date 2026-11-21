@@ -6,7 +6,7 @@
 // Caixa com conteúdo = preenchimento leve na cor da cadeira (destaca quem
 // ainda está em andamento). Caixa sem conteúdo = tracejada cinza e compacta
 // (cadeira "acabada" não ocupa espaço à toa).
-import { Clock, GraduationCap, CalendarRange } from "lucide-react";
+import { Clock, GraduationCap, CalendarRange, UserX, Award } from "lucide-react";
 import { toISO } from "../../utils/afazeres.js";
 import { textoVigencia, hexParaRgb } from "../../utils/calendario.js";
 import {
@@ -16,6 +16,8 @@ import {
   textoProximaAula,
   textoQuandoAvaliacao,
 } from "../../utils/cadeiras.js";
+import { resumoFaltas, textoFaltas } from "../../utils/frequencia.js";
+import { resumoCurtoDasNotas, situacaoDasNotas } from "../../utils/notas.js";
 
 function Caixa({ icone: Icone, rotulo, vazia, children }) {
   return (
@@ -39,6 +41,11 @@ export default function ResumoCadeira({ cadeira, eventosExcluidos = [], maxAvali
   const restantes = avaliacoes.length - visiveis.length;
   const progresso = progressoVigencia(cadeira, hojeISO);
   const vigencia = textoVigencia(cadeira);
+
+  // #34 faltas e #35 média: uma linha só, embaixo da vigência.
+  const faltas = resumoFaltas(cadeira, eventosExcluidos);
+  const mostrarFaltas = cadeira.horarios.length > 0 || faltas.quantidade > 0;
+  const notas = resumoCurtoDasNotas(situacaoDasNotas(cadeira.notas, cadeira.notaFinal));
 
   const semAulaTexto = cadeira.horarios.length === 0 ? "Sem horários cadastrados" : "Sem mais aulas na vigência";
 
@@ -97,6 +104,27 @@ export default function ResumoCadeira({ cadeira, eventosExcluidos = [], maxAvali
           <span className="resumo-vigencia-datas">{vigencia || "Sem início/fim definidos"}</span>
         )}
       </div>
+
+      {(mostrarFaltas || notas) && (
+        <div className="resumo-desempenho">
+          {mostrarFaltas && (
+            <span
+              className={`resumo-chip tom-${{ atencao: "atencao", perigo: "ruim", estourou: "ruim" }[faltas.nivel] || "neutro"}`}
+              title={faltas.cargaEstimada ? "Limite pela carga horária estimada" : undefined}
+            >
+              <UserX size={12} />
+              Faltas: {textoFaltas(faltas)}
+              {faltas.nivel === "estourou" ? " · passou do limite" : ""}
+            </span>
+          )}
+          {notas && (
+            <span className={`resumo-chip tom-${notas.tom}`}>
+              <Award size={12} />
+              {notas.texto}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
