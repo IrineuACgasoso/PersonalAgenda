@@ -75,13 +75,35 @@
      (muda com a tela e com o zoom). */
   container-type: inline-size;
   position: absolute;
-  left: 2px;
-  right: 2px;
+  /* #32: --col/--cols vêm de distribuirEmColunas — blocos que se cruzam
+     dividem a largura do dia em vez de um cobrir o outro. */
+  left: calc(var(--col, 0) * 100% / var(--cols, 1) + 2px);
+  width: calc(100% / var(--cols, 1) - 4px);
   border-radius: 6px;
   padding: 3px 6px;
   overflow: hidden;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Conflito de horário (#32): contorno âmbar tracejado + ⚠ antes do nome. */
+.agenda-bloco.conflito {
+  outline: 1px dashed rgba(251, 191, 36, 0.85);
+  outline-offset: -1px;
+}
+
+.agenda-bloco-alerta {
+  color: #fbbf24;
+  vertical-align: -1px;
+  margin-right: 3px;
+}
+
+.agenda-conflitos {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sutil);
+  color: #fbbf24;
 }
 
 .agenda-bloco-titulo {

@@ -39,6 +39,7 @@
 | Formulário/lista de compromissos | `src/components/VisaoCompromissos.jsx`; validação `erroDoCompromisso` (`utils/compromissos.js`) |
 | Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` + `src/styles/cadeiras.css`; resumo (próx. aula/avaliação, barra da vigência) em `ui/ResumoCadeira.jsx`, lógica pura em `src/utils/cadeiras.js` (#21) |
 | Drawer da cadeira (resumo + seções recolhíveis Horários/Links/Datas) | `src/components/PainelCadeira.jsx` (`Secao`) + `src/components/abas/*` (conteúdo de cada seção); CSS `.painel-secao*` em `painel.css` |
+| Conflito de horário aulas × rotinas (#32, só aviso) | puro em `src/utils/conflitos.js` (`conflitosDoHorario`, `fontesDeHorarios`, `distribuirEmColunas`); aviso em `abas/AbaHorarios.jsx` (prop `conflitosDe`, montada no `App`); Agenda: blocos lado a lado + ⚠ em `VisaoAgenda.jsx`; CSS `.aviso-conflito` (painel.css), `.agenda-bloco.conflito` (agenda.css) |
 | Grade semanal (faixa de horas = 1º início → último fim, dentro de 06h–23h) | `src/components/VisaoAgenda.jsx` + `src/styles/agenda.css`; faixa/posição em `src/utils/agendaSemanal.js` |
 | Agenda **deitada** no celular em pé (girar o aparelho para ler) | `VisaoAgenda.jsx` (`useMediaQuery` → classe `.agenda-girada`, sem zoom) + `mobile.css` (caixa `container-type: size`, grade girada 90° com cqw/cqh) |
 | Zoom da Agenda (pinça, Ctrl+roda, − 100% +; só desktop/paisagem) | `src/hooks/useZoomAgenda.js` (listeners nativos não passivos, foco sob os dedos, salva em `ZOOM_AGENDA_KEY`) + puro em `src/utils/zoomAgenda.js`; CSS via `--agenda-zoom` |
@@ -150,6 +151,7 @@ UFPE/
 │       ├── cadeiras.test.js       Resumo da cadeira (#21): próxima aula/avaliação, progresso da vigência, textos, datasImportantes (#46), motivoParaNaoExcluirPeriodo (#53)
 │       ├── zoomAgenda.test.js     #24: limites, pinça, passos de 25%, foco sob os dedos
 │       ├── agendaSemanal.test.js  faixaDeHoras (corte, mínimo de 8 h, limites, lixo) e percentualNaGrade
+│       ├── conflitos.test.js      #32: sobreposição, vigência, próprio horário/mesmo dono, aviso, colunas da Agenda
 │       ├── chavesOrfas.test.js    #52: donoDaChave (formatos da projeção), limparChavesOrfas, devolverChaves
 │       ├── acessibilidade.test.js #51: propsDeBotao (Enter/Espaço, botão de dentro)
 │       ├── nomes.test.js          #48: nomeAoSair (vazio volta ao atual)
@@ -210,6 +212,7 @@ UFPE/
     │                             usa onAtualizar(fn) → lê o item mais recente
     ├── utils/
     │   ├── agendaSemanal.js      PURO: faixaDeHoras(blocos) (mín. 8 h), percentualNaGrade
+    │   ├── conflitos.js          PURO (#32): horariosSeSobrepoem, vigenciasSeCruzam, fontesDeHorarios, conflitosDoHorario, avisoDeConflitos, distribuirEmColunas (Agenda)
     │   ├── chavesOrfas.js        PURO (#52): donoDaChave, limparChavesOrfas, devolverChaves
     │   ├── acessibilidade.js     propsDeBotao(acao, extras) (#51)
     │   ├── nomes.js              nomeAoSair(digitado, atual) (#48, drawers)

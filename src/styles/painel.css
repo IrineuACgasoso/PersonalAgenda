@@ -91,6 +91,26 @@
   color: #f87171;
 }
 
+/* Conflito de horário (#32): só aviso, salvar continua liberado. */
+.aviso-conflito {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #fbbf24;
+}
+
+.aviso-conflito svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.item-linha.com-conflito {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
 /* ---------- Seções do drawer da cadeira (#21) ---------- */
 .painel-resumo {
   padding-left: 19px; /* alinha com o nome, depois da bolinha de cor */

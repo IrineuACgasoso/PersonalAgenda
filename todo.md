@@ -81,16 +81,14 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 
 ### Ideias aprovadas pelo usuário (implementar depois das fases acima)
 - [x] **#31 Tela "Hoje"** (2026-11-20). Tela inicial, em "Visão geral" na sidebar: lista do dia com < > para andar pelos dias. Calendário geral: a lista do dia passou para baixo do calendário (mesmo componente `ui/ListaDoDia`). Ordem nova nas duas: horário ↑ (qualquer tipo) → sem hora não-afazer (prova do dia todo) → afazeres de data única → afazeres repetidos (2026-11-21) → sem data; urgência desempata; concluídos no fim. Afazer mostra "Hoje / N d atrás / Daqui a N d", "Pendente" (sem data) ou "Concluído". Atrasados (afazer avulso/compromisso com data passada e sem check) **não** entram na lista: aviso no topo da Hoje que abre o calendário no dia, para marcar como feito ou arrastar (adiar).
-- [ ] **#32 Detecção de conflito de horário** entre aulas e rotinas.
+- [x] **#32 Detecção de conflito de horário** entre aulas e rotinas (2026-11-21). Só avisa: âmbar no drawer (rascunho e lista de horários) e blocos lado a lado com ⚠ na Agenda. Vigências que não se cruzam não acusam. `utils/conflitos.js`.
 - [ ] **#34 Controle de faltas por cadeira** (contador vs. limite de 25% da carga horária, alerta ao se aproximar).
 - [ ] **#35 Notas e média por cadeira** (pesos por avaliação, quanto precisa tirar na próxima).
-- [ ] **#36 Agenda semanal navegável** (semana anterior/próxima) incluindo afazeres e compromissos pontuais.
-- [ ] **#37 Busca global** (cadeiras, links, afazeres).
-- [ ] **#38 Arquivar períodos antigos** em vez de só excluir.
 
 ---
 
 ## ✅ Feito recentemente
+- [x] #32 conflito de horário (aviso, sem bloquear) (2026-11-21).
 - [x] Agenda da semana **deitada** no celular em pé (girar o aparelho) + faixa de horas cortada ao usado · **Limpeza técnica concluída** (#26–#30, #47, #48, #51–#53) (2026-11-21).
 - [x] #31 Tela Hoje (inicial) + lista do calendário embaixo + ordem nova da lista do dia · #49 "hoje" vira à meia-noite · aviso de atrasados na Hoje (2026-11-20).
 - [x] Ícone do Android com fundo branco: maskable 192 + `id`/`lang` no manifest; precisa reinstalar o app (2026-11-20).

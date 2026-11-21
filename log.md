@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-11-21 (19) — #32 Conflito de horário (aulas × rotinas), só aviso
+- **Pedido:** "vamos fazer o 32, 34 e 35 … pro 32 não bloqueie caso dar conflito, só avise". #36–#38 saíram do todo (escopo ideal encerra no #35).
+- **Lógica pura** `utils/conflitos.js`: `horariosSeSobrepoem` (mesmo dia, encostar não conta), `vigenciasSeCruzam` (rotina que já acabou não acusa), `fontesDeHorarios` (cadeiras do período ativo + todas as rotinas), `conflitosDoHorario` (ignora o próprio horário pelo id; outro horário do mesmo dono conta como `mesmoDono`), `avisoDeConflitos`, `distribuirEmColunas` (Agenda). 15 testes em `conflitos.test.js`.
+- **Drawers (cadeira e rotina):** `AbaHorarios` recebe `conflitosDe` — aviso âmbar no rascunho antes de salvar (quieto enquanto o formulário está nos valores iniciais) e em cada horário da lista. Salvar nunca é bloqueado.
+- **Agenda da semana:** blocos que se cruzam ficam **lado a lado** (antes um cobria o outro), com contorno tracejado e ⚠; contador "N em conflito" no cabeçalho. `--col/--cols` no `.agenda-bloco` (agenda.css + mobile.css).
+- `npm run check` ✅ (410 testes). Não verificado no navegador nesta sessão.
+- **➡ Próximo:** #34 (faltas) e #35 (notas) — proposta de modelo enviada ao usuário, aguardando aprovação (mexe no modelo da cadeira).
+
 ## 2026-11-21 (18) — Hoje: data centralizada, atalho na linha do título · afazer de data única antes dos repetidos
 - **Pedido:** "o titulo ainda permanece descentralizado. centralize ele e jogue o atalho hoje um pouco mais para cima" + "afazeres de uma data unica possuem prioridade sobre os repetitivos. meus afazeres repetitivos ainda ficam na frente".
 - **Hoje:** `< data >` centralizada na linha (o "+" ficou absoluto no canto direito, sem empurrar o centro). O "↶ Hoje" saiu da linha própria (`.hoje-topo`, removida) e foi para a direita da linha do título "Hoje" (`.hoje-header`: botão absoluto + `padding-right` reservado sempre, então aparecer/sumir não move nada). A navegação subiu ~18px.

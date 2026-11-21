@@ -15,7 +15,7 @@ import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
 
 const textoHorarioExcluido = (h) => `Horário de ${DIAS_FULL[h.dia] ?? "?"} (${h.inicio}–${h.fim}) excluído`;
 
-export default function PainelRotina({ rotina, eventosExcluidos = [], onFechar, onAtualizar, onExcluir }) {
+export default function PainelRotina({ rotina, eventosExcluidos = [], conflitosDe, onFechar, onAtualizar, onExcluir }) {
   const [nomeEdit, setNomeEdit] = useState(rotina.nome);
   const painelRef = useRef(null);
   useNavegacaoEnter(painelRef);
@@ -92,7 +92,14 @@ export default function PainelRotina({ rotina, eventosExcluidos = [], onFechar, 
               <span className="painel-secao-contagem">{rotina.horarios.length}</span>
             </div>
             <div className="painel-secao-corpo">
-              <AbaHorarios horarios={rotina.horarios} onAdd={addHorario} onRemover={rmHorario} onEditar={editHorario} />
+              <AbaHorarios
+                horarios={rotina.horarios}
+                onAdd={addHorario}
+                onRemover={rmHorario}
+                onEditar={editHorario}
+                conflitosDe={conflitosDe}
+                rotuloMesmoDono="outro horário desta rotina"
+              />
             </div>
           </section>
         </div>

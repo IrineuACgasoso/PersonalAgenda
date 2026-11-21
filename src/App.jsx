@@ -30,6 +30,7 @@ import { vigenciaPadraoParaNovaCadeira } from "./utils/calendario";
 import { reinserirPorId, reinserirVarios, separarRemovidos } from "./utils/desfazer";
 import { devolverChaves, limparChavesOrfas } from "./utils/chavesOrfas";
 import { motivoParaNaoExcluirPeriodo } from "./utils/cadeiras";
+import { conflitosDoHorario, fontesDeHorarios } from "./utils/conflitos";
 import {
   TEMPO_LIMITE_CARREGAMENTO_MS,
   CHAVE_WATCHDOG_RECARREGOU,
@@ -135,6 +136,8 @@ export default function App() {
   const compromissos = data.compromissos || [];
   // Padrões dos lembretes (#23), sempre completos.
   const preferenciasLembretes = sanitizarPreferenciasLembretes(data.lembretes);
+  // #32: aulas (cadeiras do período ativo) × rotinas, para o aviso de conflito nos drawers.
+  const fontesHorarios = fontesDeHorarios(cadeirasDoPeriodo, rotinas);
 
   /* Toda ação grava por aqui. Ela usa persist((d) => ...): o updater recebe
      o estado MAIS RECENTE, não o `data` deste render — duas ações seguidas
@@ -721,6 +724,7 @@ export default function App() {
           cadeira={cadeiraAberta}
           eventosExcluidos={eventosExcluidos}
           lembretesPadrao={preferenciasLembretes.avaliacoes}
+          conflitosDe={(h) => conflitosDoHorario(h, { tipo: "cadeira", id: cadeiraAberta.id }, fontesHorarios)}
           onFechar={() => setCadeiraAbertaId(null)}
           onAtualizar={(patch) => atualizarCadeira(cadeiraAberta.id, patch)}
           onExcluir={() => excluirCadeira(cadeiraAberta.id)}
@@ -731,6 +735,7 @@ export default function App() {
         <PainelRotina
           rotina={rotinaAberta}
           eventosExcluidos={eventosExcluidos}
+          conflitosDe={(h) => conflitosDoHorario(h, { tipo: "rotina", id: rotinaAberta.id }, fontesHorarios)}
           onFechar={() => setRotinaAbertaId(null)}
           onAtualizar={(patch) => atualizarRotina(rotinaAberta.id, patch)}
           onExcluir={() => excluirRotina(rotinaAberta.id)}

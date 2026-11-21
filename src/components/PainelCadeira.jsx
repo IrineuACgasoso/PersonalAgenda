@@ -33,6 +33,7 @@ export default function PainelCadeira({
   cadeira,
   eventosExcluidos = [],
   lembretesPadrao,
+  conflitosDe,
   onFechar,
   onAtualizar,
   onExcluir,
@@ -118,7 +119,14 @@ export default function PainelCadeira({
             aberta={abertas.horarios}
             onAlternar={() => alternarSecao("horarios")}
           >
-            <AbaHorarios horarios={cadeira.horarios} onAdd={addHorario} onRemover={rmHorario} onEditar={editHorario} />
+            <AbaHorarios
+              horarios={cadeira.horarios}
+              onAdd={addHorario}
+              onRemover={rmHorario}
+              onEditar={editHorario}
+              conflitosDe={conflitosDe}
+              rotuloMesmoDono="outro horário desta cadeira"
+            />
           </Secao>
           <Secao
             titulo="Links e materiais"

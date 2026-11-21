@@ -1,11 +1,14 @@
 // src/components/cadeira/AbaHorarios.jsx
 import { useState } from "react";
-import { Plus, Trash2, Edit2, Clock, MapPin, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Clock, MapPin, Check, X, AlertTriangle } from "lucide-react";
 import { DIAS_FULL } from "../../constants.js";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
 import useDialogos from "../../hooks/useDialogos";
+import { avisoDeConflitos } from "../../utils/conflitos.js";
 
-export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
+// `conflitosDe(horario)` (opcional, #32): com quem o horário choca. Só avisa —
+// salvar continua liberado (às vezes o choque é proposital).
+export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar, conflitosDe, rotuloMesmoDono }) {
   const { avisar } = useDialogos();
   const [dia, setDia] = useState(0);
   const [inicio, setInicio] = useState("08:00");
@@ -38,6 +41,13 @@ export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
     }
     limpar();
   };
+
+  const avisoDe = (h) => (conflitosDe ? avisoDeConflitos(conflitosDe(h), rotuloMesmoDono) : "");
+  // Rascunho do formulário: avisa ANTES de salvar (o horário em edição se
+  // ignora pelo id). Com o formulário ainda nos valores iniciais, fica quieto:
+  // senão abriria o drawer já acusando "Seg 08:00–10:00".
+  const intocado = !editandoId && dia === 0 && inicio === "08:00" && fim === "10:00";
+  const avisoRascunho = !intocado && inicio && fim && inicio < fim ? avisoDe({ id: editandoId, dia, inicio, fim }) : "";
 
   const iniciarEdicao = (h) => {
     setEditandoId(h.id);
@@ -77,33 +87,46 @@ export default function AbaHorarios({ horarios, onAdd, onRemover, onEditar }) {
           </button>
         )}
       </div>
+      {avisoRascunho && (
+        <p className="aviso-conflito" role="status">
+          <AlertTriangle size={13} /> {avisoRascunho}
+        </p>
+      )}
 
       <div className="lista-itens">
         {horarios.length === 0 && <EstadoVazio texto="Nenhum horário cadastrado" pequeno />}
         {[...horarios]
           .sort((a, b) => a.dia - b.dia || a.inicio.localeCompare(b.inicio))
-          .map((h) => (
-            <div key={h.id} className="item-linha">
-              <Clock size={14} style={{ opacity: 0.6 }} />
-              <div style={{ flex: 1 }}>
-                <div className="item-linha-titulo">
-                  {DIAS_FULL[h.dia]} · {h.inicio}–{h.fim}
-                </div>
-                {h.local && (
-                  <div className="subtle">
-                    <MapPin size={11} style={{ verticalAlign: "-1px", marginRight: 3 }} />
-                    {h.local}
+          .map((h) => {
+            const aviso = avisoDe(h);
+            return (
+              <div key={h.id} className={`item-linha${aviso ? " com-conflito" : ""}`}>
+                <Clock size={14} style={{ opacity: 0.6 }} />
+                <div style={{ flex: 1 }}>
+                  <div className="item-linha-titulo">
+                    {DIAS_FULL[h.dia]} · {h.inicio}–{h.fim}
                   </div>
-                )}
+                  {h.local && (
+                    <div className="subtle">
+                      <MapPin size={11} style={{ verticalAlign: "-1px", marginRight: 3 }} />
+                      {h.local}
+                    </div>
+                  )}
+                  {aviso && (
+                    <div className="aviso-conflito">
+                      <AlertTriangle size={11} /> {aviso}
+                    </div>
+                  )}
+                </div>
+                <button className="icon-btn-ghost" onClick={() => iniciarEdicao(h)} title="Editar horário">
+                  <Edit2 size={13} />
+                </button>
+                <button className="icon-btn-ghost" onClick={() => onRemover(h.id)} title="Excluir horário">
+                  <Trash2 size={13} />
+                </button>
               </div>
-              <button className="icon-btn-ghost" onClick={() => iniciarEdicao(h)} title="Editar horário">
-                <Edit2 size={13} />
-              </button>
-              <button className="icon-btn-ghost" onClick={() => onRemover(h.id)} title="Excluir horário">
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
+            );
+          })}
       </div>
     </div>
   );

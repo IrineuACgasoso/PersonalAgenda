@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Repeat, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertTriangle, BookOpen, Repeat, ZoomIn, ZoomOut } from "lucide-react";
 import { DIAS, DIAS_FULL } from "../constants.js";
 import { formatarData } from "../utils/formatarData.js";
 import { toISO } from "../utils/afazeres.js";
@@ -13,6 +13,7 @@ import useMediaQuery from "../hooks/useMediaQuery.js";
 import { faixaDeHoras, percentualNaGrade } from "../utils/agendaSemanal.js";
 import { ZOOM_MAX, ZOOM_MIN, textoZoom } from "../utils/zoomAgenda.js";
 import { propsDeBotao } from "../utils/acessibilidade.js";
+import { distribuirEmColunas } from "../utils/conflitos.js";
 
 const FILTROS_AGENDA_KEY = "painel-academico-filtros-agenda";
 
@@ -99,6 +100,12 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
   const faixa = faixaDeHoras(blocos);
   const totalHoras = faixa.fim - faixa.inicio;
 
+  // #32: blocos do mesmo dia que se cruzam ficam lado a lado (antes um
+  // cobria o outro) e ganham o ⚠. Só avisa; nada é bloqueado.
+  const blocosPorDia = DIAS.map((_, idx) => blocos.filter((b) => b.dia === idx));
+  const posicoes = blocosPorDia.map((doDia) => distribuirEmColunas(doDia));
+  const totalConflitos = posicoes.reduce((n, pos) => n + [...pos.values()].filter((p) => p.conflito).length, 0);
+
   return (
     <div>
       <div className="header-bar">
@@ -106,6 +113,11 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
         <span className="subtle">
           {blocos.length} horário{blocos.length !== 1 ? "s" : ""} fixo{blocos.length !== 1 ? "s" : ""}
         </span>
+        {totalConflitos > 0 && (
+          <span className="agenda-conflitos" title="Horários que se cruzam aparecem lado a lado, com ⚠">
+            <AlertTriangle size={13} /> {totalConflitos} em conflito
+          </span>
+        )}
       </div>
 
       <div className="filtros-linha">
@@ -172,37 +184,41 @@ export default function VisaoAgenda({ cadeiras, rotinas = [], onAbrirCadeira, on
                   {Array.from({ length: totalHoras }, (_, i) => (
                     <div key={i} className="agenda-linha" />
                   ))}
-                  {blocos
-                    .filter((b) => b.dia === idx)
-                    .map((b) => {
-                      const top = percentualNaGrade(b.inicio, faixa.inicio, faixa.fim);
-                      const bottom = percentualNaGrade(b.fim, faixa.inicio, faixa.fim);
-                      return (
-                        <div
-                          key={b.id}
-                          className="agenda-bloco"
-                          style={{
-                            top: `${top}%`,
-                            height: `${Math.max(bottom - top, 4)}%`,
-                            background: b.cor + "22",
-                            borderLeft: `3px solid ${b.cor}`,
-                          }}
-                          {...propsDeBotao(
-                            () => (b.tipo === "rotina" ? onAbrirRotina(b.origemId) : onAbrirCadeira(b.origemId)),
-                            { "aria-label": `${b.origemNome}, ${DIAS_FULL[idx]}, ${b.inicio} a ${b.fim}` },
-                          )}
-                          title={`${b.origemNome} · ${b.inicio}–${b.fim}`}
-                        >
-                          <span className="agenda-bloco-titulo" style={{ color: b.cor }}>
-                            {b.origemNome}
-                          </span>
-                          <span className="agenda-bloco-hora">
-                            {b.inicio}–{b.fim}
-                            {b.local ? ` · ${b.local}` : ""}
-                          </span>
-                        </div>
-                      );
-                    })}
+                  {blocosPorDia[idx].map((b) => {
+                    const top = percentualNaGrade(b.inicio, faixa.inicio, faixa.fim);
+                    const bottom = percentualNaGrade(b.fim, faixa.inicio, faixa.fim);
+                    const { coluna, colunas, conflito } = posicoes[idx].get(b);
+                    return (
+                      <div
+                        key={b.id}
+                        className={`agenda-bloco${conflito ? " conflito" : ""}`}
+                        style={{
+                          top: `${top}%`,
+                          height: `${Math.max(bottom - top, 4)}%`,
+                          "--col": coluna,
+                          "--cols": colunas,
+                          background: b.cor + "22",
+                          borderLeft: `3px solid ${b.cor}`,
+                        }}
+                        {...propsDeBotao(
+                          () => (b.tipo === "rotina" ? onAbrirRotina(b.origemId) : onAbrirCadeira(b.origemId)),
+                          {
+                            "aria-label": `${b.origemNome}, ${DIAS_FULL[idx]}, ${b.inicio} a ${b.fim}${conflito ? ", em conflito de horário" : ""}`,
+                          },
+                        )}
+                        title={`${b.origemNome} · ${b.inicio}–${b.fim}${conflito ? " · ⚠ conflito de horário" : ""}`}
+                      >
+                        <span className="agenda-bloco-titulo" style={{ color: b.cor }}>
+                          {conflito && <AlertTriangle size={10} className="agenda-bloco-alerta" />}
+                          {b.origemNome}
+                        </span>
+                        <span className="agenda-bloco-hora">
+                          {b.inicio}–{b.fim}
+                          {b.local ? ` · ${b.local}` : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
