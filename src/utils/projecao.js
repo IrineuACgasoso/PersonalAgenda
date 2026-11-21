@@ -216,14 +216,17 @@ export function projetarAfazeresSemData(afazeres, inicioISO, fimISO, hojeISO) {
 //      compromisso, rotina);
 //   1. sem horário e que não é afazer (ex.: avaliação sem hora: é do dia
 //      todo, fica logo depois dos horários e antes dos afazeres);
-//   2. afazeres DESTE dia (data marcada ou ocorrência de repetição);
-//   3. afazeres sem data (só aparecem em "hoje", por padrão).
-// Dentro de 2 e 3 o desempate é sempre a urgência (maior primeiro). O sort
-// é estável: empates mantêm a ordem de chegada.
+//   2. afazeres de data ÚNICA marcados para este dia;
+//   3. afazeres que se repetem (ocorrência deste dia) — o de data única é
+//      daquele dia em especial e vem antes (pedido do usuário, 2026-11-21);
+//   4. afazeres sem data (só aparecem em "hoje", por padrão).
+// Dentro de 2, 3 e 4 o desempate é sempre a urgência (maior primeiro). O
+// sort é estável: empates mantêm a ordem de chegada.
 function grupoNoDia(ev) {
   if (ev.hora) return 0;
   if (ev.tipo !== "afazeres") return 1;
-  return ev.semData ? 3 : 2;
+  if (ev.semData) return 4;
+  return ev.rotina && ev.rotina.tipo !== "nenhuma" ? 3 : 2;
 }
 
 export function compararEventosDoDia(a, b) {

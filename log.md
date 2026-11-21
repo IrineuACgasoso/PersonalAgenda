@@ -5,6 +5,13 @@
 
 ---
 
+## 2026-11-21 (18) — Hoje: data centralizada, atalho na linha do título · afazer de data única antes dos repetidos
+- **Pedido:** "o titulo ainda permanece descentralizado. centralize ele e jogue o atalho hoje um pouco mais para cima" + "afazeres de uma data unica possuem prioridade sobre os repetitivos. meus afazeres repetitivos ainda ficam na frente".
+- **Hoje:** `< data >` centralizada na linha (o "+" ficou absoluto no canto direito, sem empurrar o centro). O "↶ Hoje" saiu da linha própria (`.hoje-topo`, removida) e foi para a direita da linha do título "Hoje" (`.hoje-header`: botão absoluto + `padding-right` reservado sempre, então aparecer/sumir não move nada). A navegação subiu ~18px.
+- **Ordem do dia:** `grupoNoDia` (`utils/projecao.js`) separou os afazeres: **data única** (2) → **repetidos** (3) → sem data (4); urgência desempata dentro de cada grupo. Vale na Hoje e no calendário geral. Teste de regressão em `projecao.test.js`.
+- **Verificado no navegador** (preview, 390px e 1280px): centro da data = centro da linha (195/195 e 684/684), setas e "+" nas mesmas posições em hoje e +1 dia, atalho na altura do título; "Entregar lista" (única, urg. 1) acima de "Academia" (diária, urg. 3); sem erros no console. `npm run check` ✅.
+- **➡ Próximo:** usuário vai dizer as novas features.
+
 ## 2026-11-21 (17) — Agenda deitada no celular + limpeza técnica concluída
 - **Pedido:** "queria que [a Agenda da semana] fosse disposta verticalmente de fato, ao ponto de eu ter que rotacionar meu telefone para eu ver ela (só no mobile) … completamente disposta sem deformações" + "complete a limpeza técnica".
 - **Agenda:** com o celular em pé (`(max-width: 860px) and (orientation: portrait)`, via `useMediaQuery`), a grade é desenhada **deitada**: caixa `.agenda-girada` (`container-type: size`, altura = resto da tela) e a grade dentro com largura = altura da caixa e altura = largura, girada 90° no sentido horário (topo na borda direita ⇒ deitar o celular para a esquerda). Tudo cabe sem rolagem; **sem zoom** nesse modo (a pinça em coordenadas giradas ampliaria no lugar errado) — o zoom continua no desktop/paisagem. O manifest trava em retrato, por isso o giro é no CSS. **Faixa de horas** agora vai do 1º início ao último fim (horas cheias, mín. 8 h, dentro de 06h–23h) em todas as telas (`utils/agendaSemanal.js`), para os blocos ficarem maiores.

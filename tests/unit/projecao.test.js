@@ -307,6 +307,19 @@ describe("ordenação dentro do dia", () => {
     expect(titulos(mapa, "2026-11-18")).toEqual(["Academia", "Sem data"]);
   });
 
+  it("afazer de data única vem antes dos repetidos, mesmo com urgência menor", () => {
+    const mapa = projetarEventos({
+      ...NOV,
+      afazeres: [
+        afazer({ id: "r", nome: "Academia", data: "2026-11-02", urgencia: 3, rotina: { tipo: "diaria" } }),
+        afazer({ id: "u", nome: "Entregar lista", data: "2026-11-18", urgencia: 1 }),
+        afazer({ id: "s", nome: "Sem data", urgencia: 3 }),
+        afazer({ id: "u2", nome: "Pagar conta", data: "2026-11-18", urgencia: 2 }),
+      ],
+    });
+    expect(titulos(mapa, "2026-11-18")).toEqual(["Pagar conta", "Entregar lista", "Academia", "Sem data"]);
+  });
+
   it("ordenarEventosDoDia: concluídos vão para o fim, mantendo a ordem entre si", () => {
     const evs = [
       { tipo: "aulas", titulo: "aula 08h", hora: "08:00", chave: "a1" },

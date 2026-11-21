@@ -62,9 +62,18 @@ export default function VisaoHoje({
 
   return (
     <div>
-      <div className="header-bar">
+      {/* Atalho de volta para hoje: no canto direito da linha do título, fora
+          do fluxo (absoluto), então aparecer/sumir não move nada. Antes ele
+          entrava ao lado do ">" e espremia a navegação; depois ficou numa
+          linha própria logo acima do "+", ainda perto demais da data. */}
+      <div className="header-bar hoje-header">
         <h1 className="titulo-pagina">Hoje</h1>
         <span className="subtle">Tudo o que está marcado para o dia</span>
+        {deslocamento !== 0 && (
+          <button type="button" className="btn-secundario hoje-voltar" onClick={() => setDeslocamento(0)}>
+            <Undo2 size={13} /> Hoje
+          </button>
+        )}
       </div>
 
       {atrasados.length > 0 && (
@@ -108,18 +117,6 @@ export default function VisaoHoje({
           </div>
         </div>
       )}
-
-      {/* Atalho de volta para hoje: numa linha própria, no canto direito, com
-          a altura SEMPRE reservada. Antes ele entrava ao lado do ">" e
-          espremia a navegação: o ">" andava e o toque seguinte caía no
-          "Hoje". Assim data, "<" e ">" nunca mudam de lugar. */}
-      <div className="hoje-topo">
-        {deslocamento !== 0 && (
-          <button type="button" className="btn-secundario hoje-voltar" onClick={() => setDeslocamento(0)}>
-            <Undo2 size={13} /> Hoje
-          </button>
-        )}
-      </div>
 
       <ListaDoDia
         diaISO={diaISO}

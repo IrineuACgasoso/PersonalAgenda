@@ -24,7 +24,7 @@
 | O que aparece em cada dia do calendário geral | `src/utils/projecao.js` (puro): `projetarAvaliacoes/Aulas/Rotinas/Compromissos/Afazeres/AfazeresSemData`, `compararEventosDoDia` (ordenação), `agruparPorDia`, `projetarEventos` (tudo de uma vez). O hook `useEventosCalendario.js` só memoiza |
 | Tela Hoje (#31, tela inicial) | `src/components/VisaoHoje.jsx` (< > por `deslocamento` a partir de hoje; projeta só o dia com `projetarEventos`); datas: `somarDias`/`diaPorExtenso` (`utils/calendario.js`); CSS `hoje.css` |
 | Aviso de atrasados na Hoje (afazer avulso/compromisso com data passada e sem check) | `itensAtrasados`, `textoAtrasados` (`utils/projecao.js`) + `.aviso-atrasados` em `VisaoHoje.jsx`/`hoje.css`; clicar abre o calendário no dia: `abrirCalendarioNaData` (App) → `VisaoGeral` `diaInicial` (consumido ao montar) |
-| Ordem da lista do dia (horário → sem hora não-afazer → afazeres do dia → sem data; urgência desempata; concluídos no fim) e textos "Hoje / N d atrás / Daqui a N d / Pendente / Concluído" | `compararEventosDoDia`, `ordenarEventosDoDia`, `subtituloEvento`, `textoDistanciaDeHoje` (`utils/projecao.js`) |
+| Ordem da lista do dia (horário → sem hora não-afazer → afazeres de data única → afazeres repetidos → sem data; urgência desempata; concluídos no fim) e textos "Hoje / N d atrás / Daqui a N d / Pendente / Concluído" | `compararEventosDoDia`, `ordenarEventosDoDia`, `subtituloEvento`, `textoDistanciaDeHoje` (`utils/projecao.js`) |
 | "Hoje" que vira à meia-noite (#49) | `src/hooks/useHoje.js` (timer até 00:00 + `visibilitychange`/`focus`); usado por `VisaoHoje`, `VisaoGeral` → `useEventosCalendario({ hojeISO })` |
 | Rodar/escrever testes | `tests/README.md`; dados de exemplo em `tests/fixtures/fabricas.js` |
 | Vigência da cadeira (#19) | Regra: `src/utils/calendario.js` → `vigenciaDaCadeira`, `cadeiraEstaAtivaNaData`, `erroDeVigencia`, `vigenciaPadraoParaNovaCadeira`; edição no drawer `PainelCadeira.jsx` (bloco "Vigência"); marcos no calendário: `projetarMarcosVigencia` (`projecao.js`) + `VisaoGeral.jsx` (`.calendario-marcos`, `.marco-vigencia` em `calendario.css`) |
@@ -305,7 +305,7 @@ UFPE/
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
         ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)
-        ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav, largura fixa), atalho .hoje-topo (altura reservada), menu do + à direita, aviso de atrasados (.aviso-atrasados)
+        ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav centralizada, largura fixa; "+" absoluto à direita), atalho "Hoje" na linha do título (.hoje-header, absoluto + padding reservado), menu do + abre para dentro, aviso de atrasados (.aviso-atrasados)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)
         └── mobile.css          Todas as regras ≤860px
 ```
