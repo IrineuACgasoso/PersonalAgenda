@@ -68,7 +68,7 @@
 | Lembretes (#23): quando disparam, textos do push, padrões | `src/utils/lembretes.js` (PURO, **sem imports**; cópia em `functions/compartilhado/` via `npm run funcoes:sincronizar`) |
 | Lembretes: envio no servidor (agendador 1/min, FCM, tokens inválidos, testes) | `functions/index.js` (deploy pelo usuário: `firebase deploy --only functions`) |
 | Lembretes: ativar/desativar/testar no aparelho, token FCM | `src/notificacoes.js` (registro em `users/{uid}/dispositivos`, não passa pelo persist); estado puro em `src/utils/aparelho.js` |
-| Lembretes: UI | `ui/ModalLembretes.jsx` (Sidebar → Ajustes → Lembretes), `ui/SeletorLembretes.jsx` (form do compromisso, `AbaDatas`); CSS `lembretes.css` |
+| Lembretes: UI | `ui/ModalLembretes.jsx` (Sidebar → Ajustes → Lembretes), `ui/SeletorLembretes.jsx` (form do compromisso, com `personalizavel`), `ui/AdicionarLembrete.jsx` ("+ Adicionar" valor | h/dia/semana: compromisso e data importante); CSS `lembretes.css` |
 | Push / clique na notificação / cache offline | `src/sw.js` (service worker próprio, `injectManifest` no `vite.config.js`) |
 | Cor quase preta invisível no fundo escuro (#55) | `corVisivel` (`utils/calendario.js`), aplicada em `projecao.js`, listas e agenda — só exibição |
 
@@ -309,7 +309,8 @@ UFPE/
     │       ├── ModalTexto.jsx      Modal com 1 input (usado p/ novo período), sobre a casca `Modal`
     │       ├── ModalRestaurarNuvem.jsx  Lista de backups da nuvem (data + resumo); confirmação/gravação no App
 │       ├── ModalLembretes.jsx  #23: este aparelho (ativar/testar/desativar) + padrões de compromissos e avaliações
-│       ├── SeletorLembretes.jsx Chips de antecedência (Padrão · opções · Nenhum); padrão herdado aparece tracejado
+│       ├── SeletorLembretes.jsx Chips de antecedência (Padrão · opções · Nenhum · "+ Adicionar" com `personalizavel`); padrão herdado aparece tracejado
+│       ├── AdicionarLembrete.jsx "+ Adicionar" (valor | h/dia/semana antes) → onAdicionar(min); Enter/Esc nativos no input
 │       ├── TelaErroCarga.jsx   Erro da carga inicial (#7): "Tentar de novo" + "Usar sem login" (estilos no fim de painel.css)
     │       ├── ResumoRotina.jsx    Faixa S T Q Q S S D (dias ativos na cor), caixa "Próxima" (ou "Encerrada"), h/semana, vigência
     │       ├── SeletorData.jsx     Seletor de data próprio: popover do mês, `permitidas(ini, fim) → Set`, minimo/maximo, marcada, limpavel
@@ -331,7 +332,7 @@ UFPE/
         ├── afazeres.css        Urgência, dias da semana, check-btn
         ├── rotinas.css         .resumo-rotina, .faixa-semana
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
-        ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
+        ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio, .chip-lembrete.proprio, "+ Adicionar" (.lembrete-novo)
         ├── tela-cadeira.css    TelaCadeira (overlay z 70, caixa fixa, abas com brilho), mini agenda, cartões, materiais, datas/sininho,
         │                       modal de lembretes da data, boletim e caixa final (cores de status próprias)
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)

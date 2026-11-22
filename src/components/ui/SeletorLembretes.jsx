@@ -6,8 +6,12 @@
 // o chip "Padrão" e `valor` é sempre uma lista.
 // Os chips do padrão aparecem "apagados" quando o item segue o padrão, para
 // mostrar o que vai acontecer sem precisar abrir o modal.
+// Com `personalizavel` (form do compromisso) aparece o "+ Adicionar"
+// (valor | h/dia/semana): o valor vale só para o item editado, nunca vira
+// opção nem padrão global. Antecedência fora de `opcoes` fica em itálico.
 import { Bell, BellOff } from "lucide-react";
-import { rotuloAntecedencia, textoListaLembretes } from "../../utils/lembretes.js";
+import AdicionarLembrete from "./AdicionarLembrete.jsx";
+import { MAX_LEMBRETES_POR_ITEM, rotuloAntecedencia, textoListaLembretes } from "../../utils/lembretes.js";
 
 export default function SeletorLembretes({
   valor,
@@ -16,6 +20,8 @@ export default function SeletorLembretes({
   opcoes,
   rotulo = "Lembrete",
   semPadrao = false,
+  personalizavel = false,
+  unidadeInicial,
 }) {
   const usandoPadrao = !semPadrao && valor === undefined;
   const lista = usandoPadrao ? padrao : valor || [];
@@ -26,6 +32,14 @@ export default function SeletorLembretes({
     const base = usandoPadrao ? [] : lista;
     onChange(base.includes(min) ? base.filter((m) => m !== min) : [...base, min].sort((a, b) => a - b));
   };
+
+  // Adicionar a partir do "Padrão" começa uma lista própria (como clicar
+  // num chip). Já existente = nada muda.
+  const adicionar = (min) => {
+    const base = usandoPadrao ? [] : lista;
+    if (!base.includes(min)) onChange([...base, min].sort((a, b) => a - b));
+  };
+  const cheia = !usandoPadrao && lista.length >= MAX_LEMBRETES_POR_ITEM;
 
   const resumo = usandoPadrao ? `Padrão: ${textoListaLembretes(padrao)}` : textoListaLembretes(lista);
 
@@ -47,7 +61,8 @@ export default function SeletorLembretes({
         )}
         {todas.map((min) => {
           const marcado = lista.includes(min);
-          const classe = marcado ? (usandoPadrao ? " herdado" : " ativo") : "";
+          const classe =
+            (marcado ? (usandoPadrao ? " herdado" : " ativo") : "") + (opcoes.includes(min) ? "" : " proprio");
           return (
             <button
               key={min}
@@ -68,6 +83,7 @@ export default function SeletorLembretes({
         >
           <BellOff size={12} /> Nenhum
         </button>
+        {personalizavel && <AdicionarLembrete onAdicionar={adicionar} cheia={cheia} unidadeInicial={unidadeInicial} />}
       </div>
     </div>
   );

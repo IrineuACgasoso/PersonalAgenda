@@ -124,6 +124,8 @@ function FormularioCompromisso({
           onChange={setLembretes}
           padrao={lembretesPadrao}
           opcoes={OPCOES_LEMBRETE.compromissos}
+          personalizavel
+          unidadeInicial="h"
         />
       </div>
 

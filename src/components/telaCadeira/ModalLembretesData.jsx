@@ -3,40 +3,28 @@
 // pequena tingida com a cor da cadeira:
 //   Ativados | Desativados (padrão: desativado, por data)
 //   chips: Padrão (o global, em Lembretes no menu) · opções · as próprias
-//   desta data · "+ Adicionar" (valor | h/dia/semana).
+//   desta data · "+ Adicionar" (valor | h/dia/semana, ui/AdicionarLembrete).
 // Grava na hora (um clique = um persist), como o resto do app.
 // Portal no <body>: dentro da tela da cadeira o `position: fixed` do modal
 // ficaria preso à caixa dela (backdrop-filter cria um novo contexto).
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Bell, BellOff, Check, Plus, X } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 import { Modal } from "../ui/Dialogos.jsx";
+import AdicionarLembrete from "../ui/AdicionarLembrete.jsx";
 import { formatarData } from "../../utils/formatarData.js";
 import {
   MAX_LEMBRETES_POR_ITEM,
   OPCOES_LEMBRETE,
-  UNIDADES_LEMBRETE,
-  antecedenciaPersonalizada,
   rotuloAntecedencia,
   textoListaLembretes,
 } from "../../utils/lembretes.js";
 
 export default function ModalLembretesData({ data, lembretesPadrao = [], estiloCor, onSalvar, onFechar }) {
-  const [adicionando, setAdicionando] = useState(false);
-  const [valor, setValor] = useState("");
-  const [unidade, setUnidade] = useState("dia");
-  const [erro, setErro] = useState("");
-  // Ao fechar o "+ Adicionar", o campo some com o foco nele: devolve o foco
-  // ao botão (ou ao "Ativados", se a lista encheu e ele ficou desabilitado).
-  // Sem isso o foco caía no <body> e o Esc parava de fechar a janela.
-  const adicionarRef = useRef(null);
+  // Se a lista encher, o "+ Adicionar" fica desabilitado ao fechar o campo:
+  // o foco vai para o "Ativados" (senão cairia no <body> e o Esc pararia).
   const ativadosRef = useRef(null);
-  const devolverFoco = useRef(false);
-  useEffect(() => {
-    if (adicionando || !devolverFoco.current) return;
-    devolverFoco.current = false;
-    (adicionarRef.current && !adicionarRef.current.disabled ? adicionarRef.current : ativadosRef.current)?.focus();
-  }, [adicionando]);
+  const focarAtivados = useCallback(() => ativadosRef.current?.focus(), []);
 
   const ativo = data.lembretesAtivos === true;
   const usandoPadrao = !Array.isArray(data.lembretes);
@@ -51,22 +39,9 @@ export default function ModalLembretesData({ data, lembretesPadrao = [], estiloC
     else if (base.length < MAX_LEMBRETES_POR_ITEM) onSalvar({ lembretes: [...base, min].sort((a, b) => a - b) });
   };
 
-  const fecharNovo = () => {
-    devolverFoco.current = true;
-    setAdicionando(false);
-    setValor("");
-    setErro("");
-  };
-
-  const adicionar = () => {
-    const min = antecedenciaPersonalizada(valor, unidade);
-    if (min === null) {
-      setErro("Use um número maior que 0, até 30 dias antes.");
-      return;
-    }
+  const adicionar = (min) => {
     const base = usandoPadrao ? [] : lista;
     if (!base.includes(min)) onSalvar({ lembretes: [...base, min].sort((a, b) => a - b) });
-    fecharNovo();
   };
 
   const quando = `${formatarData(data.data)}${data.hora ? ` · ${data.hora}` : " · sem hora (conta a partir das 08:00)"}`;
@@ -125,54 +100,8 @@ export default function ModalLembretesData({ data, lembretesPadrao = [], estiloC
               </button>
             );
           })}
-          {!adicionando && (
-            <button
-              type="button"
-              ref={adicionarRef}
-              className="chip-lembrete mld-adicionar"
-              onClick={() => setAdicionando(true)}
-              disabled={cheia}
-              title={cheia ? `No máximo ${MAX_LEMBRETES_POR_ITEM} lembretes por data` : undefined}
-            >
-              <Plus size={12} /> Adicionar
-            </button>
-          )}
+          <AdicionarLembrete onAdicionar={adicionar} cheia={cheia} onFocoPerdido={focarAtivados} />
         </div>
-
-        {adicionando && (
-          <div className="mld-novo">
-            <input
-              className="input"
-              type="number"
-              inputMode="decimal"
-              min="1"
-              step="1"
-              placeholder="Valor"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") adicionar();
-              }}
-              aria-label="Quanto tempo antes"
-              autoFocus
-            />
-            <select className="input" value={unidade} onChange={(e) => setUnidade(e.target.value)} aria-label="Unidade">
-              {UNIDADES_LEMBRETE.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.rotulo}
-                </option>
-              ))}
-            </select>
-            <span className="mld-antes">antes</span>
-            <button type="button" className="icon-btn-ghost" onClick={adicionar} title="Adicionar">
-              <Check size={15} />
-            </button>
-            <button type="button" className="icon-btn-ghost" onClick={fecharNovo} title="Cancelar">
-              <X size={15} />
-            </button>
-          </div>
-        )}
-        {erro && <p className="mld-erro">{erro}</p>}
       </fieldset>
 
       <p className="mld-resumo">

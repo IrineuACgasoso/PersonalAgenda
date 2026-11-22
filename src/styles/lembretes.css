@@ -125,3 +125,45 @@
   gap: 3px;
   margin-left: 6px;
 }
+
+/* Antecedência fora das opções fixas (criada pelo "+ Adicionar"). */
+.chip-lembrete.proprio {
+  font-style: italic;
+}
+
+/* "+ Adicionar" (ui/AdicionarLembrete): chip tracejado; aberto, o
+   formulário ocupa a linha inteira abaixo dos chips. */
+.lembrete-adicionar {
+  border-style: dashed;
+}
+
+.lembrete-novo {
+  flex-basis: 100%;
+  margin-top: 4px;
+}
+
+.lembrete-novo-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lembrete-novo .input {
+  width: auto;
+  min-width: 0;
+}
+
+.lembrete-novo input.input {
+  width: 80px;
+}
+
+.lembrete-novo-antes {
+  font-size: var(--fs-sutil);
+  color: var(--texto-fraco);
+}
+
+.lembrete-novo-erro {
+  margin: 6px 0 0;
+  font-size: var(--fs-sutil);
+  color: #fca5a5;
+}
