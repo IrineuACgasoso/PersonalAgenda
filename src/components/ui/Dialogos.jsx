@@ -19,7 +19,9 @@ const DURACAO_TOAST_MS = 6000;
  * do modal enquanto aberto e devolvido a quem tinha o foco ao fechar.
  * Também usada por ModalTexto e ModalRestaurarNuvem.
  */
-export function Modal({ titulo, onFechar, children, largo = false, rotuloId }) {
+// `classe`/`estilo`: variações visuais (ex.: lembretes de uma data, tingido
+// com a cor da cadeira).
+export function Modal({ titulo, onFechar, children, largo = false, rotuloId, classe = "", estilo }) {
   const caixaRef = useRef(null);
   const onFecharRef = useRef(onFechar);
   useEffect(() => {
@@ -31,7 +33,8 @@ export function Modal({ titulo, onFechar, children, largo = false, rotuloId }) {
     <div className="modal-overlay" onClick={() => onFecharRef.current?.()}>
       <div
         ref={caixaRef}
-        className={`modal${largo ? " modal-largo" : ""}`}
+        className={`modal${largo ? " modal-largo" : ""}${classe ? ` ${classe}` : ""}`}
+        style={estilo}
         role="dialog"
         aria-modal="true"
         aria-labelledby={rotuloId}

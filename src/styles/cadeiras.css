@@ -65,7 +65,10 @@
   gap: 6px;
 }
 
+/* flex: 1 empurra os botões (lápis + lixeira na cadeira) para a direita. */
 .card-title {
+  flex: 1;
+  min-width: 0;
   font-size: var(--fs-card);
   font-weight: 700;
 }

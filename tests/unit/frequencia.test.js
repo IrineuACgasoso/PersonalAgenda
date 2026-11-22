@@ -11,6 +11,7 @@ import {
   resumoFaltas,
   textoFaltas,
   textoDepoisDaFalta,
+  aulasQueAindaPodeFaltar,
 } from "../../src/utils/frequencia.js";
 import { projetarAulas, eventoConcluido, subtituloEvento, chaveAula } from "../../src/utils/projecao.js";
 import { cadeira, horario, appData } from "../fixtures/fabricas.js";
@@ -106,5 +107,20 @@ describe("resumo de faltas", () => {
     expect(r.nivel).toBe(null);
     expect(textoFaltas(r)).toBe("1 falta (2h)");
     expect(textoFaltas(resumoFaltas(calc()))).toBe("Nenhuma falta");
+  });
+});
+
+describe("aulasQueAindaPodeFaltar (tela da cadeira)", () => {
+  it("sobra do limite ÷ duração média das aulas, para baixo", () => {
+    const c = calc({ cargaHoraria: 60 }); // limite 15h, aulas de 2h
+    expect(aulasQueAindaPodeFaltar(c, resumoFaltas(c))).toBe(7);
+    const comFaltas = calc({ cargaHoraria: 60, faltas: [chave("2026-11-16"), chave("2026-11-09")] });
+    expect(aulasQueAindaPodeFaltar(comFaltas, resumoFaltas(comFaltas))).toBe(5); // 11h ÷ 2h
+  });
+  it("sem limite conhecido ⇒ null; estourou ⇒ 0", () => {
+    const semCarga = calc();
+    expect(aulasQueAindaPodeFaltar(semCarga, resumoFaltas(semCarga))).toBe(null);
+    const c = calc({ cargaHoraria: 4 }); // limite 1h
+    expect(aulasQueAindaPodeFaltar(c, { ...resumoFaltas(c), horas: 2 })).toBe(0);
   });
 });

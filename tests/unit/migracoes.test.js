@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import { VERSAO_ATUAL, MIGRACOES, versaoDos, ehVersaoFutura, migrarDados } from "../../src/utils/migracoes.js";
 import { sanitizarDados } from "../../src/utils/sanitizarDados.js";
 import { projetarEventos } from "../../src/utils/projecao.js";
+import { situacaoDasNotas } from "../../src/utils/notas.js";
 import { appData, backupAntigo, cadeira, rotina, horario, afazer, periodo } from "../fixtures/fabricas.js";
 
 // Congela recursivamente: qualquer mutação da entrada lança erro.
@@ -526,5 +527,88 @@ describe("v5 → v6: rotina sem período, com vigência herdada (#56)", () => {
         .flat()
         .filter((e) => e.tipo === "rotinas").length,
     ).toBe(4);
+  });
+});
+
+describe("v6 → v7: ponto extra em pontos e lembretes de avaliação por data", () => {
+  const migrar = (d) => MIGRACOES[7](d);
+  const nota = (id, modo, valor, n) => ({ id, titulo: id, tipo: "nota", modo, valor, nota: n });
+
+  it("bônus vira os pontos que somou (nota × valor / 10); peso fica igual", () => {
+    const d = migrar(
+      appData({
+        versao: 6,
+        cadeiras: [
+          cadeira({
+            notas: [
+              {
+                id: "g",
+                tipo: "grupo",
+                modo: "peso",
+                valor: 1,
+                itens: [nota("P1", "peso", 1, 6), nota("MP1", "bonus", 0.5, 8), nota("MP2", "bonus", 1, 3)],
+              },
+              nota("Solta", "bonus", 1, 10),
+              nota("Sem nota", "bonus", 1),
+            ],
+          }),
+        ],
+      }),
+    );
+    const [g, solta, semNota] = d.cadeiras[0].notas;
+    expect(g.itens.map((x) => x.nota)).toEqual([6, 0.4, 0.3]);
+    expect(solta.nota).toBe(1);
+    expect(semNota.nota).toBe(undefined);
+  });
+
+  it("grupo de bônus: os filhos escalam pelo fator acumulado (a média não muda)", () => {
+    const antes = [
+      { id: "P", tipo: "nota", modo: "peso", valor: 1, nota: 6 },
+      {
+        id: "Listas",
+        tipo: "grupo",
+        modo: "bonus",
+        valor: 2,
+        itens: [nota("L1", "peso", 1, 10), nota("L2", "peso", 1, 5)],
+      },
+    ];
+    const d = migrar(appData({ cadeiras: [cadeira({ notas: antes })] }));
+    expect(d.cadeiras[0].notas[1].itens.map((x) => x.nota)).toEqual([2, 1]);
+    // Antes: 6 + 2 × 7,5 / 10 = 7,5. Depois: 6 + média(2, 1) = 7,5.
+    expect(situacaoDasNotas(d.cadeiras[0].notas).media).toBeCloseTo(7.5);
+  });
+
+  it("média igual antes e depois no caso real (Lógica)", () => {
+    const g = (id, itens) => ({ id, tipo: "grupo", modo: "peso", valor: 1, itens });
+    const antes = [
+      g("Prova 1", [nota("P1", "peso", 1, 6), nota("MP1", "bonus", 0.5, 8), nota("MP2", "bonus", 0.5, 10)]),
+      g("Prova 2", [nota("P2", "peso", 1, 7), nota("MP3", "bonus", 1, 10)]),
+    ];
+    const d = migrar(appData({ cadeiras: [cadeira({ notas: antes })] }));
+    expect(situacaoDasNotas(d.cadeiras[0].notas).media).toBeCloseTo(7.45);
+  });
+
+  it("data com lista própria de lembretes fica ligada; quem seguia o padrão fica desligada", () => {
+    const d = migrar(
+      appData({
+        cadeiras: [
+          cadeira({
+            datas: [
+              { id: "a", titulo: "P1", data: "2026-12-01", lembretes: [60] },
+              { id: "b", titulo: "P2", data: "2026-12-02" },
+              { id: "c", titulo: "P3", data: "2026-12-03", lembretes: [] },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(d.cadeiras[0].datas.map((x) => x.lembretesAtivos)).toEqual([true, undefined, undefined]);
+  });
+
+  it("tolera dados incompletos e não muta a entrada", () => {
+    expect(() => migrar({})).not.toThrow();
+    expect(() => migrar({ cadeiras: [null, { notas: [null, { tipo: "grupo" }] }, { datas: [null] }] })).not.toThrow();
+    const entrada = congelar(appData({ cadeiras: [cadeira({ notas: [nota("MP", "bonus", 1, 5)] })] }));
+    expect(() => migrar(entrada)).not.toThrow();
   });
 });

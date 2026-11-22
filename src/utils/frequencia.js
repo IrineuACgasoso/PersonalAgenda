@@ -144,3 +144,14 @@ export function textoDepoisDaFalta(nome, r) {
   const sobra = r.limiteHoras - r.horas;
   return `Falta em ${nome} · ${textoFaltas(r)} (pode faltar mais ${numero(sobra)}h)`;
 }
+
+// Tela da cadeira (aba Geral): quantas AULAS ainda dá para faltar, pela
+// duração média das aulas da semana (o limite é em horas). null sem limite
+// conhecido ou sem horários; 0 quando já passou.
+export function aulasQueAindaPodeFaltar(cadeira, r) {
+  if (!r || r.limiteHoras === null) return null;
+  const duracoes = (cadeira?.horarios || []).map(horasDoHorario).filter((h) => h > 0);
+  if (duracoes.length === 0) return null;
+  const media = duracoes.reduce((s, h) => s + h, 0) / duracoes.length;
+  return Math.max(0, Math.floor((r.limiteHoras - r.horas) / media + 1e-9));
+}

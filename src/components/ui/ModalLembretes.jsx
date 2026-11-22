@@ -88,8 +88,9 @@ export default function ModalLembretes({ user, preferencias, onSalvarPreferencia
       <section className="lembretes-secao">
         <h3 className="lembretes-subtitulo">Padrões</h3>
         <p className="subtle lembretes-ajuda">
-          Valem para todo compromisso e avaliação que não tiver um lembrete próprio (escolhido no formulário de cada
-          um). Avaliação sem hora conta a partir das {HORA_AVALIACAO_SEM_HORA} do dia.
+          Valem para todo compromisso que não tiver um lembrete próprio (escolhido no formulário dele). Avaliações
+          começam com os lembretes desativados: ligue cada data no sininho da tela da cadeira, onde a opção
+          &quot;Padrão&quot; usa o valor abaixo. Avaliação sem hora conta a partir das {HORA_AVALIACAO_SEM_HORA} do dia.
         </p>
         <SeletorLembretes
           semPadrao

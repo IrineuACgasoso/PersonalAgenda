@@ -31,6 +31,36 @@ function Caixa({ icone: Icone, rotulo, vazia, children }) {
   );
 }
 
+// Barra da vigência + % concluído + datas. Também no topo da tela da cadeira
+// (TelaCadeira), "exatamente como no card".
+export function VigenciaCadeira({ cadeira, hojeISO, className = "" }) {
+  const progresso = progressoVigencia(cadeira, hojeISO);
+  const vigencia = textoVigencia(cadeira);
+  return (
+    <div className={`resumo-vigencia ${className}`.trim()}>
+      <CalendarRange size={12} />
+      {progresso !== null ? (
+        <>
+          <span
+            className="resumo-progresso"
+            role="progressbar"
+            aria-label="Andamento da cadeira"
+            aria-valuenow={Math.round(progresso * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <span style={{ width: `${progresso * 100}%`, background: cadeira.cor }} />
+          </span>
+          <span className="resumo-percentual">{Math.round(progresso * 100)}%</span>
+          <span className="resumo-vigencia-datas">{vigencia}</span>
+        </>
+      ) : (
+        <span className="resumo-vigencia-datas">{vigencia || "Sem início/fim definidos"}</span>
+      )}
+    </div>
+  );
+}
+
 // `maxAvaliacoes`: quantas cabem sem deformar o card; o resto vira "+N".
 export default function ResumoCadeira({ cadeira, eventosExcluidos = [], maxAvaliacoes = 3 }) {
   const agora = new Date();
@@ -39,8 +69,6 @@ export default function ResumoCadeira({ cadeira, eventosExcluidos = [], maxAvali
   const avaliacoes = proximasAvaliacoes(cadeira, hojeISO);
   const visiveis = avaliacoes.slice(0, maxAvaliacoes);
   const restantes = avaliacoes.length - visiveis.length;
-  const progresso = progressoVigencia(cadeira, hojeISO);
-  const vigencia = textoVigencia(cadeira);
 
   // #34 faltas e #35 média: uma linha só, embaixo da vigência.
   const faltas = resumoFaltas(cadeira, eventosExcluidos);
@@ -83,27 +111,7 @@ export default function ResumoCadeira({ cadeira, eventosExcluidos = [], maxAvali
         )}
       </Caixa>
 
-      <div className="resumo-vigencia">
-        <CalendarRange size={12} />
-        {progresso !== null ? (
-          <>
-            <span
-              className="resumo-progresso"
-              role="progressbar"
-              aria-label="Andamento da cadeira"
-              aria-valuenow={Math.round(progresso * 100)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <span style={{ width: `${progresso * 100}%`, background: cadeira.cor }} />
-            </span>
-            <span className="resumo-percentual">{Math.round(progresso * 100)}%</span>
-            <span className="resumo-vigencia-datas">{vigencia}</span>
-          </>
-        ) : (
-          <span className="resumo-vigencia-datas">{vigencia || "Sem início/fim definidos"}</span>
-        )}
-      </div>
+      <VigenciaCadeira cadeira={cadeira} hojeISO={hojeISO} />
 
       {(mostrarFaltas || notas) && (
         <div className="resumo-desempenho">

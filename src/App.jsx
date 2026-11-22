@@ -12,6 +12,7 @@ import VisaoAfazeres from "./components/VisaoAfazeres";
 import VisaoGeral from "./components/VisaoGeral";
 import VisaoHoje from "./components/VisaoHoje";
 import PainelCadeira from "./components/PainelCadeira";
+import TelaCadeira from "./components/TelaCadeira";
 import PainelRotina from "./components/PainelRotina";
 import EstadoVazio from "./components/ui/EstadoVazio";
 import ModalTexto from "./components/ui/ModalTexto";
@@ -76,7 +77,11 @@ export default function App() {
   useCloudBackup(user, data, !!data && status !== "loading");
   // Tela inicial: Hoje (#31).
   const [aba, setAba] = useState("hoje");
+  // Cadeira em EDIÇÃO (drawer, lápis) × em VISUALIZAÇÃO (tela da cadeira,
+  // clique no card). Editar a partir da tela esconde a tela; fechar o drawer
+  // volta para ela.
   const [cadeiraAbertaId, setCadeiraAbertaId] = useState(null);
+  const [cadeiraVistaId, setCadeiraVistaId] = useState(null);
   const [rotinaAbertaId, setRotinaAbertaId] = useState(null);
   const [modalPeriodo, setModalPeriodo] = useState(false);
   const [gatilhoNovoAfazer, setGatilhoNovoAfazer] = useState(null);
@@ -137,6 +142,7 @@ export default function App() {
   const periodoAtivo = data.periodos.find((p) => p.id === data.periodoAtivoId) || data.periodos[0];
   const cadeirasDoPeriodo = data.cadeiras.filter((c) => c.periodoId === periodoAtivo?.id);
   const cadeiraAberta = data.cadeiras.find((c) => c.id === cadeiraAbertaId);
+  const cadeiraVista = data.cadeiras.find((c) => c.id === cadeiraVistaId);
   // Rotinas (ex-"compromissos" semanais, v5) não pertencem a período desde
   // a v6 (#56): cada uma tem vigência própria opcional (dataInicio/dataFim).
   const rotinas = data.rotinas || [];
@@ -227,6 +233,7 @@ export default function App() {
       return limpo.dados;
     });
     if (cadeiraAberta?.periodoId === id) setCadeiraAbertaId(null);
+    if (cadeiraVista?.periodoId === id) setCadeiraVistaId(null);
     if (!gravouAlgo(r) || !removido) return;
     const { periodos, cadeiras, eraAtivo, chaves } = removido;
     avisarComDesfazer(`Período "${periodos[0].item.nome}" excluído`, (d) =>
@@ -298,6 +305,7 @@ export default function App() {
   const excluirCadeira = (id) => {
     excluirComDesfazer("cadeiras", id, (c) => `Cadeira "${c.nome}" excluída`);
     if (cadeiraAbertaId === id) setCadeiraAbertaId(null);
+    if (cadeiraVistaId === id) setCadeiraVistaId(null);
   };
 
   /* ---- ações rotinas (ex-"compromissos" semanais, v5) ---- */
@@ -720,7 +728,8 @@ export default function App() {
             cadeiras={cadeirasDoPeriodo}
             eventosExcluidos={eventosExcluidos}
             onCriar={criarCadeira}
-            onAbrir={setCadeiraAbertaId}
+            onAbrir={setCadeiraVistaId}
+            onEditar={setCadeiraAbertaId}
             onExcluir={excluirCadeira}
             onSelecionarPeriodo={selecionarPeriodo}
             onNovoPeriodo={() => setModalPeriodo(true)}
@@ -731,17 +740,27 @@ export default function App() {
           <VisaoAgenda
             cadeiras={cadeirasDoPeriodo}
             rotinas={rotinas}
-            onAbrirCadeira={setCadeiraAbertaId}
+            onAbrirCadeira={setCadeiraVistaId}
             onAbrirRotina={setRotinaAbertaId}
           />
         )}
       </main>
 
+      {cadeiraVista && !cadeiraAberta && (
+        <TelaCadeira
+          cadeira={cadeiraVista}
+          eventosExcluidos={eventosExcluidos}
+          lembretesPadrao={preferenciasLembretes.avaliacoes}
+          onAtualizar={(patch) => atualizarCadeira(cadeiraVista.id, patch)}
+          onEditar={() => setCadeiraAbertaId(cadeiraVista.id)}
+          onFechar={() => setCadeiraVistaId(null)}
+        />
+      )}
+
       {cadeiraAberta && (
         <PainelCadeira
           cadeira={cadeiraAberta}
           eventosExcluidos={eventosExcluidos}
-          lembretesPadrao={preferenciasLembretes.avaliacoes}
           conflitosDe={(h) => conflitosDoHorario(h, { tipo: "cadeira", id: cadeiraAberta.id }, fontesHorarios)}
           onFechar={() => setCadeiraAbertaId(null)}
           onAtualizar={(patch) => atualizarCadeira(cadeiraAberta.id, patch)}

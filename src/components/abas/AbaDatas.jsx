@@ -1,37 +1,26 @@
-// src/components/cadeira/AbaDatas.jsx
+// src/components/abas/AbaDatas.jsx
+// Datas importantes da cadeira (drawer). Os lembretes de cada data saíram
+// daqui: ficam no sininho da tela da cadeira (liga/desliga por data).
 import { useState } from "react";
-import { Plus, Trash2, Edit2, Calendar, Check, X, Bell, BellOff, GraduationCap } from "lucide-react";
+import { Plus, Trash2, Edit2, Calendar, Check, X, Bell, GraduationCap } from "lucide-react";
 import { formatarData } from "../../utils/formatarData.js";
 import EstadoVazio from "../ui/EstadoVazio.jsx";
-import SeletorLembretes from "../ui/SeletorLembretes.jsx";
 import useDialogos from "../../hooks/useDialogos";
-import { OPCOES_LEMBRETE, LEMBRETES_PADRAO, textoListaLembretes } from "../../utils/lembretes.js";
 import { formatarNota } from "../../utils/notas.js";
 
 // #35: `onAvaliacao(data)` cria a nota ligada a esta data (ou leva até ela);
 // `notasDasDatas` = { dataId: nota } para mostrar a nota na linha.
-export default function AbaDatas({
-  datas,
-  notasDasDatas = {},
-  onAvaliacao,
-  lembretesPadrao = LEMBRETES_PADRAO.avaliacoes,
-  onAdd,
-  onRemover,
-  onEditar,
-}) {
+export default function AbaDatas({ datas, notasDasDatas = {}, onAvaliacao, onAdd, onRemover, onEditar }) {
   const { avisar } = useDialogos();
   const [titulo, setTitulo] = useState("");
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
-  // Lembretes desta avaliação (#23): undefined = padrão global.
-  const [lembretes, setLembretes] = useState(undefined);
   const [editandoId, setEditandoId] = useState(null);
 
   const limpar = () => {
     setTitulo("");
     setData("");
     setHora("");
-    setLembretes(undefined);
     setEditandoId(null);
   };
 
@@ -41,7 +30,8 @@ export default function AbaDatas({
       avisar("Preencha o título e a data.", { titulo: "Faltam dados" });
       return;
     }
-    const campos = { titulo: t, data, hora, lembretes };
+    // Sem `lembretes`: editar a data não mexe nos lembretes dela (sininho).
+    const campos = { titulo: t, data, hora };
     if (editandoId) {
       if (onEditar) {
         onEditar(editandoId, campos);
@@ -60,7 +50,6 @@ export default function AbaDatas({
     setTitulo(d.titulo);
     setData(d.data);
     setHora(d.hora || "");
-    setLembretes(d.lembretes);
   };
 
   return (
@@ -74,14 +63,6 @@ export default function AbaDatas({
       <div className="form-grid duas-colunas" style={{ marginTop: 8 }}>
         <input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} />
         <input className="input" type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
-      </div>
-      <div style={{ marginTop: 10 }}>
-        <SeletorLembretes
-          valor={lembretes}
-          onChange={setLembretes}
-          padrao={lembretesPadrao}
-          opcoes={OPCOES_LEMBRETE.avaliacoes}
-        />
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
         <button className="btn-primario full" onClick={salvar}>
@@ -107,11 +88,10 @@ export default function AbaDatas({
                 <div className="subtle">
                   {formatarData(d.data)}
                   {d.hora ? ` · ${d.hora}` : ""}
-                  {/* Só quando foge do padrão (#23). */}
-                  {Array.isArray(d.lembretes) && (
-                    <span className="lembrete-proprio">
-                      {d.lembretes.length ? <Bell size={11} /> : <BellOff size={11} />}
-                      {textoListaLembretes(d.lembretes)}
+                  {/* Lembretes ligados nesta data (editados no sininho da tela da cadeira). */}
+                  {d.lembretesAtivos && (
+                    <span className="lembrete-proprio" title="Lembretes ativados (sininho na tela da cadeira)">
+                      <Bell size={11} /> lembrete
                     </span>
                   )}
                 </div>

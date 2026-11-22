@@ -31,10 +31,12 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Múltiplos **períodos** (ex.: `2026.1`, `2026.2`) com seletor no próprio título da tela, com criação, renomeação inline e exclusão.
 - **Vigência opcional por cadeira** (`dataInicio` / `dataFim`, no drawer da cadeira): aulas e avaliações só aparecem no calendário dentro desse intervalo, e o início/fim ganham uma bandeirinha no calendário geral. Cadeira nova herda a vigência das outras do período.
 - Cada **cadeira** tem cor própria, **horários de aula** (dia, início, fim, local), **links/materiais** e **datas importantes** (provas, trabalhos).
-- O card (e o topo do painel da cadeira) mostra a **próxima aula** e as **próximas avaliações** em caixas na cor da cadeira (avaliações a uma semana ou menos ficam em destaque), e uma **barra de progresso** com o % concluído da vigência. Cadeira já encerrada fica com caixas cinzas compactas. No painel, horários, links e datas ficam em seções recolhíveis.
+- O card (e o topo do painel da cadeira) mostra a **próxima aula** e as **próximas avaliações** em caixas na cor da cadeira (avaliações a uma semana ou menos ficam em destaque), e uma **barra de progresso** com o % concluído da vigência. Cadeira já encerrada fica com caixas cinzas compactas.
+- **Tela da cadeira** (toque no card): visualização centralizada na cor da cadeira com quatro abas — **Geral** (mini agenda da semana só com as aulas dela, carga horária, faltas com % do limite e quantas aulas ainda dá para faltar, média), **Materiais** (código do Classroom com copiar e os links como botões), **Datas importantes** (todas, passadas em cinza e próximas em destaque, com o 🔔 de lembretes de cada data) e **Avaliações e Notas** (um boletim por grupo, com a caixa da situação final em verde/âmbar/vermelho).
+- A **edição** fica no lápis do card (painel lateral): horários, links (arraste para mudar a ordem), datas e notas em seções recolhíveis.
 - Suporte a **códigos de turma do Google Classroom**, sempre listados antes dos links comuns.
 - **Faltas:** concluir a aula = presença; o **✗** ao lado da lixeira registra falta (a aula fica concluída com "Falta"). O card mostra as horas de falta contra o limite de 25% da **carga horária** (informada ou estimada pelos horários × vigência), em amarelo/vermelho ao se aproximar.
-- **Notas e média:** notas e grupos (unidades) que entram por **peso** (1/1, 60/30/10…) ou como **bônus +X** (ex.: mini-provas que valem +1 na prova). Mostra média parcial, **quanto precisa tirar** nas que faltam para passar direto (≥ 7) ou ir à final (≥ 3), e a nota necessária na final ((média + final)/2 ≥ 5). Uma data importante vira avaliação com um toque, já ligada à nota.
+- **Notas e média:** notas e grupos (unidades) que entram por **peso** (1/1, 60/30/10…) ou como **ponto extra** (lança-se o quanto a nota cresceu: 10 numa mini-prova que vale 1 ponto ⇒ 1; pode passar de 1 ponto). Mostra média parcial, **quanto precisa tirar** nas que faltam para passar direto (≥ 7) ou ir à final (≥ 3), e a nota necessária na final ((média + final)/2 ≥ 5). Uma data importante vira avaliação com um toque, já ligada à nota.
 
 <p align="center">
   <img src="docs/screenshots/tela-cadeiras.jpeg" alt="Cadeiras" width="300" />
@@ -111,7 +113,7 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 
 ### 🔔 Lembretes
 - Notificações push de **compromissos** e **avaliações**, mesmo com o app fechado (Android, desktop e iPhone com o app instalado).
-- Padrões globais (ex.: 15 min antes de compromissos, 1 dia antes de provas) e lembretes próprios por item ("Na hora", "1 h", "1 semana", "Nenhum"…).
+- Padrões globais (ex.: 15 min antes de compromissos, 1 dia antes de provas) e lembretes próprios por item ("Na hora", "1 h", "1 semana", "Nenhum"…). Avaliações têm liga/desliga **por data** (desligado por padrão), com tempos personalizados (valor em horas, dias ou semanas).
 - Uma Cloud Function agendada roda a cada minuto, calcula o que venceu com a **mesma lógica pura** do app (`utils/lembretes.js`) e envia pelo Firebase Cloud Messaging.
 
 ### 📱 PWA e UX

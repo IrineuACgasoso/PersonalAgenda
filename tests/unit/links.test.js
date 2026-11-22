@@ -1,6 +1,6 @@
 // Links das cadeiras: src/utils/links.js
 import { describe, it, expect } from "vitest";
-import { normalizarUrl, hrefSeguro } from "../../src/utils/links.js";
+import { normalizarUrl, hrefSeguro, moverParaPosicao, ehClassroom } from "../../src/utils/links.js";
 
 describe("normalizarUrl", () => {
   it("adiciona https quando falta o esquema", () => {
@@ -30,5 +30,28 @@ describe("hrefSeguro (#50)", () => {
     ]) {
       expect(hrefSeguro(url)).toBeUndefined();
     }
+  });
+});
+
+describe("moverParaPosicao (arrastar links no drawer)", () => {
+  const lista = ["a", "b", "c", "d"].map((id) => ({ id }));
+  const ids = (l) => l.map((x) => x.id).join("");
+
+  it("leva o item para a posição do alvo, para baixo ou para cima", () => {
+    expect(ids(moverParaPosicao(lista, "a", "c"))).toBe("bcad");
+    expect(ids(moverParaPosicao(lista, "d", "b"))).toBe("adbc");
+    expect(ids(moverParaPosicao(lista, "b", "a"))).toBe("bacd");
+  });
+  it("id inexistente ou igual devolve a mesma lista; não muta", () => {
+    expect(moverParaPosicao(lista, "x", "a")).toBe(lista);
+    expect(moverParaPosicao(lista, "a", "a")).toBe(lista);
+    moverParaPosicao(lista, "a", "d");
+    expect(ids(lista)).toBe("abcd");
+  });
+  it("ehClassroom: flag ou código (itens antigos)", () => {
+    expect(ehClassroom({ isClassroom: true })).toBe(true);
+    expect(ehClassroom({ codigoClassroom: "abc" })).toBe(true);
+    expect(ehClassroom({ url: "https://x" })).toBe(false);
+    expect(ehClassroom(null)).toBe(false);
   });
 });

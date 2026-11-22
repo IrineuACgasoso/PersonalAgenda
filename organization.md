@@ -38,7 +38,11 @@
 | Formulário de afazer (repetição, data de fim, urgência, cor) | `src/components/VisaoAfazeres.jsx` → `FormularioAfazer` (`rascunho`, `submit`); frase-resumo `descreverAfazer` |
 | Formulário/lista de compromissos | `src/components/VisaoCompromissos.jsx`; validação `erroDoCompromisso` (`utils/compromissos.js`) |
 | Cards da tela Cadeiras | `src/components/VisaoCadeiras.jsx` + `src/styles/cadeiras.css`; resumo (próx. aula/avaliação, barra da vigência) em `ui/ResumoCadeira.jsx`, lógica pura em `src/utils/cadeiras.js` (#21) |
-| Drawer da cadeira (resumo + seções recolhíveis Horários/Links/Datas) | `src/components/PainelCadeira.jsx` (`Secao`) + `src/components/abas/*` (conteúdo de cada seção); CSS `.painel-secao*` em `painel.css` |
+| Tela da cadeira (clique no card; só leitura, exceto lembretes): título, vigência, abas Geral/Materiais/Datas/Notas | `src/components/TelaCadeira.jsx` + `src/components/telaCadeira/*` (AbaGeral com mini agenda, AbaMateriais, AbaDatasImportantes + ModalLembretesData, AbaBoletim); CSS `tela-cadeira.css` (+ mobile.css). Aberta por `cadeiraVistaId` no `App` (cards, Agenda); o lápis abre o drawer (`cadeiraAbertaId`) e fechar volta à tela |
+| Boletim (colunas por grupo, % inteiro, quanto somou, caixa final colorida) | `boletimDasNotas`, `tomDaSituacao` (`utils/notas.js`) + `telaCadeira/AbaBoletim.jsx` |
+| Lembretes por data de avaliação (liga/desliga, personalizado h/dia/semana) | `lembretesDaAvaliacao`, `antecedenciaPersonalizada` (`utils/lembretes.js`, sincronizar com functions) + `telaCadeira/ModalLembretesData.jsx` |
+| Reordenar links arrastando (drawer) | `AbaLinks.jsx` (`useArrastoLista`, alça `.link-alca` em painel.css) + `moverParaPosicao` (`utils/links.js`) |
+| Drawer da cadeira (edição, pelo lápis; resumo + seções recolhíveis Horários/Links/Datas/Notas) | `src/components/PainelCadeira.jsx` (`Secao`) + `src/components/abas/*` (conteúdo de cada seção); CSS `.painel-secao*` em `painel.css` |
 | Conflito de horário aulas × rotinas (#32, só aviso) | puro em `src/utils/conflitos.js` (`conflitosDoHorario`, `fontesDeHorarios`, `distribuirEmColunas`); aviso em `abas/AbaHorarios.jsx` (prop `conflitosDe`, montada no `App`); Agenda: blocos lado a lado + ⚠ em `VisaoAgenda.jsx`; CSS `.aviso-conflito` (painel.css), `.agenda-bloco.conflito` (agenda.css) |
 | Faltas (#34): ✗ na lista do dia, contagem em horas × 25% da carga | puro em `src/utils/frequencia.js` (`marcarFalta`, `alternarConclusaoEvento`, `resumoFaltas`, `cargaHorariaEstimada`); `ev.falta` em `projetarAulas`/`eventoConcluido`/`subtituloEvento` (`projecao.js`); botão em `ui/ListaDoDia.jsx` (`onMarcarFalta`); ação `marcarFaltaAula` no `App`; campo "Carga horária" em `PainelCadeira.jsx`; chip em `ui/ResumoCadeira.jsx` |
 | Notas e média (#35) | puro em `src/utils/notas.js` (cálculo, situação UFPE, edição da árvore, sanitização); UI `abas/AbaNotas.jsx` (seção "Notas" do drawer) + `ui/CampoNumero.jsx`; criar nota a partir de uma data: `abrirAvaliacao` (`PainelCadeira.jsx`) + botão em `abas/AbaDatas.jsx`; CSS `.nota*`/`.notas-*` no fim de `painel.css`, `.resumo-chip` em `cadeiras.css` |
@@ -71,15 +75,16 @@
 ## Modelo de dados (`AppData`, um único documento `users/{uid}` ou `localStorage["painel-academico-data"]`)
 
 ```
-versao            int — versão do schema (atual: 6; ausente = 0). Ver utils/migracoes.js
+versao            int — versão do schema (atual: 7; ausente = 0). Ver utils/migracoes.js
 periodos[]        { id, nome }                                   ← sem datas desde a v4 (#20)
 periodoAtivoId    string | null
 cadeiras[]        { id, periodoId, nome, cor, dataInicio?, dataFim?, horarios[], links[], datas[],   ← vigência (#19)
                     faltas[] (chaves de aula com ✗, #34), cargaHoraria? (h, #34),
                     notas[] (árvore #35: { id, titulo, tipo nota|grupo, modo peso|bonus, valor, nota?, itens?, dataId? }), notaFinal? }
+                    ← bonus (v7): `nota` = pontos que somou (`valor` não conta); peso: nota 0–10 com `valor` = peso
   horarios[]      { id, dia(0=Seg..6=Dom), inicio "HH:MM", fim, local? }
   links[]         { id, titulo, url, isClassroom?, codigoClassroom? }
-  datas[]         { id, titulo, data "YYYY-MM-DD", hora?, lembretes?: number[] }  ← avaliações
+  datas[]         { id, titulo, data "YYYY-MM-DD", hora?, lembretes?: number[], lembretesAtivos?: true }  ← avaliações (lembra só com lembretesAtivos, v7)
 rotinas[]         { id, nome, cor, horarios[], dataInicio?, dataFim? }  ← semanais (eram "compromissos" até a v4); sem período desde a v6 (#56)
 compromissos[]    { id, nome, cor, data, inicio "HH:MM", fim?, feito, concluidoEm?, lembretes?: number[] }  ← pontuais (v5)
 lembretes         { compromissos: number[], avaliacoes: number[] }  ← padrões (#23, minutos antes; padrão 15 / 1440).
@@ -212,15 +217,18 @@ UFPE/
     │   │                         recente NO SERVIDOR (checa a cada 15min; timer não depende de `data`; 1 por vez;
     │   │                         offline não tenta — #8), mantém 10. listarBackupsCloud(uid)
     │   ├── useNavegacaoEnter.js  Enter avança foco / clica botões dentro de um container (ref)
+    │   ├── useCopiarTexto.js     copiar(id, texto) + copiadoId por 2 s; falha ⇒ aviso com o texto (#28)
     │   ├── useZoomAgenda.js      #24: zoom da Agenda (pinça/Ctrl+roda/botões), mantém o ponto sob os dedos; callback ref `definirArea`
     │   ├── useDialogos.js        Contexto + hook: { avisar, confirmar, notificar } (provider em ui/Dialogos.jsx, #17/#18)
     │   └── useListaInterna.js    adicionar/editar/remover (com Desfazer) nas listas internas de cadeira/rotina;
     │                             usa onAtualizar(fn) → lê o item mais recente
     ├── utils/
     │   ├── agendaSemanal.js      PURO: faixaDeHoras(blocos) (mín. 8 h), percentualNaGrade
-    │   ├── frequencia.js         PURO (#34): partesDaChaveAula, marcarFalta, alternarConclusaoEvento, ehFalta, cargaHorariaEstimada, resumoFaltas, textoFaltas, textoDepoisDaFalta
+    │   ├── frequencia.js         PURO (#34): partesDaChaveAula, marcarFalta, alternarConclusaoEvento, ehFalta, cargaHorariaEstimada, resumoFaltas, textoFaltas, textoDepoisDaFalta,
+    │   │                         aulasQueAindaPodeFaltar (tela da cadeira)
     │   ├── notas.js              PURO (#35): sanitizarItensNota/sanitizarNota, mediaParcial, notasPendentes, notaNecessaria, situacaoDasNotas, resumoCurtoDasNotas,
-    │   │                         formatarNota (corta em 2 casas), edição da árvore (inserir/editar/remover/mover/duplicar, destinosPossiveis), notasPorData
+    │   │                         formatarNota (corta em 2 casas), edição da árvore (inserir/editar/remover/mover/duplicar, destinosPossiveis), notasPorData,
+    │   │                         boletimDasNotas / tomDaSituacao (aba Avaliações e Notas da tela da cadeira)
     │   ├── conflitos.js          PURO (#32): horariosSeSobrepoem, vigenciasSeCruzam, fontesDeHorarios, conflitosDoHorario, avisoDeConflitos, distribuirEmColunas (Agenda)
     │   ├── chavesOrfas.js        PURO (#52): donoDaChave, limparChavesOrfas, devolverChaves
     │   ├── acessibilidade.js     propsDeBotao(acao, extras) (#51)
@@ -237,9 +245,10 @@ UFPE/
     │   ├── backupNuvem.js        deveFazerBackup({agora, ultimoBackup, online, dados}) → {fazer, motivo}, backupsParaApagar (#8)
 │   ├── carregamento.js       telaInicial({temDados, erroCarga, travou}), acaoDoWatchdog (1 reload/sessão), constantes (#7)
 │   ├── confirmacaoAdiada.js  criarConfirmacaoAdiada(aoConfirmar, ms) → mudar/confirmar/cancelar/sincronizar (#41)
-    │   ├── migracoes.js          VERSAO_ATUAL (6), MIGRACOES{n: fn pura}: 1 baseline, 2 chaves por id (#10), 3 data natural
+    │   ├── migracoes.js          VERSAO_ATUAL (7), MIGRACOES{n: fn pura}: 1 baseline, 2 chaves por id (#10), 3 data natural
     │   │                         das ocorrências movidas (#14), 4 vigência na cadeira (#20), 5 rotinas/compromissos pontuais/
-    │   │                         dataFim (#22), 6 rotina sem período + vigência herdada (#56); versaoDos, ehVersaoFutura, migrarDados
+    │   │                         dataFim (#22), 6 rotina sem período + vigência herdada (#56), 7 bônus em pontos + lembretesAtivos por data;
+    │   │                         versaoDos, ehVersaoFutura, migrarDados
     │   ├── afazeres.js           parseISO, toISO, datasDaRegra/ehDataDaRegra/dataFimDaRotina (Fase 5), ocorrenciasNoIntervalo(afazer, ini, fim)
     │   │                         → [{data, dataOriginal}], mesmoDiaMesesDepois (mensal, #12), ehRotina, afazerConcluido (rotina nunca, #11),
     │   │                         ocorrenciaAtual (check da aba, #11), ROTINAS_COM_DATA_BASE/dataAoSalvarAfazer/rotinaSemDataBase (#40),
@@ -248,7 +257,8 @@ UFPE/
     │   │                         cadeiraEstaAtivaNaData (aliases vigenciaDe/estaAtivoNaData p/ rotinas), textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
     │   ├── rotinas.js            PURO (Fase 5): diasAtivosDaRotina, minutosPorSemana, textoDuracao, proximaOcorrenciaRotina (vigência), rotinaEncerrada,
     │   │                         horariosNaSemana (agenda semanal, #56) — ui/ResumoRotina.jsx
-    │   ├── lembretes.js          PURO, SEM IMPORTS (#23; copiado p/ functions/): LEMBRETES_PADRAO, OPCOES_LEMBRETE, sanitizar*, textoAntecedencia,
+    │   ├── lembretes.js          PURO, SEM IMPORTS (#23; copiado p/ functions/): LEMBRETES_PADRAO, OPCOES_LEMBRETE, UNIDADES_LEMBRETE,
+    │   │                         lembretesDaAvaliacao (null = desligada), antecedenciaPersonalizada, sanitizar*, textoAntecedencia,
     │   │                         instanteLocal/partesLocais (Recife UTC-3 fixo), listarLembretes, montarNotificacao, lembretesPendentes, podarEnviados
     │   ├── aparelho.js           PURO: estadoDoAparelho (sem-login/ios-instalar/sem-suporte/bloqueado/ativo/inativo), descreverAparelho
     │   ├── compromissos.js       PURO (Fase 5): erroDoCompromisso, secoesDosCompromissos, textoHorarioCompromisso, textoDataComSemana, rotuloRelativo
@@ -261,7 +271,7 @@ UFPE/
     │   │                         lista do dia: compararEventosDoDia, eventoConcluido, ordenarEventosDoDia, subtituloEvento, textoDistanciaDeHoje, idArrasto;
     │   │                         aviso da Hoje: itensAtrasados, textoAtrasados
     │   ├── formatarData.js       "YYYY-MM-DD" → "DD/MM/YYYY"
-    │   ├── links.js              normalizarUrl, hrefSeguro (só http(s) vira href, #50)
+    │   ├── links.js              normalizarUrl, hrefSeguro (só http(s) vira href, #50), ehClassroom, moverParaPosicao (arrastar no drawer)
     │   ├── dialogos.js           enfileirarDialogo (dedupe por chave), removerDialogo, mensagemDeRecusa (#44), resumoDoBackup (migra antes de contar)
     │   ├── desfazer.js           reinserirPorId, reinserirVarios, separarRemovidos (#18)
     │   └── id.js                 uid() — crypto.randomUUID (#29); sem contexto seguro, 16 chars aleatórios
@@ -274,7 +284,11 @@ UFPE/
     │   │                         (mouse direto; toque com long-press 350ms; autoscroll; troca de mês sobre as setas)
     │   ├── VisaoAfazeres.jsx     FormularioAfazer (nome, dia/começa em, repetição, dias da semana, termina em, urgência, cor, frase-resumo)
     │   │                         + seções Atrasados/Hoje/Próximos/Sem data/Recorrentes/Concluídos (ItemAfazer)
-    │   ├── VisaoCadeiras.jsx     SeletorPeriodo no título, adicionar cadeira, grid de cards (contagem horários/links/datas + vigência)
+    │   ├── VisaoCadeiras.jsx     SeletorPeriodo no título, adicionar cadeira, grid de cards (contagem horários/links/datas + vigência);
+    │   │                         card abre a TelaCadeira, lápis abre o drawer, lixeira exclui
+    │   ├── TelaCadeira.jsx       Tela de visualização (modal grande centralizado, altura fixa, cor da cadeira): título, VigenciaCadeira, abas
+    │   ├── telaCadeira/          AbaGeral (MiniAgenda + cartões carga/faltas/média) · AbaMateriais (Classroom + links, 2 colunas > 6)
+    │   │                         · AbaDatasImportantes (sininho por data) · ModalLembretesData (portal) · AbaBoletim
     │   ├── VisaoRotinas.jsx      Adicionar + grid de cards de todas as rotinas (ResumoRotina)
     │   ├── VisaoCompromissos.jsx Compromissos pontuais: FormularioCompromisso (nome, data, início, fim?, cor) + Hoje/Próximos/Passados
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/rotinas, grade semanal posicionada por %, lista de próximas datas
@@ -282,8 +296,8 @@ UFPE/
     │   ├── PainelRotina.jsx      Drawer: nome, ResumoRotina, cor, vigência opcional (CampoVigencia), seção Horários (AbaHorarios)
     │   ├── abas/
     │   │   ├── AbaHorarios.jsx   CRUD de {dia, inicio, fim, local}; valida início < fim
-    │   │   ├── AbaLinks.jsx      CRUD de links web e códigos Classroom (copiar), drop de URL; Classroom primeiro
-    │   │   ├── AbaDatas.jsx      CRUD de datas importantes {titulo, data, hora}; 🎓 cria/abre a nota ligada (#35)
+    │   │   ├── AbaLinks.jsx      CRUD de links web e códigos Classroom (copiar), drop de URL; Classroom primeiro; links arrastáveis pela alça
+    │   │   ├── AbaDatas.jsx      CRUD de datas importantes {titulo, data, hora}; 🎓 cria/abre a nota ligada (#35); lembretes ficam na tela da cadeira
     │   │   └── AbaNotas.jsx      #35: resumo (média, quanto precisa, final) + árvore de notas/grupos editável
     │   └── ui/
     │       ├── BarraUrgencia.jsx   "Bateria" de 3 segmentos
@@ -318,6 +332,8 @@ UFPE/
         ├── rotinas.css         .resumo-rotina, .faixa-semana
         ├── seletor-data.css    SeletorData (campo + popover; fundo sólido de propósito)
         ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio
+        ├── tela-cadeira.css    TelaCadeira (overlay z 70, caixa fixa, abas com brilho), mini agenda, cartões, materiais, datas/sininho,
+        │                       modal de lembretes da data, boletim e caixa final (cores de status próprias)
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)
         ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav centralizada, largura fixa; "+" absoluto à direita), atalho "Hoje" na linha do título (.hoje-header, absoluto + padding reservado), menu do + abre para dentro, aviso de atrasados (.aviso-atrasados)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)

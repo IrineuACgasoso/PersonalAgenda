@@ -259,3 +259,25 @@ describe("lembretes (#23)", () => {
     expect("lembretes" in d.compromissos[0]).toBe(false);
   });
 });
+
+describe("lembretes por data de avaliação (v7)", () => {
+  it("lembretesAtivos: só true sobrevive; false/lixo some (= desligado)", () => {
+    const d = sanitizarDados(
+      appData({
+        cadeiras: [
+          cadeira({
+            datas: [
+              { id: "a", titulo: "P1", data: "2026-12-01", lembretesAtivos: true, lembretes: [60] },
+              { id: "b", titulo: "P2", data: "2026-12-02", lembretesAtivos: false },
+              { id: "c", titulo: "P3", data: "2026-12-03", lembretesAtivos: "sim" },
+            ],
+          }),
+        ],
+      }),
+    );
+    const [a, b, c] = d.cadeiras[0].datas;
+    expect(a).toMatchObject({ lembretesAtivos: true, lembretes: [60] });
+    expect("lembretesAtivos" in b).toBe(false);
+    expect("lembretesAtivos" in c).toBe(false);
+  });
+});

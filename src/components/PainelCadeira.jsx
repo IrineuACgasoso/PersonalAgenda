@@ -9,6 +9,7 @@ import AbaNotas from "./abas/AbaNotas";
 import CampoNumero from "./ui/CampoNumero.jsx";
 import { uid } from "../utils/id";
 import { notasPorData } from "../utils/notas.js";
+import { moverParaPosicao } from "../utils/links.js";
 import { cargaHorariaEstimada, LIMITE_FALTAS } from "../utils/frequencia.js";
 import SeletorCor from "./ui/SeletorCor.jsx";
 import ResumoCadeira from "./ui/ResumoCadeira.jsx";
@@ -37,7 +38,6 @@ function Secao({ titulo, contagem, aberta, onAlternar, children }) {
 export default function PainelCadeira({
   cadeira,
   eventosExcluidos = [],
-  lembretesPadrao,
   conflitosDe,
   onFechar,
   onAtualizar,
@@ -177,7 +177,13 @@ export default function PainelCadeira({
             aberta={abertas.links}
             onAlternar={() => alternarSecao("links")}
           >
-            <AbaLinks links={cadeira.links} onAdd={addLink} onRemover={rmLink} onEditar={editLink} />
+            <AbaLinks
+              links={cadeira.links}
+              onAdd={addLink}
+              onRemover={rmLink}
+              onEditar={editLink}
+              onReordenar={(de, para) => onAtualizar((c) => ({ links: moverParaPosicao(c.links, de, para) }))}
+            />
           </Secao>
           <Secao
             titulo="Datas importantes"
@@ -189,7 +195,6 @@ export default function PainelCadeira({
               datas={cadeira.datas}
               notasDasDatas={notasDasDatas}
               onAvaliacao={abrirAvaliacao}
-              lembretesPadrao={lembretesPadrao}
               onAdd={addData}
               onRemover={rmData}
               onEditar={editData}

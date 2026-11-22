@@ -1,6 +1,6 @@
 // src/components/VisaoCadeiras.jsx
 import { useState, useRef } from "react";
-import { Plus, Trash2, Clock, Link as LinkIcon, Calendar } from "lucide-react";
+import { Plus, Trash2, Pencil, Clock, Link as LinkIcon, Calendar } from "lucide-react";
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import SeletorPeriodo from "./ui/SeletorPeriodo.jsx";
 import { useNavegacaoEnter } from "../hooks/useNavegacaoEnter.js";
@@ -14,6 +14,7 @@ export default function VisaoCadeiras({
   eventosExcluidos = [],
   onCriar,
   onAbrir,
+  onEditar,
   onExcluir,
   onSelecionarPeriodo,
   onNovoPeriodo,
@@ -76,6 +77,18 @@ export default function VisaoCadeiras({
               <div className="card-body">
                 <div className="card-title-row">
                   <span className="card-title">{c.nome}</span>
+                  {/* Card abre a tela da cadeira; o lápis abre a edição (drawer). */}
+                  <button
+                    className="icon-btn-ghost"
+                    title="Editar cadeira"
+                    aria-label={`Editar ${c.nome}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditar(c.id);
+                    }}
+                  >
+                    <Pencil size={13} />
+                  </button>
                   <button
                     className="icon-btn-ghost"
                     title="Excluir cadeira"

@@ -46,7 +46,12 @@ function sanitizarCadeira(c) {
     horarios: listaDeObjetos(c.horarios),
     links: listaDeObjetos(c.links),
     // Avaliações: `lembretes` opcional por item (#23); ausente = padrão global.
-    datas: listaDeObjetos(c.datas).map((d) => ({ ...d, lembretes: sanitizarListaLembretes(d.lembretes) })),
+    // `lembretesAtivos` (v7): liga os lembretes da data; ausente = desligado.
+    datas: listaDeObjetos(c.datas).map((d) => ({
+      ...d,
+      lembretes: sanitizarListaLembretes(d.lembretes),
+      lembretesAtivos: d.lembretesAtivos === true ? true : undefined,
+    })),
     // Vigência própria (#19), opcional: só "YYYY-MM-DD" válido sobrevive
     // (undefined é removido por removerUndefined; "" = sem limite).
     dataInicio: ehDataISO(c.dataInicio) ? c.dataInicio : undefined,

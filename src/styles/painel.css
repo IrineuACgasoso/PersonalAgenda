@@ -220,6 +220,49 @@
   white-space: nowrap;
 }
 
+/* Arrastar para reordenar os links (AbaLinks): alça, item no ar e a linha
+   que marca onde ele vai entrar. `touch-action: none` deixa o dedo arrastar
+   sem rolar a página. */
+.link-alca {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin: -4px 0 -4px -6px;
+  padding: 6px 2px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--texto-sutil);
+  cursor: grab;
+  touch-action: none;
+}
+
+.link-alca:hover,
+.link-alca:focus-visible {
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.link-item.arrastando {
+  position: relative;
+  z-index: 2;
+  border-color: var(--accent-2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  cursor: grabbing;
+}
+
+.link-item.arrastando .link-alca {
+  cursor: grabbing;
+}
+
+.link-item.alvo-acima {
+  box-shadow: 0 -3px 0 var(--accent-2);
+}
+
+.link-item.alvo-abaixo {
+  box-shadow: 0 3px 0 var(--accent-2);
+}
+
 .drop-zone {
   border: 1px dashed var(--vidro-borda-forte);
   border-radius: var(--raio-md);

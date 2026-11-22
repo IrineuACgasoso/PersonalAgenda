@@ -17,7 +17,7 @@
 // Campos que só ganham um valor padrão NÃO precisam de migração: basta
 // registrá-los no sanitizarDados.
 
-export const VERSAO_ATUAL = 6;
+export const VERSAO_ATUAL = 7;
 
 export const MIGRACOES = {
   // v0 → v1: baseline. Todos os dados anteriores a 2026-11 (sem `versao`)
@@ -157,7 +157,58 @@ export const MIGRACOES = {
       }),
     };
   },
+
+  // v6 → v7 (tela da cadeira):
+  //   1. Ponto extra (nota em modo "bonus") passa a guardar os PONTOS que
+  //      somou, não a nota de 0 a 10: antes "MP +1 com nota 3" ⇒ agora 0,3.
+  //      nova = nota × valor / 10, acumulando o fator de grupos de bônus
+  //      (filho de um grupo "+2" é multiplicado por 2/10 também), para a
+  //      média continuar EXATAMENTE a mesma.
+  //   2. Lembretes de avaliação ganham liga/desliga por data
+  //      (`lembretesAtivos`, ausente = desligado — padrão pedido pelo
+  //      usuário). Quem já tinha escolhido uma lista própria não vazia fica
+  //      ligado; o resto (que seguia o padrão global) passa a desligado.
+  7: (dados) => {
+    if (!Array.isArray(dados.cadeiras)) return { ...dados };
+    return {
+      ...dados,
+      cadeiras: dados.cadeiras.map((c) => {
+        if (!c || typeof c !== "object") return c;
+        const novo = { ...c };
+        if (Array.isArray(c.notas)) novo.notas = bonusEmPontosV7(c.notas, 1);
+        if (Array.isArray(c.datas)) {
+          novo.datas = c.datas.map((d) =>
+            d && typeof d === "object" && Array.isArray(d.lembretes) && d.lembretes.length > 0
+              ? { ...d, lembretesAtivos: true }
+              : d,
+          );
+        }
+        return novo;
+      }),
+    };
+  },
 };
+
+/* ---- v6 → v7 ---- */
+const numeroV7 = (v) => {
+  const n = typeof v === "string" ? Number(v.replace(",", ".")) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+};
+
+// `fator`: escala acumulada dos grupos de bônus acima (1 = fora de bônus).
+function bonusEmPontosV7(lista, fator) {
+  return lista.map((item) => {
+    if (!item || typeof item !== "object") return item;
+    const valor = numeroV7(item.valor);
+    const f = item.modo === "bonus" ? (fator * (valor !== undefined && valor >= 0 ? valor : 1)) / 10 : fator;
+    if (item.tipo === "grupo") {
+      return Array.isArray(item.itens) ? { ...item, itens: bonusEmPontosV7(item.itens, f) } : item;
+    }
+    const nota = numeroV7(item.nota);
+    if (f === 1 || nota === undefined) return item;
+    return { ...item, nota: Math.round(Math.min(10, Math.max(0, nota)) * f * 1000) / 1000 };
+  });
+}
 
 /* ---- v4 → v5 ----
  * Regras de recorrência copiadas AQUI (e não importadas de afazeres.js) pelo

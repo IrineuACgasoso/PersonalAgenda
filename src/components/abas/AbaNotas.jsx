@@ -1,7 +1,8 @@
 // src/components/abas/AbaNotas.jsx
 // Seção "Notas" do drawer da cadeira (#35). Árvore de notas e grupos; cada
-// item entra no de cima por PESO (média ponderada) ou BÔNUS +X (soma até X
-// pontos). Cálculos e edição da árvore são puros, em utils/notas.js.
+// item entra no de cima por PESO (média ponderada) ou PONTO EXTRA (a nota
+// lançada já é o quanto somou: 10 numa MP de 1 ponto ⇒ 1; 3 ⇒ 0,3).
+// Cálculos e edição da árvore são puros, em utils/notas.js.
 // Tudo grava ao sair do campo (CampoNumero / blur do título).
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, Copy, FolderPlus, Plus, Trash2 } from "lucide-react";
@@ -50,8 +51,8 @@ function ResumoNotas({ itens, notaFinal, onFinal }) {
     return (
       <p className="subtle notas-dica">
         Crie as notas da cadeira (Prova 1, Projeto…) e, se precisar, grupos (Unidade 1…). <strong>Peso</strong> entra na
-        média ponderada (1/1, 60/30/10…); <strong>Bônus +X</strong> soma até X pontos no grupo (ex.: mini-provas). Dá
-        para criar uma nota direto de uma data importante.
+        média ponderada (1/1, 60/30/10…); <strong>Ponto extra</strong> soma direto no grupo: lance quanto a nota cresceu
+        (tirou 10 numa MP que vale 1 ponto ⇒ 1; tirou 3 ⇒ 0,3). Dá para criar uma nota direto de uma data importante.
       </p>
     );
   }
@@ -86,7 +87,7 @@ function ResumoNotas({ itens, notaFinal, onFinal }) {
           <span>Para ao menos ir à final (≥ {MEDIA_MINIMA_FINAL}):</span>
           <strong className={Number.isFinite(s.paraFinal) ? "" : "notas-ruim"}>{textoNecessaria(s.paraFinal)}</strong>
         </div>
-        <p className="subtle notas-dica">Bônus que ainda não saiu conta como 0.</p>
+        <p className="subtle notas-dica">Ponto extra que ainda não saiu conta como 0.</p>
       </div>
     );
   }
@@ -122,6 +123,7 @@ function ItemNota({ item, nivel, raiz, datasPorId, acoes, idPai }) {
   const ehGrupo = item.tipo === "grupo";
   const destinos = useMemo(() => destinosPossiveis(raiz, item.id), [raiz, item.id]);
   const valorGrupo = ehGrupo ? valorDoGrupo(item) : null;
+  const extra = item.modo === "bonus";
 
   return (
     <div className={`nota-item${ehGrupo ? " nota-grupo" : ""}`} data-nota-id={item.id}>
@@ -149,9 +151,10 @@ function ItemNota({ item, nivel, raiz, datasPorId, acoes, idPai }) {
             className="input nota-valor"
             valor={item.nota}
             max={10}
-            placeholder="–"
+            placeholder={extra ? "+pts" : "–"}
             onSalvar={(nota) => acoes.editar(item.id, { nota })}
-            aria-label={`Nota de ${data?.titulo || item.titulo || "item"}`}
+            aria-label={`${extra ? "Pontos extras de" : "Nota de"} ${data?.titulo || item.titulo || "item"}`}
+            title={extra ? "Pontos que somaram (ex.: 10 numa MP de 1 ponto ⇒ 1)" : undefined}
           />
         )}
       </div>
@@ -164,14 +167,17 @@ function ItemNota({ item, nivel, raiz, datasPorId, acoes, idPai }) {
           aria-label="Como entra na média"
         >
           <option value="peso">Peso</option>
-          <option value="bonus">Bônus +</option>
+          <option value="bonus">Ponto extra</option>
         </select>
-        <CampoNumero
-          className="input nota-peso"
-          valor={item.valor}
-          onSalvar={(valor) => acoes.editar(item.id, { valor: valor ?? 1 })}
-          aria-label={item.modo === "bonus" ? "Pontos de bônus" : "Peso"}
-        />
+        {/* Ponto extra não tem peso: a nota já é o quanto somou. */}
+        {!extra && (
+          <CampoNumero
+            className="input nota-peso"
+            valor={item.valor}
+            onSalvar={(valor) => acoes.editar(item.id, { valor: valor ?? 1 })}
+            aria-label="Peso"
+          />
+        )}
         {(destinos.length > 0 || idPai) && (
           <select
             className="input nota-pai"

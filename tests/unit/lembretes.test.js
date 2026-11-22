@@ -17,6 +17,8 @@ import {
   montarNotificacao,
   podarEnviados,
   lembretesPendentes,
+  lembretesDaAvaliacao,
+  antecedenciaPersonalizada,
 } from "../../src/utils/lembretes.js";
 import { chaveAvaliacao } from "../../src/utils/projecao.js";
 import { estadoDoAparelho, descreverAparelho } from "../../src/utils/aparelho.js";
@@ -132,7 +134,29 @@ describe("listarLembretes — compromissos", () => {
 });
 
 describe("listarLembretes — avaliações", () => {
-  const prova = (o = {}) => ({ id: "av1", titulo: "Prova 1", data: "2026-11-25", hora: "10:00", ...o });
+  // Lembretes de avaliação são ligados POR DATA (v7); ausente = desligado.
+  const prova = (o = {}) => ({
+    id: "av1",
+    titulo: "Prova 1",
+    data: "2026-11-25",
+    hora: "10:00",
+    lembretesAtivos: true,
+    ...o,
+  });
+
+  it("desligados por padrão: sem `lembretesAtivos` (ou false) não lembra nada", () => {
+    const sem = cadeira({ datas: [prova({ lembretesAtivos: undefined })] });
+    const desligada = cadeira({ datas: [prova({ lembretesAtivos: false, lembretes: [60] })] });
+    expect(listarLembretes(appData({ cadeiras: [sem] }), TUDO)).toEqual([]);
+    expect(listarLembretes(appData({ cadeiras: [desligada] }), TUDO)).toEqual([]);
+  });
+  it("lembretesDaAvaliacao: null desligada; lista própria ou o padrão", () => {
+    expect(lembretesDaAvaliacao({})).toBe(null);
+    expect(lembretesDaAvaliacao({ lembretesAtivos: true })).toEqual([1440]);
+    expect(lembretesDaAvaliacao({ lembretesAtivos: true }, [60, 2880])).toEqual([60, 2880]);
+    expect(lembretesDaAvaliacao({ lembretesAtivos: true, lembretes: [180] }, [60])).toEqual([180]);
+    expect(lembretesDaAvaliacao({ lembretesAtivos: true, lembretes: [] })).toEqual([]);
+  });
 
   it("padrão: 1 dia antes, com o nome da cadeira", () => {
     const cad = cadeira({ id: "cad1", nome: "Cálculo", datas: [prova()] });
@@ -203,8 +227,8 @@ describe("montarNotificacao", () => {
     const cad = cadeira({
       nome: "Cálculo",
       datas: [
-        { id: "a", titulo: "Prova 1", data: "2026-11-19", hora: "14:00" },
-        { id: "b", titulo: "Lista", data: "2026-11-19", hora: "" },
+        { id: "a", titulo: "Prova 1", data: "2026-11-19", hora: "14:00", lembretesAtivos: true },
+        { id: "b", titulo: "Lista", data: "2026-11-19", hora: "", lembretesAtivos: true },
       ],
     });
     const ls = listarLembretes(appData({ cadeiras: [cad] }), TUDO);
@@ -269,5 +293,22 @@ describe("estado do aparelho (modal de lembretes)", () => {
     );
     expect(descreverAparelho("Mozilla/5.0 (Windows NT 10.0) Chrome/130 Safari/537.36 Edg/130")).toBe("Edge · Windows");
     expect(descreverAparelho()).toBe("Navegador · Outro");
+  });
+});
+
+describe("antecedenciaPersonalizada (+ Adicionar na data)", () => {
+  it("valor | h/dia/semana vira minutos", () => {
+    expect(antecedenciaPersonalizada("2", "h")).toBe(120);
+    expect(antecedenciaPersonalizada(3, "dia")).toBe(4320);
+    expect(antecedenciaPersonalizada("1,5", "dia")).toBe(2160);
+    expect(antecedenciaPersonalizada("2", "semana")).toBe(20160);
+  });
+  it("inválido, zero ou além de 30 dias ⇒ null", () => {
+    expect(antecedenciaPersonalizada("", "h")).toBe(null);
+    expect(antecedenciaPersonalizada("0", "dia")).toBe(null);
+    expect(antecedenciaPersonalizada("-1", "h")).toBe(null);
+    expect(antecedenciaPersonalizada("abc", "h")).toBe(null);
+    expect(antecedenciaPersonalizada("5", "semana")).toBe(null);
+    expect(antecedenciaPersonalizada("2", "ano")).toBe(null);
   });
 });

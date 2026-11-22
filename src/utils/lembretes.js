@@ -15,6 +15,9 @@
 //   lembretes                       { compromissos: number[], avaliacoes: number[] }  ← padrões globais
 //   compromissos[].lembretes?       number[]  ← sobrescreve o padrão ([] = sem lembrete)
 //   cadeiras[].datas[].lembretes?   number[]  ← idem, por avaliação
+//   cadeiras[].datas[].lembretesAtivos?  true ← liga os lembretes DAQUELA data
+//                                    (ausente = desligado; padrão pedido pelo
+//                                    usuário, editado no sininho da tela da cadeira)
 // Cada número = antecedência em MINUTOS antes do início (0 = na hora).
 // Ausente (undefined) = usa o padrão global.
 
@@ -28,8 +31,31 @@ export const HORA_AVALIACAO_SEM_HORA = "08:00";
 
 export const LEMBRETES_PADRAO = { compromissos: [15], avaliacoes: [1440] };
 
-const MAX_ANTECEDENCIA_MIN = 30 * 1440; // 30 dias
-const MAX_LEMBRETES_POR_ITEM = 5;
+export const MAX_ANTECEDENCIA_MIN = 30 * 1440; // 30 dias
+export const MAX_LEMBRETES_POR_ITEM = 5;
+
+// Lembrete personalizado de uma data ("valor | h/dia/semana").
+export const UNIDADES_LEMBRETE = [
+  { id: "h", rotulo: "h", minutos: 60 },
+  { id: "dia", rotulo: "dia(s)", minutos: 1440 },
+  { id: "semana", rotulo: "semana(s)", minutos: 10080 },
+];
+
+// "2" + "dia" ⇒ 2880. Inteiro positivo de minutos dentro do limite, senão null.
+export function antecedenciaPersonalizada(valor, unidade) {
+  const n = typeof valor === "string" ? Number(valor.replace(",", ".")) : valor;
+  const u = UNIDADES_LEMBRETE.find((x) => x.id === unidade);
+  if (!u || typeof n !== "number" || !Number.isFinite(n) || n <= 0) return null;
+  const min = Math.round(n * u.minutos);
+  return min > 0 && min <= MAX_ANTECEDENCIA_MIN ? min : null;
+}
+
+// Lembretes de UMA avaliação: null = desligados; senão a lista que vale
+// (própria ou, ausente, o padrão global de avaliações).
+export function lembretesDaAvaliacao(avaliacao, padrao = LEMBRETES_PADRAO.avaliacoes) {
+  if (!avaliacao || avaliacao.lembretesAtivos !== true) return null;
+  return sanitizarListaLembretes(avaliacao.lembretes) ?? padrao;
+}
 
 // Opções oferecidas na UI (cada contexto mostra as que fazem sentido).
 export const OPCOES_LEMBRETE = {
@@ -175,6 +201,8 @@ export function listarLembretes(dados, { desdeMs, ateMs, fusoMin = FUSO_RECIFE_M
       if (!d || typeof d !== "object" || !DATA_ISO.test(d.data || "")) return;
       if (!dentroDaVigencia(cad, d.data)) return;
       if (ocultas.has(chaveAvaliacaoLembrete(cad, d))) return;
+      const antecedencias = lembretesDaAvaliacao(d, prefs.avaliacoes);
+      if (!antecedencias) return; // lembretes desta data desligados
       adicionar(
         {
           tipo: "avaliacao",
@@ -185,7 +213,7 @@ export function listarLembretes(dados, { desdeMs, ateMs, fusoMin = FUSO_RECIFE_M
           hora: HORA.test(d.hora || "") ? d.hora : HORA_AVALIACAO_SEM_HORA,
           semHora: !HORA.test(d.hora || ""),
         },
-        sanitizarListaLembretes(d.lembretes) ?? prefs.avaliacoes,
+        antecedencias,
       );
     });
   });

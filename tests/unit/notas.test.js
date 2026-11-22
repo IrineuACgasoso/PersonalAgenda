@@ -22,12 +22,15 @@ import {
   moverItem,
   destinosPossiveis,
   resumoCurtoDasNotas,
+  boletimDasNotas,
+  tomDaSituacao,
 } from "../../src/utils/notas.js";
 
 const nota = (id, modo, valor, n, extra = {}) => ({ id, titulo: id, tipo: "nota", modo, valor, nota: n, ...extra });
 const grupo = (id, modo, valor, itens) => ({ id, titulo: id, tipo: "grupo", modo, valor, itens });
 
 // Lógica: Prova 1 = P1 + (MP1 + MP2 valem +1 juntas); Prova 2 = P2 + MP3 (+1).
+// Desde a v7 o ponto extra guarda os PONTOS que somou (8 numa MP de 0,5 ⇒ 0,4).
 const logica = ({ p1, mp1, mp2, p2, mp3 } = {}) => [
   grupo("Prova 1", "peso", 1, [
     nota("P1", "peso", 1, p1),
@@ -47,28 +50,36 @@ const unidade = (n, { prova, projeto, quest } = {}) =>
 
 describe("cálculo — Lógica (bônus nas provas)", () => {
   it("as MPs somam no grupo sem bagunçar a média", () => {
-    const itens = logica({ p1: 6, mp1: 8, mp2: 10, p2: 7, mp3: 10 });
+    const itens = logica({ p1: 6, mp1: 0.4, mp2: 0.5, p2: 7, mp3: 1 });
     expect(valorDoGrupo(itens[0])).toBeCloseTo(6.9);
     expect(valorDoGrupo(itens[1])).toBeCloseTo(8);
     expect(situacaoDasNotas(itens)).toMatchObject({ estado: "aprovado" });
     expect(situacaoDasNotas(itens).media).toBeCloseTo(7.45);
   });
 
+  it("ponto extra soma o valor lançado, mesmo passando de 1 ponto", () => {
+    const itens = [grupo("Prova", "peso", 1, [nota("P", "peso", 1, 6), nota("Lista", "bonus", 1, 1.5)])];
+    expect(valorDoGrupo(itens[0])).toBeCloseTo(7.5);
+    // O `valor` do item de bônus não entra mais na conta.
+    const comValor = [grupo("Prova", "peso", 1, [nota("P", "peso", 1, 6), nota("Lista", "bonus", 0.5, 1.5)])];
+    expect(valorDoGrupo(comValor[0])).toBeCloseTo(7.5);
+  });
+
   it("bônus nunca passa de 10", () => {
-    const itens = logica({ p1: 10, mp1: 10, mp2: 10, p2: 10, mp3: 10 });
+    const itens = logica({ p1: 10, mp1: 0.5, mp2: 0.5, p2: 10, mp3: 1 });
     expect(valorDoGrupo(itens[0])).toBe(10);
   });
 
   it("quanto precisa na P2: MP3 pendente conta como 0 (conservador)", () => {
-    const itens = logica({ p1: 6, mp1: 8, mp2: 10 });
+    const itens = logica({ p1: 6, mp1: 0.4, mp2: 0.5 });
     expect(notasPendentes(itens).map((x) => x.id)).toEqual(["P2"]); // MP3 é bônus: não entra
     expect(notaNecessaria(itens, 7)).toBeCloseTo(7.1);
     // Com a MP3 = 10 já lançada, precisa de 1 ponto a menos.
-    expect(notaNecessaria(logica({ p1: 6, mp1: 8, mp2: 10, mp3: 10 }), 7)).toBeCloseTo(6.1);
+    expect(notaNecessaria(logica({ p1: 6, mp1: 0.4, mp2: 0.5, mp3: 1 }), 7)).toBeCloseTo(6.1);
   });
 
   it("grupo vazio conta como pendente (não dá 'Aprovado' antes da hora)", () => {
-    const itens = [logica({ p1: 6, mp1: 8, mp2: 10 })[0], grupo("Prova 2", "peso", 1, [])];
+    const itens = [logica({ p1: 6, mp1: 0.4, mp2: 0.5 })[0], grupo("Prova 2", "peso", 1, [])];
     expect(notasPendentes(itens).map((x) => x.id)).toEqual(["Prova 2"]);
     const s = situacaoDasNotas(itens);
     expect(s.estado).toBe("andamento");
@@ -76,7 +87,7 @@ describe("cálculo — Lógica (bônus nas provas)", () => {
   });
 
   it("parcial: grupo sem a prova ainda não tem valor (o bônus sozinho não vira média)", () => {
-    const itens = logica({ mp1: 10, mp2: 10, p2: 8 });
+    const itens = logica({ mp1: 0.5, mp2: 0.5, p2: 8 });
     expect(valorDoGrupo(itens[0])).toBe(null);
     expect(mediaParcial(itens)).toBeCloseTo(8);
   });
@@ -111,7 +122,7 @@ describe("cálculo — unidades 60/30/10", () => {
 describe("situação (regra da UFPE)", () => {
   it("sem notas / em andamento", () => {
     expect(situacaoDasNotas([])).toEqual({ estado: "sem-notas" });
-    const s = situacaoDasNotas(logica({ p1: 6, mp1: 8, mp2: 10 }));
+    const s = situacaoDasNotas(logica({ p1: 6, mp1: 0.4, mp2: 0.5 }));
     expect(s.estado).toBe("andamento");
     expect(s.pendentes).toBe(1);
   });
@@ -147,7 +158,7 @@ describe("textos", () => {
 describe("resumoCurtoDasNotas (card)", () => {
   it("um texto por situação", () => {
     expect(resumoCurtoDasNotas({ estado: "sem-notas" })).toBe(null);
-    expect(resumoCurtoDasNotas(situacaoDasNotas(logica({ p1: 6, mp1: 8, mp2: 10 })))).toEqual({
+    expect(resumoCurtoDasNotas(situacaoDasNotas(logica({ p1: 6, mp1: 0.4, mp2: 0.5 })))).toEqual({
       texto: "Média parcial 6,9",
       tom: "neutro",
     });
@@ -239,5 +250,75 @@ describe("edição da árvore", () => {
   it("notasPorData acha a nota ligada a cada data", () => {
     const itens = [grupo("G", "peso", 1, [nota("P1", "peso", 1, 7, { dataId: "d1" })])];
     expect(notasPorData(itens).d1.id).toBe("P1");
+  });
+});
+
+describe("boletim (tela da cadeira)", () => {
+  it("uma coluna por grupo: % inteiro no grupo, nota, quanto somou; extras no fim", () => {
+    const itens = [
+      grupo("Unidade 1", "peso", 1, [
+        nota("MP", "bonus", 1, 0.3),
+        nota("Prova 1", "peso", 60, 8),
+        nota("Projeto 1", "peso", 30, 10),
+        nota("Quest 1", "peso", 10),
+      ]),
+      unidade(2),
+    ];
+    const [u1, u2] = boletimDasNotas(itens);
+    expect(u1).toMatchObject({ titulo: "Unidade 1", percentual: 50, pendente: true });
+    expect(u1.linhas.map((l) => l.id)).toEqual(["Prova 1", "Projeto 1", "Quest 1", "MP"]);
+    expect(u1.linhas[0]).toMatchObject({ percentual: 60, nota: 8, pendente: false });
+    expect(u1.linhas[0].contribuicao).toBeCloseTo(4.8);
+    expect(u1.linhas[2]).toMatchObject({ percentual: 10, nota: null, contribuicao: null, pendente: true });
+    expect(u1.linhas[3]).toMatchObject({ bonus: true, percentual: null, contribuicao: 0.3 });
+    // Parcial do grupo: (4,8 + 3) / 0,9 + 0,3
+    expect(u1.valor).toBeCloseTo(8.967, 2);
+    expect(u2).toMatchObject({ valor: null, contribuicao: null, pendente: true });
+  });
+
+  it("percentuais sem decimais", () => {
+    const [col] = boletimDasNotas([
+      grupo("G", "peso", 1, [nota("a", "peso", 1, 7), nota("b", "peso", 1, 7), nota("c", "peso", 1, 7)]),
+    ]);
+    expect(col.linhas.map((l) => l.percentual)).toEqual([33, 33, 33]);
+  });
+
+  it("notas soltas no topo vão juntas numa coluna 'Avaliações', com % da média", () => {
+    const itens = [
+      nota("P1", "peso", 1, 6),
+      grupo("Projeto", "peso", 2, [nota("Entrega", "peso", 1, 9)]),
+      nota("P2", "peso", 1),
+    ];
+    const cols = boletimDasNotas(itens);
+    expect(cols.map((c) => c.titulo)).toEqual(["Avaliações", "Projeto"]);
+    expect(cols[0]).toMatchObject({ soltas: true, percentual: 50, pendente: true });
+    expect(cols[0].linhas.map((l) => l.percentual)).toEqual([25, 25]);
+    expect(cols[0].contribuicao).toBeCloseTo(1.5);
+    expect(cols[1]).toMatchObject({ percentual: 50, valor: 9 });
+    expect(cols[1].contribuicao).toBeCloseTo(4.5);
+  });
+
+  it("subgrupo abre as suas linhas logo abaixo, um nível para dentro", () => {
+    const itens = [
+      grupo("U1", "peso", 1, [grupo("Listas", "peso", 1, [nota("L1", "peso", 1, 10)]), nota("P", "peso", 1, 6)]),
+    ];
+    const [col] = boletimDasNotas(itens);
+    expect(col.linhas.map((l) => [l.id, l.nivel, l.grupo])).toEqual([
+      ["Listas", 1, true],
+      ["L1", 2, false],
+      ["P", 1, false],
+    ]);
+    expect(col.linhas[0]).toMatchObject({ nota: 10, contribuicao: 5, percentual: 50 });
+  });
+
+  it("cor da caixa final: verde aprovado/garantido, âmbar faltando nota, vermelho final/reprovado", () => {
+    expect(tomDaSituacao(situacaoDasNotas([nota("P", "peso", 1, 8)]))).toBe("aprovado");
+    expect(tomDaSituacao(situacaoDasNotas([nota("P", "peso", 1, 6)]))).toBe("reprovado"); // vai para a final
+    expect(tomDaSituacao(situacaoDasNotas([nota("P", "peso", 1, 2)]))).toBe("reprovado");
+    expect(tomDaSituacao(situacaoDasNotas([nota("P", "peso", 1, 6)], 5))).toBe("aprovado");
+    expect(tomDaSituacao(situacaoDasNotas([nota("P1", "peso", 1, 6), nota("P2", "peso", 1)]))).toBe("andamento");
+    // Já garantido mesmo com 0 na que falta.
+    expect(tomDaSituacao(situacaoDasNotas([nota("P1", "peso", 9, 10), nota("P2", "peso", 1)]))).toBe("aprovado");
+    expect(tomDaSituacao(situacaoDasNotas([]))).toBe("neutro");
   });
 });

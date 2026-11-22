@@ -5,9 +5,12 @@
 // até sair) ou um GRUPO de itens, e entra no item de cima de um de 2 modos:
 //   - "peso":  média ponderada (qualquer número: 1/1, 60/30/10, 0,6…; divide
 //              pela soma dos pesos);
-//   - "bonus": soma até `valor` pontos, proporcional à nota (10 ⇒ +valor),
-//              com o resultado limitado a 10.
-// Ex. (Lógica): Prova 1 = grupo{ P1 peso 1, MP1 bônus +0,5, MP2 bônus +0,5 }.
+//   - "bonus": PONTO EXTRA. A nota do item já é o quanto ele soma (tirou 10
+//              numa MP que vale 1 ponto ⇒ lança 1; tirou 3 ⇒ 0,3). Pode
+//              passar de 1 ponto; o resultado do grupo é limitado a 10.
+//              `valor` não é usado no bônus (desde a v7; antes era o máximo
+//              de pontos e a nota ia de 0 a 10 — ver migração 7).
+// Ex. (Lógica): Prova 1 = grupo{ P1 peso 1, MP1 bônus (0,4), MP2 bônus (0,5) }.
 // `nota.dataId` (opcional) liga a nota a uma "data importante" da cadeira.
 //
 // Regra da UFPE (confirmada pelo usuário): média ≥ 7 passa direto; ≥ 3 vai
@@ -59,7 +62,7 @@ export function sanitizarItensNota(lista, profundidade = 1) {
 // Valor (0–10) de uma lista de itens, como se fosse um grupo. `pendente(item,
 // emBonus)` decide o que vale uma nota que ainda não saiu (null = ignorar).
 // Pesos sem valor conhecido ficam fora da média (média parcial); bônus sem
-// valor somam 0.
+// valor somam 0. Bônus soma a própria nota (grupo de bônus: o valor do grupo).
 function valorDaLista(itens, pendente, emBonus = false) {
   let somaPesos = 0;
   let somaPonderada = 0;
@@ -79,7 +82,7 @@ function valorDaLista(itens, pendente, emBonus = false) {
         : (item.nota ?? pendente(item, bonusAqui));
     if (v === null || v === undefined) continue;
     if (item.modo === "bonus") {
-      bonus += (item.valor * v) / NOTA_MAXIMA;
+      bonus += v;
       bonusConhecido = true;
     } else if (item.valor > 0) {
       somaPesos += item.valor;
@@ -331,4 +334,103 @@ export function notasPorData(itens) {
     });
   visitar(itens);
   return mapa;
+}
+
+/* ---------------- boletim (aba "Avaliações e Notas" da tela da cadeira) ---------------- */
+
+const somaDosPesos = (lista) =>
+  (lista || []).reduce((s, x) => s + (x.modo !== "bonus" && x.valor > 0 ? x.valor : 0), 0);
+
+// Valor de um item com o que já saiu (grupo vazio ou sem nota ⇒ null).
+function valorDoItem(item) {
+  if (item.tipo === "grupo") return item.itens?.length ? valorDaLista(item.itens, () => null) : null;
+  return item.nota ?? null;
+}
+
+// Linhas de uma lista: pesos primeiro, pontos extras no fim; um subgrupo
+// abre as suas linhas logo abaixo dele (nivel + 1). `total` = soma dos pesos
+// que dividem o "pai" (o grupo, ou a média inteira nas notas soltas).
+function linhasDoBoletim(lista, total, nivel) {
+  const ordenados = [...lista.filter((x) => x.modo !== "bonus"), ...lista.filter((x) => x.modo === "bonus")];
+  return ordenados.flatMap((item) => {
+    const bonus = item.modo === "bonus";
+    const nota = valorDoItem(item);
+    const fracao = !bonus && total > 0 && item.valor > 0 ? item.valor / total : 0;
+    const grupo = item.tipo === "grupo";
+    const linha = {
+      id: item.id,
+      titulo: item.titulo,
+      dataId: item.dataId,
+      nivel,
+      grupo,
+      bonus,
+      percentual: bonus ? null : Math.round(fracao * 100),
+      nota,
+      contribuicao: nota === null ? null : bonus ? nota : nota * fracao,
+      // Falta nota de peso (o bônus que não veio só não soma). Grupo: falta
+      // alguma lá dentro, ou ainda está vazio.
+      pendente: !bonus && (grupo ? notasPendentes([item]).length > 0 : nota === null),
+    };
+    return grupo ? [linha, ...linhasDoBoletim(item.itens || [], somaDosPesos(item.itens), nivel + 1)] : [linha];
+  });
+}
+
+// Colunas do boletim: uma por grupo do topo, na ordem da árvore. Notas
+// soltas no topo (sem grupo) vão juntas numa coluna "Avaliações", no lugar
+// da primeira delas — nessa coluna o % e a contribuição são sobre a média.
+// Percentuais inteiros (sem decimais, pedido do usuário).
+//   [{ id, titulo, soltas, bonus, percentual, valor, contribuicao, pendente, linhas[] }]
+export function boletimDasNotas(itens) {
+  const lista = itens || [];
+  const totalTopo = somaDosPesos(lista);
+  const soltas = lista.filter((x) => x.tipo !== "grupo");
+  const colunas = [];
+  let soltasNaTela = false;
+  lista.forEach((item) => {
+    if (item.tipo !== "grupo") {
+      if (soltasNaTela) return;
+      soltasNaTela = true;
+      const linhas = linhasDoBoletim(soltas, totalTopo, 1);
+      const pesoSoltas = somaDosPesos(soltas);
+      const conhecidas = linhas.filter((l) => l.contribuicao !== null);
+      colunas.push({
+        id: "@soltas",
+        titulo: "Avaliações",
+        soltas: true,
+        bonus: false,
+        percentual: totalTopo > 0 ? Math.round((pesoSoltas / totalTopo) * 100) : 0,
+        valor: null,
+        contribuicao: conhecidas.length ? conhecidas.reduce((s, l) => s + l.contribuicao, 0) : null,
+        pendente: linhas.some((l) => l.pendente),
+        linhas,
+      });
+      return;
+    }
+    const bonus = item.modo === "bonus";
+    const fracao = !bonus && totalTopo > 0 && item.valor > 0 ? item.valor / totalTopo : 0;
+    const valor = valorDoItem(item);
+    colunas.push({
+      id: item.id,
+      titulo: item.titulo,
+      soltas: false,
+      bonus,
+      percentual: bonus ? null : Math.round(fracao * 100),
+      valor,
+      contribuicao: valor === null ? null : bonus ? valor : valor * fracao,
+      pendente: !bonus && notasPendentes([item]).length > 0,
+      linhas: linhasDoBoletim(item.itens || [], somaDosPesos(item.itens), 1),
+    });
+  });
+  return colunas;
+}
+
+// Cor da caixa "Nota final" do boletim (pedido do usuário):
+//   aprovado  (verde)    — já passou, ou a aprovação já está garantida;
+//   andamento (amarelo)  — ainda falta nota e não está garantido;
+//   reprovado (vermelho) — tudo lançado e não passou direto (final/reprovado).
+export function tomDaSituacao(s) {
+  if (!s || s.estado === "sem-notas") return "neutro";
+  if (s.estado === "aprovado") return "aprovado";
+  if (s.estado === "andamento") return s.paraPassar === 0 ? "aprovado" : "andamento";
+  return "reprovado";
 }
