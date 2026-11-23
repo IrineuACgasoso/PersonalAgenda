@@ -5,6 +5,11 @@
 
 ---
 
+## 2026-11-23 (23) — Menu do "+" da Hoje abria por trás dos afazeres
+- **Causa:** o `transform` que centraliza o "+" (`.hoje-nav ~ .menu-novo`, `hoje.css`) cria um contexto de empilhamento; o `z-index: 30` do menu ficava preso nele e os itens (`backdrop-filter`) pintavam por cima. **Correção:** `z-index: 30` no próprio `.menu-novo` da Hoje.
+- **Verificado no navegador** (Chrome headless, preview, 1280 e 390px): sem a regra o "Compromisso" ficava atrás do `.data-item`; com ela as duas opções ficam na frente. `npm run check` ✅ (468 testes).
+- **➡ Próximo:** usuário testar no app.
+
 ## 2026-11-22 (22) — "+ Adicionar" lembrete personalizado no compromisso
 - **Pedido:** reaproveitar o botão "+ Adicionar" (valor | h/dia/semana) dos lembretes da data importante no formulário do compromisso; só o botão, e o valor vale só para o compromisso editado.
 - **UI:** o "+ Adicionar" virou `ui/AdicionarLembrete.jsx` (chip tracejado → campo valor + unidade + ✓/✗, erro abaixo; devolve o foco ao fechar). Usado no `ModalLembretesData` e no `SeletorLembretes` com a prop nova `personalizavel` (só o form do compromisso; o modal de padrões não tem). No compromisso a unidade começa em **h**. Adicionar a partir do "Padrão" começa a lista própria (igual clicar num chip); limite de 5 por item desabilita o botão. Antecedência fora das opções vira chip em itálico (`.proprio`). Enter/Esc no campo têm ouvinte **nativo** no input: o `useNavegacaoEnter` do form roda antes do React e pulava de campo/enviava.

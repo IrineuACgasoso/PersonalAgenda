@@ -23,6 +23,10 @@
   top: 50%;
   right: 0;
   transform: translateY(-50%);
+  /* O transform cria um contexto de empilhamento: sem z-index AQUI, o do menu
+     (.menu-novo-opcoes) vale só aqui dentro e os itens da lista, que também
+     têm contexto próprio (backdrop-filter), pintam por cima. */
+  z-index: 30;
 }
 
 .hoje-nav-data {
