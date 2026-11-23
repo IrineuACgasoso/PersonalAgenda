@@ -1,0 +1,376 @@
+/* certificados.css
+   VisaoCertificados.jsx + components/certificados/*. A linha reusa
+   .item-lista (listas.css), com a coloração leve na cor do certificado. */
+
+/* Título à esquerda, busca + filtro no centro, "+" à direita. As colunas das
+   pontas são iguais para a busca ficar centralizada de verdade. z-index: o
+   popover do filtro precisa ficar acima das linhas (backdrop-filter). */
+.certificados-topo {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, 380px) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.certificados-busca {
+  display: flex;
+  gap: 8px;
+}
+
+.certificados-campo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.certificados-campo .input {
+  padding-left: 34px;
+  padding-right: 34px;
+}
+
+.certificados-lupa {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--texto-sutil);
+  pointer-events: none;
+}
+
+.certificados-limpar {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: flex;
+  padding: 6px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--texto-fraco);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.certificados-limpar:hover {
+  color: var(--texto);
+}
+
+.certificados-novo {
+  justify-self: end;
+  padding: 10px 12px;
+}
+
+.certificados-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- filtro por tags ---------- */
+.filtro-tags {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.filtro-tags-botao {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 100%;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--texto-fraco);
+  cursor: pointer;
+}
+
+.filtro-tags-botao:hover {
+  border-color: var(--vidro-borda-forte);
+  color: var(--texto);
+}
+
+.filtro-tags-botao.ativo {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--texto);
+}
+
+.filtro-tags-contagem {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.filtro-tags-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 250px;
+  padding: 12px;
+  border: 1px solid var(--vidro-borda-forte);
+  border-radius: var(--raio-sm);
+  /* Sólido: com alpha as linhas de baixo apareciam através (ver .menu-novo). */
+  background: var(--vidro-grad), #14161b;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.filtro-tags-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filtro-tags-nova {
+  display: flex;
+  gap: 6px;
+}
+
+.filtro-tags-nova .input {
+  min-width: 0;
+  padding: 7px 10px;
+}
+
+.filtro-tags-nova .btn-primario {
+  padding: 7px 10px;
+}
+
+.filtro-tags-vazio {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.lista-tags {
+  max-height: 240px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.lista-tags-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 7px;
+}
+
+.lista-tags-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lista-tags-opcao {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.lista-tags-opcao input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* ---------- linha ---------- */
+.item-lista.certificado {
+  position: relative;
+}
+
+.certificado-icone {
+  display: flex;
+  flex-shrink: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cor-item) 18%, transparent);
+  /* Puxado para o branco: continua legível com uma cor escura. */
+  color: color-mix(in srgb, var(--cor-item) 45%, #fff);
+}
+
+.certificado-link {
+  display: block;
+  color: var(--texto);
+  text-decoration: none;
+}
+
+/* A linha inteira abre o arquivo; lápis e lixeira ficam por cima. */
+.certificado-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--raio-sm);
+}
+
+a.certificado-link:focus-visible {
+  outline: none;
+}
+
+.certificado-link:focus-visible::after {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.item-lista.certificado > .icon-btn-ghost {
+  position: relative;
+  z-index: 1;
+}
+
+.certificado-abrir {
+  flex-shrink: 0;
+  color: var(--texto-sutil);
+}
+
+.item-lista.certificado.abre:hover .certificado-abrir {
+  color: var(--texto);
+}
+
+.chip-meta.certificado-tag {
+  background: color-mix(in srgb, var(--cor-item) 18%, transparent);
+  color: var(--texto);
+}
+
+/* ---------- formulário ---------- */
+.form-certificado {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-certificado .modal-acoes {
+  margin-top: 4px;
+}
+
+.seletor-tags-botao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.seletor-tags-valor {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.seletor-tags-vazio {
+  color: var(--texto-sutil);
+}
+
+.seletor-tags-seta {
+  flex-shrink: 0;
+  color: var(--texto-fraco);
+  transition: transform 0.15s;
+}
+
+.seletor-tags.aberto .seletor-tags-seta {
+  transform: rotate(180deg);
+}
+
+.seletor-tags .lista-tags,
+.seletor-tags .filtro-tags-vazio {
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.seletor-tags .lista-tags {
+  max-height: 190px;
+}
+
+.certificado-arquivo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px dashed var(--vidro-borda-forte);
+  border-radius: var(--raio-sm);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.certificado-arquivo:hover:not(:disabled) {
+  border-color: var(--accent-2);
+  background: rgba(129, 140, 248, 0.08);
+}
+
+.certificado-arquivo:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.certificado-arquivo > svg {
+  flex-shrink: 0;
+  color: var(--accent-2);
+}
+
+.certificado-arquivo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.certificado-arquivo-nome {
+  font-size: 14.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.certificado-ver {
+  align-self: flex-start;
+  color: var(--accent-2);
+  font-size: 13px;
+}
+
+.certificado-progresso {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.certificado-progresso > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent-2);
+  transition: width 0.2s;
+}
+
+.form-certificado .btn-primario:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

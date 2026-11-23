@@ -77,5 +77,8 @@ export function resumoDoBackup(payload) {
     plural(tamanho(dados?.compromissos), "compromisso", "compromissos"),
     plural(tamanho(dados?.afazeres), "afazer", "afazeres"),
   ];
+  // Só quando há: backups anteriores à tela de Certificados nem têm o campo.
+  const certificados = tamanho(dados?.certificados);
+  if (certificados > 0) partes.push(plural(certificados, "certificado", "certificados"));
   return partes.join(" · ");
 }

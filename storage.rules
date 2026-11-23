@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// Regras do Firebase Storage: arquivos dos certificados (src/arquivos.js).
+//
+// Deploy: firebase deploy --only storage
+// O e-mail, o tamanho máximo e os tipos precisam ser os mesmos de
+// src/firebase.js e src/utils/certificados.js (checado por
+// tests/unit/integridade.test.js).
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function ehDono(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email == "cac@cin.ufpe.br"
+        && request.auth.token.email_verified == true;
+    }
+
+    // Sem SVG/HTML: executam script ao abrir.
+    function arquivoValido() {
+      return request.resource.size > 0
+        && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType in [
+          "application/pdf",
+          "image/png",
+          "image/jpeg",
+          "image/webp",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/vnd.ms-powerpoint",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "application/vnd.oasis.opendocument.text"
+        ];
+    }
+
+    // Arquivo nunca é sobrescrito: trocar o arquivo cria outro (sem update).
+    match /users/{uid}/certificados/{arquivo} {
+      allow get, delete: if ehDono(uid);
+      allow create: if ehDono(uid) && arquivoValido();
+    }
+
+    // Qualquer outro caminho: negado.
+    match /{tudo=**} {
+      allow read, write: if false;
+    }
+  }
+}

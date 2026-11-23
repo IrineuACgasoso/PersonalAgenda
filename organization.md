@@ -68,6 +68,10 @@
 | Lembretes (#23): quando disparam, textos do push, padrões | `src/utils/lembretes.js` (PURO, **sem imports**; cópia em `functions/compartilhado/` via `npm run funcoes:sincronizar`) |
 | Lembretes: envio no servidor (agendador 1/min, FCM, tokens inválidos, testes) | `functions/index.js` (deploy pelo usuário: `firebase deploy --only functions`) |
 | Lembretes: ativar/desativar/testar no aparelho, token FCM | `src/notificacoes.js` (registro em `users/{uid}/dispositivos`, não passa pelo persist); estado puro em `src/utils/aparelho.js` |
+| Certificados: tela, busca, filtro de tags, formulário | `components/VisaoCertificados.jsx` + `components/certificados/` (`FormularioCertificado`, `FiltroTags`, `SeletorTags`); ações no `App.jsx` ("ações certificados"); CSS `certificados.css` (linha = `.item-lista`) |
+| Certificados: regras (validação, filtro, tags, lixeira de arquivos, backup) | `src/utils/certificados.js` (PURO) |
+| Certificados: enviar/apagar arquivo no Storage | `src/arquivos.js` (SDK por import(); não passa pelo persist) + `storage.rules`; faxina dos 30 dias em `hooks/useFaxinaArquivos.js` |
+| Coloração leve das linhas (compromissos, afazeres, certificados) | `.item-lista` em `listas.css` (`--cor-item`); cards: `.card-cadeira::before` em `cadeiras.css` |
 | Lembretes: UI | `ui/ModalLembretes.jsx` (Sidebar → Ajustes → Lembretes), `ui/SeletorLembretes.jsx` (form do compromisso, com `personalizavel`), `ui/AdicionarLembrete.jsx` ("+ Adicionar" valor | h/dia/semana: compromisso e data importante); CSS `lembretes.css` |
 | Push / clique na notificação / cache offline | `src/sw.js` (service worker próprio, `injectManifest` no `vite.config.js`) |
 | Cor quase preta invisível no fundo escuro (#55) | `corVisivel` (`utils/calendario.js`), aplicada em `projecao.js`, listas e agenda — só exibição |
@@ -94,6 +98,9 @@ afazeres[]        { id, nome, data?, cor?, urgencia 1|2|3, feito, concluidoEm?, 
                     datasConcluidas[] (por ocorrência, pela data NATURAL = origem), excecoesData{ origem: destino } (drag) }
 eventosConcluidos[]  chaves de evento (aulas/avaliações/rotinas), por id — ver abaixo (compromisso guarda `feito` no item)
 eventosExcluidos[]   chaves de ocorrências removidas (todas as fontes)
+certificados[]       { id, titulo, cor, tags: idTag[], arquivo { caminho, url, nome, tipo, tamanho }, criadoEm }  ← arquivo em si no Storage
+tagsCertificados[]   { id, nome }
+arquivosParaApagar[] { caminho, desde(ms) }  ← lixeira de 30 dias dos arquivos excluídos/trocados
 ```
 Fora do AppData (subcoleções de `users/{uid}`, não passam pelo `persist()`): `backups/{ts}` (snapshots, #8),
 `dispositivos/{id}` `{ token, aparelho, criadoEm, atualizadoEm, testeEm?, testeRespondidoEm? }` (app grava; Rules limitam campos),
@@ -130,7 +137,8 @@ UFPE/
 │                        overrides: @grpc/grpc-js ^1.14.7 (o firebase fixa ~1.9 vulnerável; só usado no Node)
 ├── firestore.rules      Security Rules: uid + e-mail permitido + email_verified, formato mínimo do AppData,
 │                        doc principal não pode ser apagado, backups só create/delete, resto negado
-├── firebase.json        Aponta firestore.rules + functions (nodejs22, predeploy `npm run funcoes:sincronizar`) · .firebaserc: projeto default
+├── storage.rules        Regras do Storage (certificados): dono + e-mail, ≤ 20 MB, tipos permitidos, sem sobrescrever; resto negado
+├── firebase.json        Aponta firestore.rules + storage.rules + functions (nodejs22, predeploy `npm run funcoes:sincronizar`) · .firebaserc: projeto default
 ├── functions/           Cloud Functions (pacote próprio, ESM, Node 22; deploy pelo usuário, plano Blaze)
 │   ├── index.js         enviarLembretes: onSchedule a cada 1 min (America/Recife) → para cada users/{uid} com dispositivos:
 │   │                    testes pedidos (testeEm > testeRespondidoEm), lembretesPendentes (janela 10 min, dedupe em
@@ -171,6 +179,8 @@ UFPE/
 │       ├── projecao.test.js       Eventos por dia (aulas, avaliações, rotinas, compromissos, afazeres) + ordenação + marcos + marcadores
 │       ├── rotinas.test.js        Faixa da semana, horas/semana, próxima ocorrência da rotina
 │       ├── compromissos.test.js   Validação, seções e textos dos compromissos
+│       ├── certificados.test.js   Arquivo aceito, sanitização, busca/filtro, tags, lixeira (nunca apaga em uso), backup
+│       ├── arquivos.test.js       Envio/exclusão no Storage com o SDK simulado (cancelar, falha, progresso)
 │       ├── lembretes.test.js      #23: sanitização, fuso, listarLembretes (padrão/próprio/[]/feito/excluída/vigência/sem hora), textos do push, dedupe, estado do aparelho
 │       └── integridade.test.js    Estático: ícones PWA (existem; maskable 192/512 opacos), título da aba, ordem/escopo do CSS, .env, regressões de UI,
 │                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO),
@@ -192,6 +202,7 @@ UFPE/
     │                    dispositivos + testeEm), desativar, testar, renovarTokenSeAtivo (App, 1×/login). SDK messaging via import()
     ├── firebase.js      `app` exportado (FCM), initializeApp, Firestore com persistentLocalCache(multipleTab, #47) + ignoreUndefinedProperties, auth,
     │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail; devolve { ok, user | mensagem }), fazerLogout()
+    ├── arquivos.js      Certificados no Storage: enviarArquivo ({ promessa, cancelar }, nunca rejeita), apagarArquivo
     ├── constants.js     DIAS, DIAS_FULL, CORES (paleta p/ novas cadeiras), HORA_INICIO/FIM (6–23),
     │                    STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY,
     │                    ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS
@@ -210,7 +221,8 @@ UFPE/
     │   ├── useEventosCalendario.js  Memoiza, por mês visível e por filtro, as funções de utils/projecao.js → { eventosPorDia, marcosVigencia }
     │   ├── useHoje.js            hojeISO que vira à meia-noite (timer + visibilitychange/focus, #49)
     │   ├── useFiltrosCalendario.js  Filtros {aulas, avaliacoes, rotinas, compromissos, afazeres} em localStorage ("rotinas" herda o antigo "compromissos")
-    │   ├── useFecharAoClicarFora.js Fecha popover (seletor de data, menu "+") ao clicar fora / Esc (Esc na captura: não fecha o drawer junto)
+    │   ├── useFaxinaArquivos.js  Apaga do Storage os arquivos vencidos da lixeira (1×/sessão, só com dados confirmados)
+    │   ├── useFecharAoClicarFora.js Fecha popover (`noClique` p/ lista que empurra o conteúdo) (seletor de data, menu "+") ao clicar fora / Esc (Esc na captura: não fecha o drawer junto)
     │   ├── useCaixaModal.js      #51: Esc fecha, Tab preso, foco volta ao fechar; focoInicial "primeiro" (Modal) | "caixa" (drawers)
     │   ├── useMediaQuery.js      true enquanto a media query casa (Agenda girada)
     │   ├── useCloudBackup.js     useCloudBackup(): snapshot em users/{uid}/backups a cada 3h contadas do backup mais
@@ -257,6 +269,8 @@ UFPE/
     │   │                         cadeiraEstaAtivaNaData (aliases vigenciaDe/estaAtivoNaData p/ rotinas), textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
     │   ├── rotinas.js            PURO (Fase 5): diasAtivosDaRotina, minutosPorSemana, textoDuracao, proximaOcorrenciaRotina (vigência), rotinaEncerrada,
     │   │                         horariosNaSemana (agenda semanal, #56) — ui/ResumoRotina.jsx
+    │   ├── certificados.js       PURO: tipos/tamanho aceitos, sanitização, filtrarCertificados, tags (erroDaTag, excluirTag/devolverTag),
+    │   │                         salvarCertificado/excluirCertificado + lixeira (arquivosVencidos, tirarDaLixeira), certificadosDoBackup, mensagemErroArquivo
     │   ├── lembretes.js          PURO, SEM IMPORTS (#23; copiado p/ functions/): LEMBRETES_PADRAO, OPCOES_LEMBRETE, UNIDADES_LEMBRETE,
     │   │                         lembretesDaAvaliacao (null = desligada), antecedenciaPersonalizada, sanitizar*, textoAntecedencia,
     │   │                         instanteLocal/partesLocais (Recife UTC-3 fixo), listarLembretes, montarNotificacao, lembretesPendentes, podarEnviados
@@ -291,6 +305,8 @@ UFPE/
     │   │                         · AbaDatasImportantes (sininho por data) · ModalLembretesData (portal) · AbaBoletim
     │   ├── VisaoRotinas.jsx      Adicionar + grid de cards de todas as rotinas (ResumoRotina)
     │   ├── VisaoCompromissos.jsx Compromissos pontuais: FormularioCompromisso (nome, data, início, fim?, cor) + Hoje/Próximos/Passados
+    │   ├── VisaoCertificados.jsx Busca + filtro de tags + "+", linhas coloridas que abrem o arquivo (link)
+    │   ├── certificados/         FormularioCertificado (modal criar/editar, envio com progresso) · FiltroTags (popover) · SeletorTags (dropdown)
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/rotinas, grade semanal posicionada por %, lista de próximas datas
     │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), resumo e seções recolhíveis Horários/Links/Datas (#21)
     │   ├── PainelRotina.jsx      Drawer: nome, ResumoRotina, cor, vigência opcional (CampoVigencia), seção Horários (AbaHorarios)
@@ -335,6 +351,7 @@ UFPE/
         ├── lembretes.css       Chips de lembrete, modal de lembretes, .lembrete-proprio, .chip-lembrete.proprio, "+ Adicionar" (.lembrete-novo)
         ├── tela-cadeira.css    TelaCadeira (overlay z 70, caixa fixa, abas com brilho), mini agenda, cartões, materiais, datas/sininho,
         │                       modal de lembretes da data, boletim e caixa final (cores de status próprias)
+        ├── certificados.css    Topo (título · busca + filtro · +), popover de tags, linha e formulário de certificado
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)
         ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav centralizada, largura fixa; "+" absoluto à direita), atalho "Hoje" na linha do título (.hoje-header, absoluto + padding reservado), menu do + abre para dentro, aviso de atrasados (.aviso-atrasados)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)

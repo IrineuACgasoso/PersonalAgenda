@@ -12,6 +12,7 @@
 import { VERSAO_ATUAL, migrarDados, versaoDos } from "./migracoes.js";
 import { ehDataISO } from "./calendario.js";
 import { sanitizarItensNota, sanitizarNota } from "./notas.js";
+import { sanitizarCertificados, sanitizarLixeira, sanitizarTags } from "./certificados.js";
 import { LEMBRETES_PADRAO, sanitizarListaLembretes, sanitizarPreferenciasLembretes } from "./lembretes.js";
 
 export const DADOS_PADRAO = {
@@ -23,6 +24,10 @@ export const DADOS_PADRAO = {
   afazeres: [],
   eventosConcluidos: [],
   eventosExcluidos: [],
+  // Certificados: só o registro; o arquivo fica no Storage (certificados.js).
+  certificados: [],
+  tagsCertificados: [],
+  arquivosParaApagar: [],
   periodoAtivoId: "p1",
   // Padrões dos lembretes (#23): minutos de antecedência. Opcional no doc
   // (sem migração nem Rules): ausente ⇒ estes valores.
@@ -137,6 +142,9 @@ function normalizar(raw) {
     lembretes: sanitizarPreferenciasLembretes(raw.lembretes),
     eventosConcluidos: Array.isArray(raw.eventosConcluidos) ? raw.eventosConcluidos : [],
     eventosExcluidos: Array.isArray(raw.eventosExcluidos) ? raw.eventosExcluidos : [],
+    certificados: sanitizarCertificados(raw.certificados),
+    tagsCertificados: sanitizarTags(raw.tagsCertificados),
+    arquivosParaApagar: sanitizarLixeira(raw.arquivosParaApagar),
     afazeres: Array.isArray(raw.afazeres)
       ? listaDeObjetos(raw.afazeres).map((a) => ({
           ...a,
@@ -175,7 +183,8 @@ export function pareceVazio(dados) {
   const semRotinas = !dados.rotinas || dados.rotinas.length === 0;
   const semCompromissos = !dados.compromissos || dados.compromissos.length === 0;
   const semAfazeres = !dados.afazeres || dados.afazeres.length === 0;
+  const semCertificados = !dados.certificados || dados.certificados.length === 0;
   const periodosPadrao =
     !dados.periodos || dados.periodos.length === 0 || (dados.periodos.length === 1 && dados.periodos[0]?.id === "p1");
-  return semCadeiras && semRotinas && semCompromissos && semAfazeres && periodosPadrao;
+  return semCadeiras && semRotinas && semCompromissos && semAfazeres && semCertificados && periodosPadrao;
 }

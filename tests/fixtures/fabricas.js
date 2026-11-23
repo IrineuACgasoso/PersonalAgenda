@@ -48,6 +48,25 @@ export function compromisso(overrides = {}) {
   };
 }
 
+// Certificado: registro leve; o arquivo em si fica no Storage.
+export function certificado(overrides = {}) {
+  return {
+    id: id("cert"),
+    titulo: "Monitoria de Cálculo",
+    cor: "#10b981",
+    tags: [],
+    arquivo: {
+      caminho: "users/u1/certificados/x.pdf",
+      url: "https://firebasestorage.googleapis.com/v0/b/b/o/x.pdf?alt=media",
+      nome: "monitoria.pdf",
+      tipo: "application/pdf",
+      tamanho: 1024,
+    },
+    criadoEm: 1,
+    ...overrides,
+  };
+}
+
 export function afazer(overrides = {}) {
   const { rotina, ...resto } = overrides;
   return {

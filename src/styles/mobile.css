@@ -149,6 +149,22 @@
     padding: 10px 10px 10px 12px;
   }
 
+  /* Certificados: título e "+" na 1ª linha, busca + filtro embaixo. */
+  .certificados-topo {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .certificados-busca {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  /* Tocar na linha já abre: o espaço do ícone fica para o título. */
+  .certificado-abrir {
+    display: none;
+  }
+
   /* Marcadores da célula: menores para caber com o número do dia. */
   .calendario-marcos {
     top: 3px;

@@ -11,6 +11,7 @@ import VisaoAgenda from "./components/VisaoAgenda";
 import VisaoAfazeres from "./components/VisaoAfazeres";
 import VisaoGeral from "./components/VisaoGeral";
 import VisaoHoje from "./components/VisaoHoje";
+import VisaoCertificados from "./components/VisaoCertificados";
 import PainelCadeira from "./components/PainelCadeira";
 import TelaCadeira from "./components/TelaCadeira";
 import PainelRotina from "./components/PainelRotina";
@@ -24,12 +25,21 @@ import useDialogos from "./hooks/useDialogos";
 import CarregandoPainel from "./components/ui/CarregandoPainel.jsx";
 import TelaErroCarga from "./components/ui/TelaErroCarga.jsx";
 import { useCloudBackup } from "./hooks/useCloudBackup";
+import useFaxinaArquivos from "./hooks/useFaxinaArquivos";
 import { ehVersaoFutura } from "./utils/migracoes";
 import { toISO, ehRotina, afazerConcluido } from "./utils/afazeres";
 import { mensagemDeRecusa } from "./utils/dialogos";
 import { vigenciaPadraoParaNovaCadeira } from "./utils/calendario";
 import { reinserirPorId, reinserirVarios, separarRemovidos } from "./utils/desfazer";
 import { devolverChaves, limparChavesOrfas } from "./utils/chavesOrfas";
+import {
+  certificadosDoBackup,
+  devolverTag,
+  excluirCertificado as tirarCertificado,
+  excluirTag as tirarTag,
+  salvarCertificado as porCertificado,
+  tirarDaLixeira,
+} from "./utils/certificados";
 import { motivoParaNaoExcluirPeriodo } from "./utils/cadeiras";
 import { conflitosDoHorario, fontesDeHorarios } from "./utils/conflitos";
 import {
@@ -75,6 +85,8 @@ export default function App() {
   // Só depois da carga inicial e com dados de verdade (na tela de erro do #7
   // o status alterna loading/error a cada nova tentativa).
   useCloudBackup(user, data, !!data && status !== "loading");
+  // Arquivos de certificados excluídos há mais de 30 dias.
+  useFaxinaArquivos({ uid: user?.uid, data, sincronizado: status === "saved", persist });
   // Tela inicial: Hoje (#31).
   const [aba, setAba] = useState("hoje");
   // Cadeira em EDIÇÃO (drawer, lápis) × em VISUALIZAÇÃO (tela da cadeira,
@@ -463,6 +475,38 @@ export default function App() {
     setAba("afazeres");
   };
 
+  /* ---- ações certificados (o arquivo já subiu em FormularioCertificado; aqui só o registro) ---- */
+  const salvarCertificado = (certificado) => gravar((d) => porCertificado(d, certificado, Date.now()));
+
+  const excluirCertificado = (id) => {
+    let removido = null;
+    const r = gravar((d) => {
+      const resultado = tirarCertificado(d, id, Date.now());
+      removido = resultado.removido;
+      return resultado.dados;
+    });
+    if (!gravouAlgo(r) || !removido) return;
+    const { item, indice } = removido;
+    avisarComDesfazer(`Certificado "${item.titulo}" excluído`, (d) => ({
+      ...tirarDaLixeira(d, [item.arquivo?.caminho]),
+      certificados: reinserirPorId(d.certificados || [], item, indice),
+    }));
+  };
+
+  const criarTagCertificado = (nome) =>
+    gravar((d) => ({ ...d, tagsCertificados: [...(d.tagsCertificados || []), { id: uid(), nome }] }));
+
+  const excluirTagCertificado = (id) => {
+    let removida = null;
+    const r = gravar((d) => {
+      const resultado = tirarTag(d, id);
+      removida = resultado.removida;
+      return resultado.dados;
+    });
+    if (!gravouAlgo(r) || !removida) return;
+    avisarComDesfazer(`Tag "${removida.tag.nome}" excluída`, (d) => devolverTag(d, removida));
+  };
+
   /* ---- ações eventos concluidos / excluídos por instância ---- */
   const eventosConcluidos = data.eventosConcluidos || [];
   const eventosExcluidos = data.eventosExcluidos || [];
@@ -570,7 +614,7 @@ export default function App() {
       });
       if (!ok) return;
       // gravar() avisa se o persist() recusar (ex.: backup "vazio", #44).
-      const r = gravar({
+      const r = gravar((atual) => ({
         // A versão do schema TEM que vir junto: sem ela o backup seria
         // tratado como v0 e migrado de novo (ver utils/migracoes.js).
         versao: importado.versao,
@@ -584,7 +628,8 @@ export default function App() {
         eventosConcluidos: importado.eventosConcluidos ?? [],
         eventosExcluidos: importado.eventosExcluidos ?? [],
         periodoAtivoId: importado.periodoAtivoId ?? null,
-      });
+        ...certificadosDoBackup(importado, atual, Date.now()),
+      }));
       if (r.ok) notificar("Backup importado.");
     };
     leitor.readAsText(arquivo);
@@ -611,7 +656,10 @@ export default function App() {
     );
     if (!ok) return;
     // gravar() já avisa se o persist() recusar (#44) — não anunciar sucesso nesse caso.
-    const r = gravar(escolhido.payload);
+    const r = gravar((atual) => ({
+      ...escolhido.payload,
+      ...certificadosDoBackup(escolhido.payload, atual, Date.now()),
+    }));
     if (!r.ok) return;
     setRestaurandoNuvem(false);
     notificar(`Backup de ${escolhido.dataHora} restaurado.`);
@@ -714,6 +762,16 @@ export default function App() {
             onCriar={criarRotina}
             onAbrir={setRotinaAbertaId}
             onExcluir={excluirRotina}
+          />
+        ) : aba === "certificados" ? (
+          <VisaoCertificados
+            certificados={data.certificados || []}
+            tags={data.tagsCertificados || []}
+            uid={user?.uid}
+            onSalvar={salvarCertificado}
+            onExcluir={excluirCertificado}
+            onCriarTag={criarTagCertificado}
+            onExcluirTag={excluirTagCertificado}
           />
         ) : !periodoAtivo ? (
           <EstadoVazio

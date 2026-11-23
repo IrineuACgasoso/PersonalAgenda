@@ -99,6 +99,11 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 </p>
 <!-- PLACEHOLDER: print da aba "Agenda da semana" com a grade preenchida -->
 
+### 🏅 Certificados
+- Todos os certificados (faculdade, eventos, monitorias, cursos, idiomas) num lugar só: busca por título, **tags criadas por você** com filtro, cor por item; tocar na linha abre o arquivo.
+- Os arquivos (PDF, imagem, Word, PowerPoint; até 20 MB) ficam no **Firebase Storage**. Os dados do app guardam só um registro leve com o link, e o SDK do Storage só é baixado ao enviar, então a abertura do app não pesa.
+- Excluir ou trocar um arquivo tem "Desfazer": ele só é apagado de verdade depois de 30 dias.
+
 ### ☁️ Sincronização e backup
 - **Sem login:** dados salvos em `localStorage`.
 - **Com login Google:** sincronização em tempo real entre dispositivos via Firestore, com indicador de status (salvo, salvando, offline, erro) e horário da última sincronização.
@@ -140,6 +145,9 @@ type AppData = {
   afazeres: Afazer[];             // { id, nome, data?, rotina{ tipo, dataFim?, ... }, urgencia, feito, cor?, ... }
   eventosConcluidos: string[];    // chaves de ocorrências marcadas como concluídas
   eventosExcluidos: string[];     // chaves de ocorrências removidas (ex.: aula cancelada)
+  certificados: Certificado[];    // { id, titulo, cor, tags[], arquivo{ caminho, url, ... }, criadoEm } (arquivo no Storage)
+  tagsCertificados: Tag[];        // { id, nome }
+  arquivosParaApagar: { caminho: string; desde: number }[];  // lixeira de 30 dias
   periodoAtivoId: string | null;
 };
 ```
@@ -245,6 +253,12 @@ cd functions && npm install && cd ..
 firebase deploy --only functions,firestore:rules
 ```
 
+9. **Certificados (opcional, exige o plano Blaze):** ative o **Storage** no console do Firebase e publique as regras de [`storage.rules`](storage.rules) (troque o e-mail lá também):
+
+```bash
+firebase deploy --only storage
+```
+
 > As chaves `VITE_FIREBASE_*` são públicas por natureza (vão para o bundle do client). Usar `.env` aqui serve para facilitar a troca de projeto e não commitar credenciais, **não** para escondê-las. A proteção real são as Security Rules.
 
 ---
@@ -269,6 +283,7 @@ Deploy estático em qualquer provedor (Vercel, Netlify, Firebase Hosting). Na Ve
 src/
 ├── App.jsx                  # Estado global, ações CRUD, backup, roteamento de abas
 ├── firebase.js              # Config Firebase, login Google, e-mail permitido
+├── arquivos.js              # Arquivos dos certificados no Firebase Storage
 ├── notificacoes.js          # Registro do aparelho no FCM (lembretes)
 ├── sw.js                    # Service worker: cache offline + push dos lembretes
 ├── constants.js             # Cores, dias, rotinas, chaves de storage
@@ -287,7 +302,7 @@ src/
     ├── Sidebar.jsx
     ├── VisaoGeral.jsx       # Calendário mensal + drag-and-drop
     ├── VisaoAgenda.jsx      # Grade semanal
-    ├── VisaoCadeiras.jsx / VisaoRotinas.jsx / VisaoCompromissos.jsx / VisaoAfazeres.jsx
+    ├── VisaoCadeiras.jsx / VisaoRotinas.jsx / VisaoCompromissos.jsx / VisaoAfazeres.jsx / VisaoCertificados.jsx
     ├── PainelCadeira.jsx / PainelRotina.jsx   # Drawers de edição
     ├── abas/                # Horários, Links, Datas
     └── ui/                  # SeletorData, SeletorCor, SecaoLista, ResumoCadeira/Rotina, ...

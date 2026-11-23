@@ -43,6 +43,14 @@ describe("nomeDoChunk", () => {
   });
 });
 
+// Certificados: o SDK do Storage só baixa ao enviar/apagar um arquivo.
+describe("storage sob demanda", () => {
+  it("nem @firebase/storage nem o wrapper caem no chunk inicial", () => {
+    expect(nomeDoChunk(nm("@firebase/storage/dist/index.esm.js"))).toBeUndefined();
+    expect(nomeDoChunk(nm("firebase/storage/dist/esm/index.esm.js"))).toBeUndefined();
+  });
+});
+
 describe("cicloEntreChunks", () => {
   it("sem ciclo → null (inclusive com dependência compartilhada)", () => {
     expect(cicloEntreChunks({ index: ["firebase", "react"], vendor: ["react"], firebase: [], react: [] })).toBeNull();

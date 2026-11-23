@@ -171,14 +171,17 @@
   border: 1px solid var(--vidro-borda);
   border-left: 4px solid var(--cor-item);
   border-radius: var(--raio-sm);
-  background: var(--vidro-grad), var(--vidro-cor);
+  /* Mesma coloração leve dos cards de cadeiras/rotinas (.card-cadeira::before). */
+  background:
+    linear-gradient(155deg, color-mix(in srgb, var(--cor-item) 16%, transparent), transparent 65%), var(--vidro-grad),
+    var(--vidro-cor);
   backdrop-filter: var(--vidro-blur);
   -webkit-backdrop-filter: var(--vidro-blur);
   transition: border-color 0.15s;
 }
 
 .item-lista:hover {
-  border-color: var(--vidro-borda-forte);
+  border-color: color-mix(in srgb, var(--cor-item) 45%, var(--vidro-borda-forte));
   border-left-color: var(--cor-item);
 }
 

@@ -1,6 +1,7 @@
 // src/components/Sidebar.jsx
 import { useState, useRef } from "react";
 import {
+  Award,
   BookOpen,
   Calendar,
   ListChecks,
@@ -87,6 +88,9 @@ export default function Sidebar({
           </button>
           <button className={`nav-btn${aba === "agenda" ? " ativo" : ""}`} onClick={() => irPara("agenda")}>
             <Calendar size={15} /> Agenda da semana
+          </button>
+          <button className={`nav-btn${aba === "certificados" ? " ativo" : ""}`} onClick={() => irPara("certificados")}>
+            <Award size={15} /> Certificados
           </button>
         </div>
 

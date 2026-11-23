@@ -126,6 +126,14 @@ describe("Regressões de UI", () => {
     expect(ler("src/components/VisaoAfazeres.jsx")).toMatch(/onGatilhoConsumido\?\.\(\)/);
   });
 
+  // Regressão (Certificados): o dropdown de tags fechava no pointerdown, o
+  // modal encolhia com o botão ainda apertado e o clique em "Salvar" caía
+  // fora dele, fechando o formulário sem salvar.
+  it("dropdown que empurra o conteúdo fecha no click, não no pointerdown", () => {
+    expect(ler("src/components/certificados/SeletorTags.jsx")).toMatch(/useFecharAoClicarFora\(.*noClique: true/);
+    expect(ler("src/hooks/useFecharAoClicarFora.js")).toMatch(/noClique \? "click" : "pointerdown"/);
+  });
+
   // Regressão do #50: links só viram href se forem http(s).
   it("AbaLinks não usa a URL crua no href", () => {
     const jsx = ler("src/components/abas/AbaLinks.jsx");
@@ -219,6 +227,40 @@ describe("Firestore Rules (firestore.rules)", () => {
 
   it("firebase.json aponta para o arquivo de regras", () => {
     expect(JSON.parse(ler("firebase.json")).firestore.rules).toBe("firestore.rules");
+  });
+});
+
+// Certificados: os arquivos ficam no Storage, nunca no documento do Firestore.
+describe("Storage (certificados)", () => {
+  const rules = ler("storage.rules");
+
+  it("e-mail das regras é o EMAIL_PERMITIDO e o resto do bucket é negado", () => {
+    const email = ler("src/firebase.js").match(/EMAIL_PERMITIDO\s*=\s*"([^"]+)"/)[1];
+    expect(rules.match(/request\.auth\.token\.email\s*==\s*"([^"]+)"/)[1]).toBe(email);
+    expect(rules).toMatch(/request\.auth\.uid == uid/);
+    expect(rules).toMatch(/match \/\{tudo=\*\*\}\s*\{\s*allow read, write: if false;/);
+    expect(rules).not.toMatch(/allow[^:]*\b(update|list)\b/);
+  });
+
+  it("tipos e tamanho máximo das regras são os do app", async () => {
+    const { TIPOS_POR_EXTENSAO, TAMANHO_MAXIMO } = await import("../../src/utils/certificados.js");
+    const tipos = [...rules.match(/contentType in \[([^\]]+)\]/)[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    expect(tipos.sort()).toEqual([...new Set(Object.values(TIPOS_POR_EXTENSAO))].sort());
+    expect(Number(rules.match(/size <= (\d+) \* 1024 \* 1024/)[1]) * 1024 * 1024).toBe(TAMANHO_MAXIMO);
+  });
+
+  it("firebase.json aponta para as regras", () => {
+    expect(JSON.parse(ler("firebase.json")).storage.rules).toBe("storage.rules");
+  });
+
+  it("o SDK do Storage só entra por import() (não pesa na abertura)", () => {
+    const codigo = ler("src/arquivos.js");
+    expect(codigo).toMatch(/await import\("firebase\/storage"\)/);
+    expect(codigo).not.toMatch(/from "firebase\/storage"/);
+  });
+
+  it("importar e restaurar backup preservam os certificados", () => {
+    expect(ler("src/App.jsx").match(/\.\.\.certificadosDoBackup\(/g)).toHaveLength(2);
   });
 });
 

@@ -16,9 +16,10 @@
 // O `firebase/messaging` (lembretes, #23) é carregado por import() em
 // src/notificacoes.js. Se ele (ou o wrapper `firebase/messaging`) caísse num
 // chunk inicial, voltaria a ser baixado em toda abertura — por isso fica de
-// fora (undefined = o Rollup decide, e ele mantém o chunk sob demanda).
+// fora (undefined = o Rollup decide, e ele mantém o chunk sob demanda). O
+// mesmo vale para o `firebase/storage` (certificados, src/arquivos.js).
 
-const SOB_DEMANDA = /[\\/](?:@firebase|firebase)[\\/](?:messaging|installations)[\\/]/;
+const SOB_DEMANDA = /[\\/](?:@firebase|firebase)[\\/](?:messaging|installations|storage)[\\/]/;
 
 export function nomeDoChunk(id) {
   if (!/[\\/]node_modules[\\/]/.test(id)) return undefined;
