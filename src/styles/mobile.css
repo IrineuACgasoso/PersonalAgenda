@@ -160,7 +160,7 @@
     grid-column: 1 / -1;
   }
 
-  /* Tocar na linha já abre: o espaço do ícone fica para o título. */
+  /* A linha inteira já é tocável: o espaço do ícone fica para o título. */
   .certificado-abrir {
     display: none;
   }

@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-11-24 (26) — Certificados: tocar abre as opções Abrir / Baixar PDF
+- **Pedido:** ao tocar num certificado, opção de baixar como PDF (no PWA não aparecem as opções do navegador).
+- **UI:** a linha abre `certificados/OpcoesCertificado.jsx` (modal na cor do item): **Abrir** (link, como antes) e **Baixar**. PDF: "Baixar PDF". Imagem: "Baixar como PDF" (convertida no aparelho) e "Baixar imagem (PNG)". Word/PowerPoint/ODT: só o original (converter exigiria serviço externo). Nome do arquivo = título do certificado. Fechar no meio cancela.
+- **Código:** `arquivos.js` (`baixarArquivo`, `imagemEmPdf`, `salvarNoAparelho`), `utils/pdf.js` (PDF mínimo, sem biblioteca), `opcoesDeDownload`/`nomeParaBaixar`/`mensagemErroDownload` (`utils/certificados.js`). Sem mudança de schema nem de regras.
+- **CORS:** `<a download>` é ignorado em outro domínio, então o app precisa ler o arquivo por `fetch`, o que o bucket só permite com CORS (`storage.cors.json`). Não é regra: `firebase deploy` não aplica. Sem isso, "Baixar" mostra o aviso e "Abrir" continua funcionando. O fetch usa `no-store` (resposta sem CORS guardada no cache de 1 ano seria recusada para sempre).
+- **Verificado no navegador** (Chrome headless, rede simulada em outra origem, 1280 e 390px): os 3 tipos, arquivo salvo em disco (PDF idêntico ao original; PDF da imagem abre), bloqueio de CORS e liberação sem recarregar, cancelar, Esc, lápis, sem rolagem lateral. `npm run check` ✅ (519 testes). **Não testado:** Storage real e download no Android.
+- **Usuário precisa (1 vez):** aplicar o CORS no bucket pelo Cloud Shell (passo 9 do README).
+- **➡ Próximo:** usuário aplicar o CORS e testar o download no celular.
+
 ## 2026-11-23 (25) — Coloração leve também na lista do dia (Hoje e Calendário geral)
 - **Pedido:** o efeito de cor dos cards de cadeiras faltava na tela Hoje e no Calendário geral.
 - `ListaDoDia.jsx` passa `--cor-item` (cor do evento) e `.detalhe-dia .data-item` (`calendario.css`) usa o mesmo gradiente 16% + borda na cor ao passar o mouse. Vale para aulas, rotinas, avaliações, compromissos e afazeres. Sem mudança de dados. "Próximas datas" da Agenda ficou como estava (não pedido).
@@ -19,7 +28,7 @@
 - **Coloração:** `.item-lista` (`listas.css`) com o gradiente 16% da cor do item.
 - **Verificado no navegador** (Chrome headless, SDK real do Storage com a rede simulada, 1280 e 390px; 34 checagens): tags, busca, filtro, envio simples e resumível, abrir, editar com/sem trocar arquivo, excluir/desfazer, regra negada, cancelar no meio, offline. Achado e corrigido: com o dropdown de tags aberto, "Salvar" fechava o formulário sem salvar (`useFecharAoClicarFora` ganhou `noClique`). **Não testado:** Storage e regras de verdade (sem a conta e sem Java para o emulador). `npm run check` ✅ (506 testes).
 - **Usuário precisa:** (1) Console Firebase → Storage → "Começar" (plano Blaze; região us-east1/us-central1/us-west1 tem cota grátis); (2) `firebase deploy --only storage`; (3) depois de abrir a versão nova e fazer qualquer edição nela, `firebase deploy --only firestore:rules` (antes disso, um aparelho com o PWA antigo teria as gravações recusadas).
-- **✅ Usuário (2026-11-23):** disse que ativou o Storage e publicou as regras (passos 1 e 2). Não especificou se o passo 3 (`firestore:rules`) entrou: **confirmar**.
+- **✅ Usuário (2026-11-23):** ativou o Storage e publicou as duas regras, `storage` e `firestore:rules` (passos 1 a 3, confirmado em 2026-11-24).
 - **➡ Próximo:** usuário testar no app (no Android, conferir como o PDF abre).
 
 ## 2026-11-23 (23) — Menu do "+" da Hoje abria por trás dos afazeres
@@ -76,8 +85,3 @@
 - **Não testado:** sync/login com o `MultipleTabManager` (precisa da conta) — abrir o PWA e uma aba ao mesmo tempo e conferir que os dois sincronizam.
 - **Testar no app:** (1) Agenda com o celular em pé: grade deitada, deitar o aparelho para a esquerda para ler; (2) tocar num bloco abre a cadeira/rotina; (3) PWA + aba do navegador abertos juntos, os dois funcionando offline; (4) Classroom "Copiar" continua dizendo "Copiado!".
 - **➡ Próximo:** usuário vai dizer as novas features (ideias aprovadas #32, #34–#38).
-
-## 2026-11-20 (16) — Hoje: navegação fixa e menu do "+" para dentro da tela
-- **Pedido:** ao sair de hoje, o atalho "Hoje" entrava ao lado do ">" e espremia a navegação (o ">" andava e o toque seguinte caía no "Hoje"); deixar data e < > fixos, atalho no canto direito acima do título. E o menu do "+" abria para fora da tela.
-- **Feito:** atalho "↶ Hoje" saiu da linha da navegação para `.hoje-topo` (linha própria acima, à direita, com **altura sempre reservada** — senão a navegação desceria ao aparecer o botão; margin negativo reaproveita parte do espaço de cima). `.hoje-nav-data` com largura fixa (`flex: 0 0 260px`; 220px e título 16px no celular, em `mobile.css`), então o ">" não depende do tamanho do texto da data. Menu do "+" na Hoje alinhado pela direita (`.hoje-nav ~ .menu-novo .menu-novo-opcoes`); no calendário continua como antes (o "+" fica colado no título, à esquerda).
-- **Verificado no navegador** (preview, 1280px e 390px): posições de "<", data, ">" e "+" **idênticas** em hoje, +1, +2, +3 dias e ao voltar; menu do "+" em x 214..374 numa tela de 390 (dentro); sem rolagem lateral; sem erros no console. Testes 366 ✅, `npm run check` ✅.

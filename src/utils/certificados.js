@@ -78,6 +78,55 @@ export function resumoDoArquivo(arquivo) {
     .join(" · ");
 }
 
+/* ---------- baixar ---------- */
+
+/**
+ * Botões de baixar: PDF sai como está; imagem sai convertida em PDF ou como
+ * está. Word/PowerPoint/ODT só no original: converter exigiria mandar o
+ * arquivo para um serviço externo.
+ */
+export function opcoesDeDownload(arquivo) {
+  const extensao = extensaoDe(arquivo?.nome) || extensaoDe(arquivo?.caminho);
+  const sigla = extensao.toUpperCase();
+  if ((TIPOS_POR_EXTENSAO[extensao] || "").startsWith("image/")) {
+    return [
+      { id: "pdf", rotulo: "Baixar como PDF", extensao: "pdf", converter: true },
+      { id: "original", rotulo: `Baixar imagem (${sigla})`, extensao },
+    ];
+  }
+  return [{ id: "original", rotulo: `Baixar ${sigla || "arquivo"}`, extensao }];
+}
+
+/** "Monitoria: Cálculo 2026/1" + pdf → "Monitoria Cálculo 2026 1.pdf" (nome válido em qualquer sistema). */
+export function nomeParaBaixar(titulo, extensao) {
+  const base = String(titulo || "")
+    .replace(/[\\/:*?"<>|\p{Cc}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100)
+    // Windows não aceita nome terminado em ponto; começando em ponto fica oculto.
+    .replace(/^[. ]+|[. ]+$/g, "");
+  return `${base || "certificado"}${extensao ? `.${extensao}` : ""}`;
+}
+
+export function mensagemErroDownload(motivo) {
+  switch (motivo) {
+    case "offline":
+      return "Você está sem internet. É preciso dela para baixar o arquivo.";
+    case "naoExiste":
+      return "O arquivo não está mais no Storage.";
+    case "bloqueado":
+      return (
+        "Não consegui baixar o arquivo. Se a internet está funcionando, falta liberar o download no Storage " +
+        "(storage.cors.json, passo 9 do README). Por enquanto, use Abrir."
+      );
+    case "conversao":
+      return "Não consegui converter essa imagem em PDF. Baixe a imagem.";
+    default:
+      return "Não foi possível baixar o arquivo. Tente de novo.";
+  }
+}
+
 /** Caminho no Storage. Nome aleatório: trocar o arquivo nunca sobrescreve o antigo. */
 export const caminhoDoArquivo = (uid, idArquivo, nome) => `users/${uid}/certificados/${idArquivo}.${extensaoDe(nome)}`;
 

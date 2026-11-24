@@ -68,8 +68,9 @@
 | Lembretes (#23): quando disparam, textos do push, padrões | `src/utils/lembretes.js` (PURO, **sem imports**; cópia em `functions/compartilhado/` via `npm run funcoes:sincronizar`) |
 | Lembretes: envio no servidor (agendador 1/min, FCM, tokens inválidos, testes) | `functions/index.js` (deploy pelo usuário: `firebase deploy --only functions`) |
 | Lembretes: ativar/desativar/testar no aparelho, token FCM | `src/notificacoes.js` (registro em `users/{uid}/dispositivos`, não passa pelo persist); estado puro em `src/utils/aparelho.js` |
-| Certificados: tela, busca, filtro de tags, formulário | `components/VisaoCertificados.jsx` + `components/certificados/` (`FormularioCertificado`, `FiltroTags`, `SeletorTags`); ações no `App.jsx` ("ações certificados"); CSS `certificados.css` (linha = `.item-lista`) |
+| Certificados: tela, busca, filtro de tags, formulário | `components/VisaoCertificados.jsx` + `components/certificados/` (`FormularioCertificado`, `OpcoesCertificado`, `FiltroTags`, `SeletorTags`); ações no `App.jsx` ("ações certificados"); CSS `certificados.css` (linha = `.item-lista`) |
 | Certificados: regras (validação, filtro, tags, lixeira de arquivos, backup) | `src/utils/certificados.js` (PURO) |
+| Certificados: abrir/baixar (modal ao tocar na linha, imagem → PDF) | `certificados/OpcoesCertificado.jsx`; `baixarArquivo`/`imagemEmPdf`/`salvarNoAparelho` (`src/arquivos.js`); puro: `opcoesDeDownload`, `nomeParaBaixar`, `mensagemErroDownload` (`utils/certificados.js`), `pdfDeJpeg` (`utils/pdf.js`); precisa do CORS do bucket (`storage.cors.json`, aplicado pelo usuário) |
 | Certificados: enviar/apagar arquivo no Storage | `src/arquivos.js` (SDK por import(); não passa pelo persist) + `storage.rules`; faxina dos 30 dias em `hooks/useFaxinaArquivos.js` |
 | Coloração leve das linhas (compromissos, afazeres, certificados, lista do dia) | `.item-lista` em `listas.css` e `.detalhe-dia .data-item` em `calendario.css` (`--cor-item`); cards: `.card-cadeira::before` em `cadeiras.css` |
 | Lembretes: UI | `ui/ModalLembretes.jsx` (Sidebar → Ajustes → Lembretes), `ui/SeletorLembretes.jsx` (form do compromisso, com `personalizavel`), `ui/AdicionarLembrete.jsx` ("+ Adicionar" valor | h/dia/semana: compromisso e data importante); CSS `lembretes.css` |
@@ -138,6 +139,7 @@ UFPE/
 ├── firestore.rules      Security Rules: uid + e-mail permitido + email_verified, formato mínimo do AppData,
 │                        doc principal não pode ser apagado, backups só create/delete, resto negado
 ├── storage.rules        Regras do Storage (certificados): dono + e-mail, ≤ 20 MB, tipos permitidos, sem sobrescrever; resto negado
+├── storage.cors.json    CORS do bucket (baixar certificado por fetch); aplicado à mão com gcloud, não pelo firebase deploy
 ├── firebase.json        Aponta firestore.rules + storage.rules + functions (nodejs22, predeploy `npm run funcoes:sincronizar`) · .firebaserc: projeto default
 ├── functions/           Cloud Functions (pacote próprio, ESM, Node 22; deploy pelo usuário, plano Blaze)
 │   ├── index.js         enviarLembretes: onSchedule a cada 1 min (America/Recife) → para cada users/{uid} com dispositivos:
@@ -180,6 +182,7 @@ UFPE/
 │       ├── rotinas.test.js        Faixa da semana, horas/semana, próxima ocorrência da rotina
 │       ├── compromissos.test.js   Validação, seções e textos dos compromissos
 │       ├── certificados.test.js   Arquivo aceito, sanitização, busca/filtro, tags, lixeira (nunca apaga em uso), backup
+│       ├── baixarCertificado.test.js  Opções/nome do download, PDF a partir de JPEG, fetch (offline, CORS, 404, cancelar)
 │       ├── arquivos.test.js       Envio/exclusão no Storage com o SDK simulado (cancelar, falha, progresso)
 │       ├── lembretes.test.js      #23: sanitização, fuso, listarLembretes (padrão/próprio/[]/feito/excluída/vigência/sem hora), textos do push, dedupe, estado do aparelho
 │       └── integridade.test.js    Estático: ícones PWA (existem; maskable 192/512 opacos), título da aba, ordem/escopo do CSS, .env, regressões de UI,
@@ -202,7 +205,8 @@ UFPE/
     │                    dispositivos + testeEm), desativar, testar, renovarTokenSeAtivo (App, 1×/login). SDK messaging via import()
     ├── firebase.js      `app` exportado (FCM), initializeApp, Firestore com persistentLocalCache(multipleTab, #47) + ignoreUndefinedProperties, auth,
     │                    EMAIL_PERMITIDO, loginComGoogle() (popup + trava de e-mail; devolve { ok, user | mensagem }), fazerLogout()
-    ├── arquivos.js      Certificados no Storage: enviarArquivo ({ promessa, cancelar }, nunca rejeita), apagarArquivo
+    ├── arquivos.js      Certificados no Storage: enviarArquivo ({ promessa, cancelar }, nunca rejeita), apagarArquivo;
+    │                    baixar (fetch, sem SDK): baixarArquivo, imagemEmPdf, salvarNoAparelho
     ├── constants.js     DIAS, DIAS_FULL, CORES (paleta p/ novas cadeiras), HORA_INICIO/FIM (6–23),
     │                    STORAGE_KEY, ULTIMA_SINCRONIZACAO_KEY,
     │                    ROTINA_OPCOES, URGENCIA_CORES, URGENCIA_LABELS
@@ -269,6 +273,7 @@ UFPE/
     │   │                         cadeiraEstaAtivaNaData (aliases vigenciaDe/estaAtivoNaData p/ rotinas), textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
     │   ├── rotinas.js            PURO (Fase 5): diasAtivosDaRotina, minutosPorSemana, textoDuracao, proximaOcorrenciaRotina (vigência), rotinaEncerrada,
     │   │                         horariosNaSemana (agenda semanal, #56) — ui/ResumoRotina.jsx
+    │   ├── pdf.js                PURO: pdfDeJpeg (PDF de 1 página com um JPEG), tamanhoDaPagina
     │   ├── certificados.js       PURO: tipos/tamanho aceitos, sanitização, filtrarCertificados, tags (erroDaTag, excluirTag/devolverTag),
     │   │                         salvarCertificado/excluirCertificado + lixeira (arquivosVencidos, tirarDaLixeira), certificadosDoBackup, mensagemErroArquivo
     │   ├── lembretes.js          PURO, SEM IMPORTS (#23; copiado p/ functions/): LEMBRETES_PADRAO, OPCOES_LEMBRETE, UNIDADES_LEMBRETE,
@@ -306,7 +311,7 @@ UFPE/
     │   ├── VisaoRotinas.jsx      Adicionar + grid de cards de todas as rotinas (ResumoRotina)
     │   ├── VisaoCompromissos.jsx Compromissos pontuais: FormularioCompromisso (nome, data, início, fim?, cor) + Hoje/Próximos/Passados
     │   ├── VisaoCertificados.jsx Busca + filtro de tags + "+", linhas coloridas que abrem o arquivo (link)
-    │   ├── certificados/         FormularioCertificado (modal criar/editar, envio com progresso) · FiltroTags (popover) · SeletorTags (dropdown)
+    │   ├── certificados/         FormularioCertificado (modal criar/editar, envio com progresso) · OpcoesCertificado (modal Abrir/Baixar) · FiltroTags (popover) · SeletorTags (dropdown)
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/rotinas, grade semanal posicionada por %, lista de próximas datas
     │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), resumo e seções recolhíveis Horários/Links/Datas (#21)
     │   ├── PainelRotina.jsx      Drawer: nome, ResumoRotina, cor, vigência opcional (CampoVigencia), seção Horários (AbaHorarios)

@@ -5,11 +5,18 @@
 // de enviar/apagar (como o messaging): a abertura do app não baixa nada, e
 // ABRIR um certificado nem passa por aqui (é um link comum, com a URL salva).
 //
+// BAIXAR também não usa o SDK: é um fetch da mesma URL, que o bucket precisa
+// liberar (storage.cors.json; é configuração do bucket, não das regras).
+//
 // Não passa pelo persist(): quem grava o registro no AppData é o App, depois
 // que o arquivo já subiu. A segurança está em storage.rules.
 import { app } from "./firebase";
 import { uid as gerarId } from "./utils/id";
 import { caminhoDoArquivo, mensagemErroArquivo, tipoDoArquivo } from "./utils/certificados";
+import { pdfDeJpeg } from "./utils/pdf";
+
+// Limite do canvas no iOS (~16,7 megapixels).
+const LADO_MAXIMO_IMAGEM = 4000;
 
 async function abrirStorage() {
   const sdk = await import("firebase/storage");
@@ -79,4 +86,66 @@ export function enviarArquivo({ uid, arquivo, aoProgredir }) {
       tarefa?.cancel();
     },
   };
+}
+
+/**
+ * Baixa o arquivo para a memória (o atributo `download` de um link é ignorado
+ * em outro domínio). Nunca rejeita: { ok: true, blob } | { ok: false, motivo }
+ * (texto em mensagemErroDownload).
+ */
+export async function baixarArquivo(url, sinal) {
+  try {
+    // no-store: uma resposta guardada antes de liberar o CORS no bucket não
+    // tem o cabeçalho e seria recusada para sempre (o cache é de 1 ano).
+    const r = await fetch(url, { cache: "no-store", credentials: "omit", signal: sinal });
+    if (r.ok) return { ok: true, blob: await r.blob() };
+    return { ok: false, motivo: r.status === 404 ? "naoExiste" : "outro" };
+  } catch (err) {
+    if (sinal?.aborted) return { ok: false, motivo: "cancelado" };
+    console.warn("Erro ao baixar arquivo:", err);
+    // O navegador não diz se foi CORS ou rede; offline pelo menos dá para saber.
+    return { ok: false, motivo: navigator.onLine ? "bloqueado" : "offline" };
+  }
+}
+
+/** Imagem (PNG, JPG, WEBP) → Blob de um PDF de uma página; null se não deu. */
+export async function imagemEmPdf(blob) {
+  const url = URL.createObjectURL(blob);
+  try {
+    // Passa sempre pelo canvas, até o JPG: aplica a rotação da foto (EXIF),
+    // que o PDF ignoraria, e garante JPEG RGB.
+    const imagem = new Image();
+    imagem.src = url;
+    await imagem.decode();
+    const escala = Math.min(1, LADO_MAXIMO_IMAGEM / Math.max(imagem.naturalWidth, imagem.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+    canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+    const ctx = canvas.getContext("2d");
+    // JPEG não tem transparência: sem isto, PNG transparente sairia preto.
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+    const jpeg = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    const bytes = new Uint8Array(await jpeg.arrayBuffer());
+    return new Blob([pdfDeJpeg(bytes, canvas.width, canvas.height)], { type: "application/pdf" });
+  } catch (err) {
+    console.warn("Erro ao converter imagem em PDF:", err);
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Entrega o arquivo ao aparelho (pasta Downloads). */
+export function salvarNoAparelho(blob, nome) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Não na hora: o Android ainda está lendo o arquivo depois do clique.
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }

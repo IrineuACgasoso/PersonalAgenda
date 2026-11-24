@@ -100,7 +100,7 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 <!-- PLACEHOLDER: print da aba "Agenda da semana" com a grade preenchida -->
 
 ### 🏅 Certificados
-- Todos os certificados (faculdade, eventos, monitorias, cursos, idiomas) num lugar só: busca por título, **tags criadas por você** com filtro, cor por item; tocar na linha abre o arquivo.
+- Todos os certificados (faculdade, eventos, monitorias, cursos, idiomas) num lugar só: busca por título, **tags criadas por você** com filtro, cor por item; tocar na linha mostra **Abrir** e **Baixar PDF** (imagem é convertida em PDF no próprio aparelho).
 - Os arquivos (PDF, imagem, Word, PowerPoint; até 20 MB) ficam no **Firebase Storage**. Os dados do app guardam só um registro leve com o link, e o SDK do Storage só é baixado ao enviar, então a abertura do app não pesa.
 - Excluir ou trocar um arquivo tem "Desfazer": ele só é apagado de verdade depois de 30 dias.
 
@@ -258,6 +258,14 @@ firebase deploy --only functions,firestore:rules
 ```bash
 firebase deploy --only storage
 ```
+
+   Para o botão **Baixar** funcionar, libere a leitura do bucket pelo navegador (CORS, uma vez só). Não faz parte das regras: no [Cloud Shell](https://shell.cloud.google.com) (ou com o `gcloud` instalado), crie um `cors.json` com o conteúdo de [`storage.cors.json`](storage.cors.json) e rode:
+
+```bash
+gcloud storage buckets update gs://SEU_BUCKET --cors-file=cors.json
+```
+
+   O CORS não dá acesso a ninguém: cada arquivo continua exigindo o link com o token secreto dele ou o login do dono.
 
 > As chaves `VITE_FIREBASE_*` são públicas por natureza (vão para o bundle do client). Usar `.env` aqui serve para facilitar a troca de projeto e não commitar credenciais, **não** para escondê-las. A proteção real são as Security Rules.
 

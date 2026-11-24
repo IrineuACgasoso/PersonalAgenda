@@ -1,10 +1,10 @@
 // src/components/VisaoCertificados.jsx
 // Certificados (faculdade, eventos, monitorias, cursos, idiomas…). Lista com
-// busca por título e filtro por tags do usuário; tocar na linha abre o
-// arquivo. Os arquivos ficam no Firebase Storage: aqui só há o link
+// busca por título e filtro por tags do usuário; tocar na linha
+// mostra as opções (abrir, baixar). Os arquivos ficam no Firebase Storage: aqui só há o link
 // (utils/certificados.js), então a tela não carrega nenhum deles.
 import { useState } from "react";
-import { Edit2, ExternalLink, FileText, Image as ImagemIcone, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronRight, Edit2, FileText, Image as ImagemIcone, Plus, Search, Trash2, X } from "lucide-react";
 import { CORES } from "../constants";
 import { corVisivel } from "../utils/calendario.js";
 import { hrefSeguro } from "../utils/links.js";
@@ -12,9 +12,12 @@ import { filtrarCertificados, resumoDoArquivo, tagsDoCertificado } from "../util
 import EstadoVazio from "./ui/EstadoVazio.jsx";
 import FiltroTags from "./certificados/FiltroTags.jsx";
 import FormularioCertificado from "./certificados/FormularioCertificado.jsx";
+import OpcoesCertificado from "./certificados/OpcoesCertificado.jsx";
 
-function LinhaCertificado({ c, tags, onEditar, onExcluir }) {
-  const cor = corVisivel(c.cor || CORES[0]);
+const corDoCertificado = (c) => corVisivel(c.cor || CORES[0]);
+
+function LinhaCertificado({ c, tags, onAbrir, onEditar, onExcluir }) {
+  const cor = corDoCertificado(c);
   const href = hrefSeguro(c.arquivo?.url);
   const Icone = c.arquivo?.tipo?.startsWith("image/") ? ImagemIcone : FileText;
   return (
@@ -23,12 +26,16 @@ function LinhaCertificado({ c, tags, onEditar, onExcluir }) {
         <Icone size={18} />
       </span>
       <div className="item-lista-texto">
-        {/* Link de verdade (o ::after dele cobre a linha): o navegador abre o
-            PDF sem bloqueio de popup, e dá para copiar/abrir em nova aba. */}
+        {/* O ::after do botão cobre a linha inteira. */}
         {href ? (
-          <a className="item-lista-titulo certificado-link" href={href} target="_blank" rel="noopener noreferrer">
+          <button
+            type="button"
+            className="item-lista-titulo certificado-link"
+            onClick={() => onAbrir(c.id)}
+            aria-haspopup="dialog"
+          >
             {c.titulo}
-          </a>
+          </button>
         ) : (
           <div className="item-lista-titulo">{c.titulo}</div>
         )}
@@ -41,7 +48,7 @@ function LinhaCertificado({ c, tags, onEditar, onExcluir }) {
           ))}
         </div>
       </div>
-      {href && <ExternalLink size={14} className="certificado-abrir" aria-hidden="true" />}
+      {href && <ChevronRight size={16} className="certificado-abrir" aria-hidden="true" />}
       <button
         className="icon-btn-ghost"
         onClick={() => onEditar(c.id)}
@@ -67,11 +74,14 @@ export default function VisaoCertificados({ certificados, tags, uid, onSalvar, o
   const [filtro, setFiltro] = useState([]);
   // null = fechado; "novo" ou o id do certificado em edição.
   const [formulario, setFormulario] = useState(null);
+  // Id do certificado com as opções (abrir/baixar) à mostra.
+  const [aberto, setAberto] = useState(null);
 
   // Tag excluída (aqui ou em outro aparelho) sai do filtro sozinha.
   const filtroValido = filtro.filter((id) => tags.some((t) => t.id === id));
   const visiveis = filtrarCertificados(certificados, { busca, tags: filtroValido });
   const emEdicao = certificados.find((c) => c.id === formulario);
+  const comOpcoes = certificados.find((c) => c.id === aberto);
 
   return (
     <div>
@@ -118,9 +128,25 @@ export default function VisaoCertificados({ certificados, tags, uid, onSalvar, o
       ) : (
         <div className="certificados-lista">
           {visiveis.map((c) => (
-            <LinhaCertificado key={c.id} c={c} tags={tags} onEditar={setFormulario} onExcluir={onExcluir} />
+            <LinhaCertificado
+              key={c.id}
+              c={c}
+              tags={tags}
+              onAbrir={setAberto}
+              onEditar={setFormulario}
+              onExcluir={onExcluir}
+            />
           ))}
         </div>
+      )}
+
+      {comOpcoes && (
+        <OpcoesCertificado
+          key={comOpcoes.id}
+          certificado={comOpcoes}
+          cor={corDoCertificado(comOpcoes)}
+          onFechar={() => setAberto(null)}
+        />
       )}
 
       {(formulario === "novo" || emEdicao) && (

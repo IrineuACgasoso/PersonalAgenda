@@ -88,7 +88,8 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
-- [x] Tela **Certificados** (arquivos no Firebase Storage, tags, busca) + coloração leve nas linhas de compromissos, afazeres e da lista do dia (Hoje e calendário) (2026-11-23). Storage ativado e regras publicadas pelo usuário (2026-11-23); **confirmar** se `firestore:rules` também foi e testar no app (ver `log.md` 24).
+- [x] Tela **Certificados** (arquivos no Firebase Storage, tags, busca) + coloração leve nas linhas de compromissos, afazeres e da lista do dia (Hoje e calendário) (2026-11-23). Storage ativado e as duas regras (`storage`, `firestore:rules`) publicadas pelo usuário.
+- [~] Certificados: tocar abre **Abrir / Baixar PDF** (imagem convertida em PDF no aparelho) (2026-11-24). Código pronto; **falta o usuário aplicar o CORS no bucket** (`storage.cors.json`, passo 9 do README) e testar no celular.
 - [x] #34 faltas (✗) · #35 notas e média (2026-11-21). **Escopo ideal concluído.**
 - [x] #32 conflito de horário (aviso, sem bloquear) (2026-11-21).
 - [x] Agenda da semana **deitada** no celular em pé (girar o aparelho) + faixa de horas cortada ao usado · **Limpeza técnica concluída** (#26–#30, #47, #48, #51–#53) (2026-11-21).
