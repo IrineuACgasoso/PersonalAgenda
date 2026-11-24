@@ -5,6 +5,12 @@
 
 ---
 
+## 2026-11-23 (25) — Coloração leve também na lista do dia (Hoje e Calendário geral)
+- **Pedido:** o efeito de cor dos cards de cadeiras faltava na tela Hoje e no Calendário geral.
+- `ListaDoDia.jsx` passa `--cor-item` (cor do evento) e `.detalhe-dia .data-item` (`calendario.css`) usa o mesmo gradiente 16% + borda na cor ao passar o mouse. Vale para aulas, rotinas, avaliações, compromissos e afazeres. Sem mudança de dados. "Próximas datas" da Agenda ficou como estava (não pedido).
+- **Verificado no navegador** (Chrome headless, preview, 1280 e 390px, com compromissos e afazeres): gradiente na cor certa, concluído apagado, sem rolagem lateral. `npm run check` ✅.
+- **➡ Próximo:** usuário testar no app; pendências do Storage da sessão 24 continuam.
+
 ## 2026-11-23 (24) — Tela Certificados (arquivos no Storage) + coloração leve em compromissos e afazeres
 - **Pedido:** aba nova "Certificados" (Visão): lista com busca por título no centro, filtro por tags criadas pelo usuário, "+" à direita; linha colorida que abre o arquivo, lápis e lixeira; formulário (título, cor, tags, arquivo, Cancelar/Salvar) compartilhado com a edição; sem pesar o app. E o efeito de cor dos cards de cadeiras/rotinas também nas linhas de compromissos e afazeres.
 - **Onde ficam os arquivos:** **Firebase Storage** (`users/{uid}/certificados/{id}.{ext}`); no AppData só o registro (~500 bytes). SDK por `import()` (chunk de 35 kB, fora da abertura). Abrir = `<a target="_blank">` com a URL salva (sem SDK, sem bloqueio de popup). Limite 20 MB; PDF, PNG/JPG/WEBP, Word, PowerPoint, ODT (SVG/HTML recusados). Enviar exige login e internet.
@@ -74,13 +80,3 @@
 - **Pedido:** ao sair de hoje, o atalho "Hoje" entrava ao lado do ">" e espremia a navegação (o ">" andava e o toque seguinte caía no "Hoje"); deixar data e < > fixos, atalho no canto direito acima do título. E o menu do "+" abria para fora da tela.
 - **Feito:** atalho "↶ Hoje" saiu da linha da navegação para `.hoje-topo` (linha própria acima, à direita, com **altura sempre reservada** — senão a navegação desceria ao aparecer o botão; margin negativo reaproveita parte do espaço de cima). `.hoje-nav-data` com largura fixa (`flex: 0 0 260px`; 220px e título 16px no celular, em `mobile.css`), então o ">" não depende do tamanho do texto da data. Menu do "+" na Hoje alinhado pela direita (`.hoje-nav ~ .menu-novo .menu-novo-opcoes`); no calendário continua como antes (o "+" fica colado no título, à esquerda).
 - **Verificado no navegador** (preview, 1280px e 390px): posições de "<", data, ">" e "+" **idênticas** em hoje, +1, +2, +3 dias e ao voltar; menu do "+" em x 214..374 numa tela de 390 (dentro); sem rolagem lateral; sem erros no console. Testes 366 ✅, `npm run check` ✅.
-
-## 2026-11-20 (15) — Aviso de atrasados na tela Hoje
-- **Pedido:** "afazeres atrasados podem ter sido concluídos mas esquecidos de ser marcados. prefira mostrar um aviso dizendo que existem afazeres/compromissos atrasados para que eu possa organizar (foram feitos, foram adiados) no calendário geral".
-- **Regra (`itensAtrasados`, `utils/projecao.js`):** afazer **sem repetição** com data < hoje e não feito (o mesmo critério da seção "Atrasados" da aba Afazeres, via `secoesDosAfazeres`) + compromisso com data < hoje e sem check. Afazer que se repete **não** conta (ocorrência perdida de rotina não é atraso). Compromisso de hoje que já passou da hora também não (ainda é "hoje"). Ordem: mais antigo primeiro.
-- **UI:** caixa vermelha no topo da Hoje: "2 afazeres e 1 compromisso atrasados · foram feitos ou vão ser adiados?" + botão **Organizar** (abre o calendário no atraso mais antigo) + até 4 itens em pílulas (cor, nome, "N d atrás"; o resto vira "+N"), cada um abre o calendário **no próprio dia**. Lá se marca o check (feito) ou se arrasta para outra data (adiado); ao voltar, o aviso já se atualiza. Some quando não há atrasados.
-- **Calendário:** `VisaoGeral` aceita `diaInicial` ({ data, ts }), lido no `useState` (mês + dia selecionado) e **consumido ao montar** (`onDiaInicialConsumido`): a próxima visita pela sidebar abre em hoje. Ao abrir assim, rola até a lista do dia (no celular ela fica abaixo da dobra). App: `abrirCalendarioNaData` + estado `diaCalendario`.
-- **Testes:** 366 ✅ (+4: `itensAtrasados` com todos os casos de fora, vazio, `textoAtrasados` singular/plural; integridade da ligação Hoje → App → calendário). `npm run check` ✅.
-- **Verificado no navegador** (Playwright + Chrome, preview, 1280px e 390px): aviso "2 afazeres e 1 compromisso atrasados" com 3 pílulas; atrasados fora da lista do dia; clicar em "Lavar roupa" abre o calendário em 18/11 com a lista; marcar o check ⇒ ao voltar, "1 afazer e 1 compromisso"; "Organizar" abre em 15/11 (o mais antigo); visita seguinte pela sidebar abre em 20/11; sem erros no console.
-- **Testar no app:** (1) com algo atrasado, o aviso aparece na Hoje; (2) tocar num item ⇒ calendário no dia, lista visível; (3) marcar ou arrastar para hoje/futuro ⇒ some do aviso; (4) entrar no calendário pela sidebar continua abrindo em hoje.
-- **➡ Próximo:** #36 agenda navegável ou o 🟢 BAIXO. Se o aviso ficar grande por compromissos antigos nunca marcados, a aba Compromissos tem "Apagar passados".

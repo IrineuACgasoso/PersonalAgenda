@@ -203,6 +203,19 @@
   flex: 1;
 }
 
+/* Mesma coloração leve dos cards de cadeiras/rotinas e das linhas de
+   compromissos/afazeres (.item-lista); --cor-item vem do ListaDoDia. */
+.detalhe-dia .data-item {
+  --cor-item: #8b5cf6;
+  background:
+    linear-gradient(155deg, color-mix(in srgb, var(--cor-item) 16%, transparent), transparent 65%), var(--vidro-grad),
+    var(--vidro-cor);
+}
+
+.detalhe-dia .data-item:hover {
+  border-color: color-mix(in srgb, var(--cor-item) 45%, var(--vidro-borda-forte));
+}
+
 .detalhe-dia .data-item.sendo-arrastado {
   opacity: 0.35;
 }

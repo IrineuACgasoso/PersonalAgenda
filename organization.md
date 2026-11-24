@@ -71,7 +71,7 @@
 | Certificados: tela, busca, filtro de tags, formulário | `components/VisaoCertificados.jsx` + `components/certificados/` (`FormularioCertificado`, `FiltroTags`, `SeletorTags`); ações no `App.jsx` ("ações certificados"); CSS `certificados.css` (linha = `.item-lista`) |
 | Certificados: regras (validação, filtro, tags, lixeira de arquivos, backup) | `src/utils/certificados.js` (PURO) |
 | Certificados: enviar/apagar arquivo no Storage | `src/arquivos.js` (SDK por import(); não passa pelo persist) + `storage.rules`; faxina dos 30 dias em `hooks/useFaxinaArquivos.js` |
-| Coloração leve das linhas (compromissos, afazeres, certificados) | `.item-lista` em `listas.css` (`--cor-item`); cards: `.card-cadeira::before` em `cadeiras.css` |
+| Coloração leve das linhas (compromissos, afazeres, certificados, lista do dia) | `.item-lista` em `listas.css` e `.detalhe-dia .data-item` em `calendario.css` (`--cor-item`); cards: `.card-cadeira::before` em `cadeiras.css` |
 | Lembretes: UI | `ui/ModalLembretes.jsx` (Sidebar → Ajustes → Lembretes), `ui/SeletorLembretes.jsx` (form do compromisso, com `personalizavel`), `ui/AdicionarLembrete.jsx` ("+ Adicionar" valor | h/dia/semana: compromisso e data importante); CSS `lembretes.css` |
 | Push / clique na notificação / cache offline | `src/sw.js` (service worker próprio, `injectManifest` no `vite.config.js`) |
 | Cor quase preta invisível no fundo escuro (#55) | `corVisivel` (`utils/calendario.js`), aplicada em `projecao.js`, listas e agenda — só exibição |

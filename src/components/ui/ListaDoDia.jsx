@@ -157,6 +157,7 @@ export default function ListaDoDia({
                 <div
                   key={ev.chave || i}
                   className={`data-item${concluido ? " passada" : ""}${arrastavel ? " arrastavel" : ""}${pronto ? " pronto-arrasto" : ""}${sendoArrastado ? " sendo-arrastado" : ""}`}
+                  style={{ "--cor-item": ev.cor }}
                   onPointerDown={arrastavel ? (e) => arrasto.iniciar(e, ev) : undefined}
                   onPointerMove={arrastavel ? arrasto.mover : undefined}
                   onPointerUp={arrastavel ? arrasto.finalizar : undefined}

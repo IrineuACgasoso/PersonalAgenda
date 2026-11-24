@@ -88,7 +88,7 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
-- [~] Tela **Certificados** (arquivos no Firebase Storage, tags, busca) + coloração leve nas linhas de compromissos e afazeres (2026-11-23). Código pronto; **falta o usuário ativar o Storage e publicar as regras** (ver `log.md` 24).
+- [~] Tela **Certificados** (arquivos no Firebase Storage, tags, busca) + coloração leve nas linhas de compromissos, afazeres e da lista do dia (Hoje e calendário) (2026-11-23). Código pronto; **falta o usuário ativar o Storage e publicar as regras** (ver `log.md` 24).
 - [x] #34 faltas (✗) · #35 notas e média (2026-11-21). **Escopo ideal concluído.**
 - [x] #32 conflito de horário (aviso, sem bloquear) (2026-11-21).
 - [x] Agenda da semana **deitada** no celular em pé (girar o aparelho) + faixa de horas cortada ao usado · **Limpeza técnica concluída** (#26–#30, #47, #48, #51–#53) (2026-11-21).
