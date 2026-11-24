@@ -9,7 +9,7 @@
 - **Pedido:** o efeito de cor dos cards de cadeiras faltava na tela Hoje e no Calendário geral.
 - `ListaDoDia.jsx` passa `--cor-item` (cor do evento) e `.detalhe-dia .data-item` (`calendario.css`) usa o mesmo gradiente 16% + borda na cor ao passar o mouse. Vale para aulas, rotinas, avaliações, compromissos e afazeres. Sem mudança de dados. "Próximas datas" da Agenda ficou como estava (não pedido).
 - **Verificado no navegador** (Chrome headless, preview, 1280 e 390px, com compromissos e afazeres): gradiente na cor certa, concluído apagado, sem rolagem lateral. `npm run check` ✅.
-- **➡ Próximo:** usuário testar no app; pendências do Storage da sessão 24 continuam.
+- **➡ Próximo:** usuário testar no app (cores e Certificados; no Android, conferir como o PDF abre).
 
 ## 2026-11-23 (24) — Tela Certificados (arquivos no Storage) + coloração leve em compromissos e afazeres
 - **Pedido:** aba nova "Certificados" (Visão): lista com busca por título no centro, filtro por tags criadas pelo usuário, "+" à direita; linha colorida que abre o arquivo, lápis e lixeira; formulário (título, cor, tags, arquivo, Cancelar/Salvar) compartilhado com a edição; sem pesar o app. E o efeito de cor dos cards de cadeiras/rotinas também nas linhas de compromissos e afazeres.
@@ -19,7 +19,8 @@
 - **Coloração:** `.item-lista` (`listas.css`) com o gradiente 16% da cor do item.
 - **Verificado no navegador** (Chrome headless, SDK real do Storage com a rede simulada, 1280 e 390px; 34 checagens): tags, busca, filtro, envio simples e resumível, abrir, editar com/sem trocar arquivo, excluir/desfazer, regra negada, cancelar no meio, offline. Achado e corrigido: com o dropdown de tags aberto, "Salvar" fechava o formulário sem salvar (`useFecharAoClicarFora` ganhou `noClique`). **Não testado:** Storage e regras de verdade (sem a conta e sem Java para o emulador). `npm run check` ✅ (506 testes).
 - **Usuário precisa:** (1) Console Firebase → Storage → "Começar" (plano Blaze; região us-east1/us-central1/us-west1 tem cota grátis); (2) `firebase deploy --only storage`; (3) depois de abrir a versão nova e fazer qualquer edição nela, `firebase deploy --only firestore:rules` (antes disso, um aparelho com o PWA antigo teria as gravações recusadas).
-- **➡ Próximo:** usuário ativar o Storage e testar no app (no Android, conferir como o PDF abre).
+- **✅ Usuário (2026-11-23):** disse que ativou o Storage e publicou as regras (passos 1 e 2). Não especificou se o passo 3 (`firestore:rules`) entrou: **confirmar**.
+- **➡ Próximo:** usuário testar no app (no Android, conferir como o PDF abre).
 
 ## 2026-11-23 (23) — Menu do "+" da Hoje abria por trás dos afazeres
 - **Causa:** o `transform` que centraliza o "+" (`.hoje-nav ~ .menu-novo`, `hoje.css`) cria um contexto de empilhamento; o `z-index: 30` do menu ficava preso nele e os itens (`backdrop-filter`) pintavam por cima. **Correção:** `z-index: 30` no próprio `.menu-novo` da Hoje.
