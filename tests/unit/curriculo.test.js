@@ -5,15 +5,21 @@ import {
   CURRICULO_PADRAO,
   MODULOS,
   alternarOculto,
+  camposDeTraducao,
+  camposSemTraducao,
   curriculoDoBackup,
   curriculoVazio,
   devolverItem,
+  devolverModuloLivre,
   documentoDoCurriculo,
+  erroDoModuloLivre,
   erroDoRascunho,
   excluirItem,
+  excluirModuloLivre,
   limparRascunho,
   listaDePontos,
   moduloPorId,
+  modulosDoCurriculo,
   moverItem,
   moverModulo,
   nomeDoArquivo,
@@ -21,10 +27,14 @@ import {
   resumoDoItem,
   salvarDados,
   salvarItem,
+  salvarModuloLivre,
   salvarResumo,
+  salvarTraducao,
+  salvarTraducaoDados,
   sanitizarCurriculo,
   textoDoLink,
   textoPeriodo,
+  traducaoPodeEstarVelha,
   urlDoLink,
 } from "../../src/utils/curriculo.js";
 import { revisarCurriculo } from "../../src/utils/curriculoRevisao.js";
@@ -47,16 +57,19 @@ describe("sanitizarCurriculo", () => {
   });
 
   it("todos os campos de todos os módulos sobrevivem ao persist (nada some ao salvar)", () => {
-    const c = { dados: {}, resumo: "r", secoes: {} };
+    const en = (campos) => Object.fromEntries(campos.filter((f) => f.traduzir).map((f) => [f.id, `en-${f.id}`]));
+    const c = { dados: { en: en(CAMPOS_DADOS) }, resumo: "r", resumoEn: "s", secoes: {} };
+    c.modulosLivres = [{ id: "livre", titulo: "Voluntariado", tituloEn: "Volunteering" }];
+    c.ordem = ["livre", ...MODULOS.map((m) => m.id)];
     CAMPOS_DADOS.forEach((f) => (c.dados[f.id] = `d-${f.id}`));
-    MODULOS.forEach((m) => {
-      const item = { id: "1", oculto: true };
+    modulosDoCurriculo(c).forEach((m) => {
+      const item = { id: "1", oculto: true, en: en(m.campos) };
       m.campos.forEach((f) => (item[f.id] = f.tipo === "mes" ? "2025-03" : `v-${f.id}`));
       c.secoes[m.id] = [item];
     });
     const r = resolverGravacao(sanitizarDados(appData({ cadeiras: [cadeira()] })), (d) => ({ ...d, curriculo: c }));
     expect(r.ok).toBe(true);
-    expect(r.dados.curriculo).toEqual({ ...c, ordem: MODULOS.map((m) => m.id) });
+    expect(r.dados.curriculo).toEqual(c);
   });
 
   it("é idempotente e nunca deixa undefined (o Firestore recusa)", () => {
@@ -307,5 +320,198 @@ describe("revisarCurriculo", () => {
   it("mais de uma página e caracteres fora da fonte", () => {
     expect(ids(curriculo(), { paginas: 2 })).toEqual(["paginas"]);
     expect(ids(curriculo(), { perdidos: ["😀"] })).toEqual(["caracteres"]);
+  });
+});
+
+describe("versão em inglês (#59)", () => {
+  const doc = (c) => documentoDoCurriculo(c, HOJE, "en");
+  const traduzido = () => {
+    const d = salvarTraducao(appData({ curriculo: curriculo() }), "experiencia", "e1", {
+      cargo: "Intern",
+      pontos: "Built 12 REST routes",
+    });
+    return salvarResumo(salvarTraducaoDados(d, { cargo: "Back-end Intern" }), "CS student.", "en");
+  };
+
+  it("textos traduzidos, títulos, meses e termos do app em inglês; o resto igual", () => {
+    const { cargo, secoes } = doc(traduzido().curriculo);
+    const bloco = (id) => secoes.find((s) => s.id === id).blocos[0];
+    expect(cargo).toBe("Back-end Intern");
+    expect(secoes.map((s) => s.titulo)).toEqual([
+      "Summary",
+      "Education",
+      "Experience",
+      "Projects",
+      "Technical Skills",
+      "Academic Activities",
+      "Certifications and Courses",
+      "Languages",
+    ]);
+    expect(bloco("resumo").texto).toBe("CS student.");
+    expect(bloco("experiencia")).toMatchObject({
+      titulo: "Intern",
+      subtitulo: "Empresa",
+      direita: "Feb 2026 – Present",
+      pontos: ["Built 12 REST routes"],
+    });
+    expect(bloco("formacao").direita).toBe("Mar 2024 – Dec 2028 (expected)");
+    expect(bloco("certificacoes").direita).toBe("May 2026");
+    expect(bloco("idiomas").texto).toBe("Portuguese (Native)  |  English (Advanced, TOEFL 590)");
+  });
+
+  it("todo módulo tem título em inglês e o português não muda com as traduções", () => {
+    MODULOS.forEach((m) => expect(m.tituloEn).toBeTruthy());
+    const antes = documentoDoCurriculo(curriculo(), HOJE);
+    const { dados, secoes } = traduzido().curriculo;
+    expect(documentoDoCurriculo({ ...curriculo(), dados, secoes }, HOJE)).toEqual(antes);
+  });
+
+  it("sem tradução sai o português; apagado em português some nas duas", () => {
+    const projetos = doc(curriculo()).secoes.find((s) => s.id === "projetos");
+    expect(projetos.blocos[0].pontos).toEqual(["Construí um PWA"]);
+    const apagado = salvarItem(traduzido(), "experiencia", { id: "e1", pontos: "" });
+    expect(doc(apagado.curriculo).secoes.find((s) => s.id === "experiencia").blocos[0].pontos).toEqual([]);
+  });
+
+  it("editar em português não apaga a tradução; tradução em branco é removida", () => {
+    const d = salvarItem(traduzido(), "experiencia", { id: "e1", cargo: "Outro" });
+    const item = (x) => sanitizarCurriculo(x.curriculo).secoes.experiencia[0];
+    expect(item(d)).toMatchObject({ cargo: "Outro", en: { cargo: "Intern" } });
+    expect(sanitizarCurriculo(salvarDados(d, { cargo: "Z" }).curriculo).dados.en).toEqual({ cargo: "Back-end Intern" });
+    expect(item(salvarTraducao(d, "experiencia", "e1", { cargo: "", pontos: "  " }))).not.toHaveProperty("en");
+    const semDados = sanitizarCurriculo(salvarTraducaoDados(d, { cargo: "" }).curriculo);
+    expect(semDados.dados).not.toHaveProperty("en");
+  });
+
+  it("traduzir um item já excluído não o recria; en corrompido não quebra", () => {
+    const d = salvarTraducao(appData({ curriculo: curriculo() }), "projetos", "sumiu", { nome: "X" });
+    expect(d.curriculo.secoes.projetos.map((p) => p.id)).toEqual(["p1", "p2"]);
+    const c = sanitizarCurriculo({ dados: { en: 3 }, secoes: { projetos: [{ id: "p", nome: "A", en: ["x"] }] } });
+    expect(c.dados).not.toHaveProperty("en");
+    expect(c.secoes.projetos[0]).not.toHaveProperty("en");
+  });
+
+  it("formulário de tradução: só o preenchido, com o original e o padrão", () => {
+    const { campos } = moduloPorId("idiomas");
+    const item = { idioma: "Inglês", nivel: "Avançado", obs: "" };
+    expect(camposDeTraducao(campos, item).map((c) => [c.id, c.original, c.exemplo])).toEqual([
+      ["idioma", "Inglês", "Vazio = English"],
+    ]);
+    expect(camposSemTraducao(campos, item)).toEqual([]);
+    expect(camposSemTraducao(campos, { idioma: "Guarani" }).map((c) => c.id)).toEqual(["idioma"]);
+    expect(camposDeTraducao(CAMPOS_DADOS, {})).toEqual([]);
+  });
+
+  it("avisa que a tradução pode estar velha só quando o texto traduzido mudou", () => {
+    const { campos } = moduloPorId("experiencia");
+    const antes = { cargo: "Dev", empresa: "X", en: { cargo: "Dev" } };
+    expect(traducaoPodeEstarVelha(campos, antes, { cargo: "Dev Jr", empresa: "X" })).toBe(true);
+    expect(traducaoPodeEstarVelha(campos, antes, { cargo: " Dev ", empresa: "Y" })).toBe(false);
+    expect(traducaoPodeEstarVelha(campos, { cargo: "A" }, { cargo: "B" })).toBe(false);
+  });
+
+  it("nome do arquivo", () => {
+    expect(nomeDoArquivo({ dados: { nome: "José Sá" } }, "en")).toBe("Resume_Jose_Sa.pdf");
+  });
+
+  it("revisão: aponta o que falta traduzir, pontos a menos e verbo fraco em inglês", () => {
+    const ids = (c) => revisarCurriculo(c, { mesAtual: HOJE, idioma: "en" }).map((a) => a.id);
+    const original = ids(curriculo());
+    ["dados", "resumo", "formacao", "experiencia"].forEach((id) => expect(original).toContain(`traduzir|${id}`));
+    // Nomes próprios e idiomas conhecidos não cobram tradução.
+    ["idiomas", "certificacoes"].forEach((id) => expect(original).not.toContain(`traduzir|${id}`));
+    const depois = ids(traduzido().curriculo);
+    ["dados", "resumo", "experiencia"].forEach((id) => expect(depois).not.toContain(`traduzir|${id}`));
+    const mais = salvarTraducao(traduzido(), "experiencia", "e1", { pontos: "Responsible for 2 APIs\nBuilt 3" });
+    expect(ids(mais.curriculo)).toContain("traduzir|experiencia|e1");
+    expect(ids(mais.curriculo).some((id) => id.endsWith("|fraco"))).toBe(true);
+    expect(revisarCurriculo(mais.curriculo, { mesAtual: HOJE })).toEqual([]);
+    expect(new Set(ids(mais.curriculo)).size).toBe(ids(mais.curriculo).length);
+  });
+});
+
+describe("módulos livres (#60)", () => {
+  const modulo = { id: "vol", titulo: "Voluntariado", tituloEn: "" };
+  const com = (...itens) =>
+    itens.reduce(
+      (d, item) => salvarItem(d, "vol", item),
+      salvarModuloLivre(appData({ curriculo: curriculo() }), modulo),
+    );
+  const item = { id: "v1", papel: "Professor", organizacao: "ONG", inicio: "2025-01", pontos: "Ensinei 30 alunos" };
+
+  it("cria no fim, aparece só com itens e usa o título", () => {
+    const vazio = sanitizarCurriculo(com().curriculo);
+    expect(vazio.ordem.at(-1)).toBe("vol");
+    expect(documentoDoCurriculo(vazio, HOJE).secoes.map((s) => s.id)).not.toContain("vol");
+    const { titulo, blocos } = documentoDoCurriculo(com(item).curriculo, HOJE).secoes.at(-1);
+    expect(titulo).toBe("Voluntariado");
+    expect(blocos[0]).toMatchObject({ titulo: "Professor", subtitulo: "ONG", pontos: ["Ensinei 30 alunos"] });
+  });
+
+  it("renomear mantém posição e itens; move como os outros", () => {
+    const d = salvarModuloLivre(moverModulo(com(item), "vol", -1), { ...modulo, titulo: "Voluntário" });
+    const c = sanitizarCurriculo(d.curriculo);
+    expect(c.ordem.at(-2)).toBe("vol");
+    expect(c.modulosLivres).toHaveLength(1);
+    expect(c.secoes.vol).toHaveLength(1);
+    expect(modulosDoCurriculo(c).at(-2).titulo).toBe("Voluntário");
+  });
+
+  it("excluir leva os itens; desfazer devolve tudo no lugar, uma vez só", () => {
+    const antes = moverModulo(com(item), "vol", -1);
+    const { dados, removido } = excluirModuloLivre(antes, "vol");
+    const c = sanitizarCurriculo(dados.curriculo);
+    expect(c.ordem).not.toContain("vol");
+    expect(c.secoes).not.toHaveProperty("vol");
+    expect(c.modulosLivres).toEqual([]);
+    const volta = devolverModuloLivre(dados, removido);
+    expect(sanitizarCurriculo(volta.curriculo)).toEqual(sanitizarCurriculo(antes.curriculo));
+    expect(sanitizarCurriculo(devolverModuloLivre(volta, removido).curriculo).modulosLivres).toHaveLength(1);
+    expect(excluirModuloLivre(antes, "formacao").removido).toBeNull();
+  });
+
+  it("módulo que sumiu (outro aparelho): gravar item não quebra nem cria lista solta", () => {
+    const { dados } = excluirModuloLivre(com(item), "vol");
+    expect(salvarItem(dados, "vol", item)).toBe(dados);
+    expect(alternarOculto(dados, "vol", "v1")).toBe(dados);
+    expect(devolverItem(dados, "vol", { item, indice: 0 })).toBe(dados);
+    expect(excluirItem(dados, "vol", "v1")).toEqual({ dados, removido: null });
+  });
+
+  it("sanitização: lixo, id repetido ou de módulo fixo saem; sem título ganha um", () => {
+    const lixo = [null, { titulo: "sem id" }, { id: "formacao" }];
+    const { modulosLivres, ordem } = sanitizarCurriculo({
+      modulosLivres: [...lixo, { id: "a", titulo: " A " }, { id: "a" }, { id: "b" }],
+      ordem: ["b", "a", "naoExiste"],
+    });
+    expect(modulosLivres).toEqual([
+      { id: "a", titulo: "A", tituloEn: "" },
+      { id: "b", titulo: "Sem título", tituloEn: "" },
+    ]);
+    expect(ordem.slice(0, 2)).toEqual(["b", "a"]);
+  });
+
+  it("só um módulo livre criado (ou o resumo em inglês) já não parece vazio", () => {
+    expect(pareceVazio(salvarModuloLivre(sanitizarDados(null), modulo))).toBe(false);
+    expect(pareceVazio(salvarResumo(sanitizarDados(null), "hi", "en"))).toBe(false);
+  });
+
+  it("título repetido é recusado, sem ligar para acento e maiúscula", () => {
+    const c = sanitizarCurriculo(com().curriculo);
+    expect(erroDoModuloLivre(c, "Formacao Academica")).toBeTruthy();
+    expect(erroDoModuloLivre(c, "resumo")).toBeTruthy();
+    expect(erroDoModuloLivre(c, "voluntariado")).toBeTruthy();
+    expect(erroDoModuloLivre(c, "voluntariado", "vol")).toBeNull();
+    expect(erroDoModuloLivre(c, "Publicações")).toBeNull();
+  });
+
+  it("revisão: confere os pontos, mas não cobra descrição; em inglês cobra o título", () => {
+    const ids = (d, idioma) => revisarCurriculo(d.curriculo, { mesAtual: HOJE, idioma }).map((a) => a.id);
+    expect(ids(com({ ...item, pontos: "" }))).toEqual([]);
+    expect(ids(com({ ...item, pontos: "Ajudei 30 alunos" })).some((id) => id.endsWith("|fraco"))).toBe(true);
+    expect(ids(com(item), "en")).toContain("traduzir|vol|titulo");
+    const emIngles = salvarModuloLivre(com(item), { ...modulo, tituloEn: "Volunteering" });
+    expect(ids(emIngles, "en")).not.toContain("traduzir|vol|titulo");
+    expect(documentoDoCurriculo(emIngles.curriculo, HOJE, "en").secoes.at(-1).titulo).toBe("Volunteering");
   });
 });

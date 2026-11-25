@@ -72,8 +72,11 @@
 | Certificados: regras (validação, filtro, tags, lixeira de arquivos, backup) | `src/utils/certificados.js` (PURO) |
 | Certificados: abrir/baixar (modal ao tocar na linha, imagem → PDF) | `certificados/OpcoesCertificado.jsx`; `baixarArquivo`/`imagemEmPdf`/`salvarNoAparelho` (`src/arquivos.js`); puro: `opcoesDeDownload`, `nomeParaBaixar`, `mensagemErroDownload` (`utils/certificados.js`), `pdfDeJpeg` (`utils/pdf.js`); precisa do CORS do bucket (`storage.cors.json`, aplicado pelo usuário) |
 | Certificados: enviar/apagar arquivo no Storage | `src/arquivos.js` (SDK por import(); não passa pelo persist) + `storage.rules`; faxina dos 30 dias em `hooks/useFaxinaArquivos.js` |
-| Currículo: tela, formulário, módulos, prévia | `components/VisaoCurriculo.jsx` + `components/curriculo/` (`ModuloCurriculo`, `FormularioCurriculo`, `PreviaCurriculo`); ações no `App.jsx` ("ações currículo"); CSS `curriculo.css` |
+| Currículo: tela, formulário, módulos, prévia | `components/VisaoCurriculo.jsx` + `components/curriculo/` (`ModuloCurriculo`, `FormularioCurriculo`, `EscolherCertificado`, `PreviaCurriculo`); ações no `App.jsx` ("ações currículo"); CSS `curriculo.css` |
 | Currículo: campo/módulo novo, textos, ordem, o que entra | `src/utils/curriculo.js` (PURO): `CAMPOS_DADOS`, `MODULOS` (campos + `bloco`; formulário e sanitização leem daqui), `documentoDoCurriculo` |
+| Currículo: versão em inglês | textos fixos (meses, "Present", níveis) em `src/utils/curriculoIdiomas.js`; textos do usuário: `traduzir`/`automatico` nos campos + `noIdioma`, `camposSemTraducao`, `camposDeTraducao` (`curriculo.js`) |
+| Currículo: módulos livres | `modulosDoCurriculo`, `salvarModuloLivre`, `excluirModuloLivre`, `devolverModuloLivre`, `erroDoModuloLivre` (`curriculo.js`) |
+| Currículo: puxar dos certificados | `curriculo/EscolherCertificado.jsx` (copia só o título; nunca o link do Storage) |
 | Currículo: aparência da página (margens, tamanhos, quebras) | `src/utils/curriculoLayout.js` (PURO): `montarPaginas` → serve à prévia E ao PDF; larguras em `fontesPdf.js`; arquivo em `pdfDeTexto` (`pdf.js`) |
 | Currículo: dicas/avisos da revisão | `src/utils/curriculoRevisao.js` (PURO): `revisarCurriculo` |
 | Coloração leve das linhas (compromissos, afazeres, certificados, lista do dia) | `.item-lista` em `listas.css` e `.detalhe-dia .data-item` em `calendario.css` (`--cor-item`); cards: `.card-cadeira::before` em `cadeiras.css` |
@@ -106,8 +109,9 @@ eventosExcluidos[]   chaves de ocorrências removidas (todas as fontes)
 certificados[]       { id, titulo, cor, tags: idTag[], arquivo { caminho, url, nome, tipo, tamanho }, criadoEm }  ← arquivo em si no Storage
 tagsCertificados[]   { id, nome }
 arquivosParaApagar[] { caminho, desde(ms) }  ← lixeira de 30 dias dos arquivos excluídos/trocados
-curriculo            { dados { nome, cargo, local, telefone, email, linkedin, github, site }, resumo,
-                       secoes { [idModulo]: item[] }, ordem: idModulo[] }  ← opcional no doc (fora das Rules); item = { id, oculto?: true, campos string }
+curriculo            { dados { nome, cargo, local, telefone, email, linkedin, github, site, en? }, resumo, resumoEn,
+                       secoes { [idModulo]: item[] }, ordem: idModulo[], modulosLivres: [{ id, titulo, tituloEn }] }
+                       ← opcional no doc (fora das Rules); item = { id, oculto?: true, en?: { campo: tradução }, campos string }
                        módulos: formacao, experiencia, projetos, habilidades, atividades, certificacoes, premios, idiomas (meses "YYYY-MM"; `pontos` = um por linha)
 ```
 Fora do AppData (subcoleções de `users/{uid}`, não passam pelo `persist()`): `backups/{ts}` (snapshots, #8),
@@ -191,7 +195,7 @@ UFPE/
 │       ├── certificados.test.js   Arquivo aceito, sanitização, busca/filtro, tags, lixeira (nunca apaga em uso), backup
 │       ├── baixarCertificado.test.js  Opções/nome do download, PDF a partir de JPEG, fetch (offline, CORS, 404, cancelar)
 │       ├── arquivos.test.js       Envio/exclusão no Storage com o SDK simulado (cancelar, falha, progresso)
-│       ├── curriculo.test.js      Currículo: sanitização (nada some), edição, textos, documento, revisão, backup
+│       ├── curriculo.test.js      Currículo: sanitização (nada some), edição, textos, documento, revisão, backup, inglês, módulos livres
 │       ├── curriculoPdf.test.js   Larguras/codificação, quebra de linha, 1 página, pé de página, PDF bem formado, links
 │       ├── lembretes.test.js      #23: sanitização, fuso, listarLembretes (padrão/próprio/[]/feito/excluída/vigência/sem hora), textos do push, dedupe, estado do aparelho
 │       └── integridade.test.js    Estático: ícones PWA (existem; maskable 192/512 opacos), título da aba, ordem/escopo do CSS, .env, regressões de UI,
@@ -286,6 +290,7 @@ UFPE/
     │   ├── fontesPdf.js          PURO: larguraDoTexto (Helvetica), textoParaPdf (Windows-1252 + perdidos), codigoNaFonte
     │   ├── curriculo.js          PURO: MODULOS/CAMPOS_DADOS, sanitizarCurriculo, curriculoVazio, curriculoDoBackup, edição (salvarItem, excluirItem,
     │   │                         moverItem, moverModulo, alternarOculto…), erroDoRascunho, documentoDoCurriculo, nomeDoArquivo
+    │   ├── curriculoIdiomas.js   PURO: IDIOMAS, TEXTOS (pt/en), nivelEmIngles, linguaEmIngles
     │   ├── curriculoLayout.js    PURO: montarPaginas (cabe em 1 página encolhendo a letra; não separa título do conteúdo), quebrarLinhas
     │   ├── curriculoRevisao.js   PURO: revisarCurriculo → avisos essenciais/melhorias
     │   ├── certificados.js       PURO: tipos/tamanho aceitos, sanitização, filtrarCertificados, tags (erroDaTag, excluirTag/devolverTag),
@@ -327,7 +332,7 @@ UFPE/
     │   ├── VisaoCertificados.jsx Busca + filtro de tags + "+", linhas coloridas que abrem o arquivo (link)
     │   ├── certificados/         FormularioCertificado (modal criar/editar, envio com progresso) · OpcoesCertificado (modal Abrir/Baixar) · FiltroTags (popover) · SeletorTags (dropdown)
     │   ├── VisaoCurriculo.jsx    Gerador de currículo: revisão, módulos e prévia lado a lado (celular: Editar | Prévia), "Baixar PDF"
-    │   ├── curriculo/            ModuloCurriculo (lista + olho/↑↓) · FormularioCurriculo (modal por campos, rascunho) · PreviaCurriculo (SVG)
+    │   ├── curriculo/            ModuloCurriculo (lista + olho/↑↓) · FormularioCurriculo (modal por campos, rascunho, tradução) · EscolherCertificado (modal) · PreviaCurriculo (SVG)
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/rotinas, grade semanal posicionada por %, lista de próximas datas
     │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), resumo e seções recolhíveis Horários/Links/Datas (#21)
     │   ├── PainelRotina.jsx      Drawer: nome, ResumoRotina, cor, vigência opcional (CampoVigencia), seção Horários (AbaHorarios)

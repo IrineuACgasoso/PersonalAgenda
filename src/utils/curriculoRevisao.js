@@ -3,7 +3,18 @@
 // PURO. Revisão do currículo pelo que recrutadores e sistemas de triagem
 // (ATS) costumam olhar em vagas de computação. Só avisa: nada impede de
 // baixar o PDF. Itens ocultos não contam (não estão no documento).
-import { documentoDoCurriculo, ehEmail, sanitizarCurriculo } from "./curriculo.js";
+import {
+  CAMPOS_DADOS,
+  CAMPOS_RESUMO,
+  camposSemTraducao,
+  documentoDoCurriculo,
+  ehEmail,
+  listaDePontos,
+  modulosDoCurriculo,
+  resumoComTraducao,
+  resumoDoItem,
+  sanitizarCurriculo,
+} from "./curriculo.js";
 
 const MAX_RESUMO = 450;
 const MAX_PONTO = 220;
@@ -11,20 +22,26 @@ const MAX_PONTOS = 6;
 
 // Começos que descrevem o cargo em vez do que a pessoa fez. Sem \b: em JS ele
 // não reconhece letra acentuada ("responsável").
-const INICIO_FRACO =
-  /^(eu|fui|era|fiz parte|respons[aá]vel|ajud(ei|ava|ando)|particip(ei|ava|ando|ação)|auxili(ei|ava|ando)|trabalh(ei|ava|ando))(?=[\s,.:;]|$)/i;
+const INICIO_FRACO = {
+  pt: /^(eu|fui|era|fiz parte|respons[aá]vel|ajud(ei|ava|ando)|particip(ei|ava|ando|ação)|auxili(ei|ava|ando)|trabalh(ei|ava|ando))(?=[\s,.:;]|$)/i,
+  en: /^(i|i'm|i’m|was|were|responsible|in charge|duties|help(ed|ing)|assist(ed|ing)|participat(ed|ing)|work(ed|ing))(?=[\s,.:;]|$)/i,
+};
+const VERBOS = {
+  pt: "desenvolvi, implementei, automatizei",
+  en: "developed, implemented, automated",
+};
 
 const curto = (t) => (t.length > 45 ? `${t.slice(0, 44).trimEnd()}…` : t);
 
 /**
  * @param {object} curriculo
- * @param {{ paginas?: number, perdidos?: string[], mesAtual?: string }} pagina
- *   resultado do layout (curriculoLayout.js)
+ * @param {{ paginas?: number, perdidos?: string[], mesAtual?: string, idioma?: "pt"|"en" }} pagina
+ *   resultado do layout (curriculoLayout.js) e a versão revisada
  * @returns {{ id, nivel: "essencial"|"melhoria", texto }[]} essenciais primeiro
  */
-export function revisarCurriculo(curriculo, { paginas = 1, perdidos = [], mesAtual } = {}) {
+export function revisarCurriculo(curriculo, { paginas = 1, perdidos = [], mesAtual, idioma = "pt" } = {}) {
   const c = sanitizarCurriculo(curriculo);
-  const doc = documentoDoCurriculo(c, mesAtual);
+  const doc = documentoDoCurriculo(c, mesAtual, idioma);
   const secao = (id) => doc.secoes.find((s) => s.id === id)?.blocos || [];
   const tem = (campo) => !!c.dados[campo].trim();
   const avisos = [];
@@ -55,22 +72,32 @@ export function revisarCurriculo(curriculo, { paginas = 1, perdidos = [], mesAtu
     melhoria("linkProjetos", "Coloque o link de pelo menos um projeto.");
   }
 
-  const resumo = c.resumo.trim();
+  if (idioma === "en") avisos.push(...avisosDeTraducao(c, mesAtual));
+
+  const resumo = secao("resumo")[0]?.texto || "";
   if (resumo.length > MAX_RESUMO) {
     melhoria("resumo", `O resumo está longo (${resumo.length} letras). Tente ficar em 3 linhas.`);
   }
 
-  const descritos = [...experiencias, ...projetos, ...secao("atividades")];
+  // Num módulo livre nem todo item pede descrição (ex.: "Publicações").
+  const livres = new Set(c.modulosLivres.map((m) => m.id));
+  const blocosLivres = doc.secoes.filter((s) => livres.has(s.id)).flatMap((s) => s.blocos);
+  const descritos = [
+    ...experiencias,
+    ...projetos,
+    ...secao("atividades"),
+    ...blocosLivres.filter((b) => b.pontos.length > 0),
+  ];
   for (const [i, b] of descritos.entries()) {
     const id = `item${i}`;
     const nome = curto(b.titulo);
     if (b.pontos.length === 0) melhoria(`${id}|semPontos`, `“${nome}”: descreva o que você fez em 2 a 5 pontos.`);
     if (b.pontos.length > MAX_PONTOS) melhoria(`${id}|muitos`, `“${nome}”: são muitos pontos, deixe os 5 mais fortes.`);
-    const fraco = b.pontos.find((p) => INICIO_FRACO.test(p));
+    const fraco = b.pontos.find((p) => INICIO_FRACO[idioma].test(p));
     if (fraco) {
       melhoria(
         `${id}|fraco`,
-        `“${nome}”: comece com um verbo de ação (desenvolvi, implementei, automatizei) em vez de “${curto(fraco)}”.`,
+        `“${nome}”: comece com um verbo de ação (${VERBOS[idioma]}) em vez de “${curto(fraco)}”.`,
       );
     }
     const longo = b.pontos.find((p) => p.length > MAX_PONTO);
@@ -92,4 +119,31 @@ export function revisarCurriculo(curriculo, { paginas = 1, perdidos = [], mesAtu
   }
 
   return avisos.sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "essencial" ? -1 : 1));
+}
+
+// Só na versão em inglês: o que sairia em português e traduções que parecem velhas.
+function avisosDeTraducao(c, mesAtual) {
+  const avisos = [];
+  const essencial = (id, texto) => avisos.push({ id: `traduzir|${id}`, nivel: "essencial", texto });
+  if (camposSemTraducao(CAMPOS_DADOS, c.dados).length > 0) essencial("dados", "Traduza o título/vaga desejada.");
+  if (camposSemTraducao(CAMPOS_RESUMO, resumoComTraducao(c)).length > 0) essencial("resumo", "Traduza o resumo.");
+  for (const m of modulosDoCurriculo(c)) {
+    const itens = c.secoes[m.id].filter((i) => !i.oculto);
+    if (itens.length > 0 && !m.tituloEn)
+      essencial(`${m.id}|titulo`, `“${curto(m.titulo)}”: traduza o título do módulo.`);
+    const faltam = itens.filter((i) => camposSemTraducao(m.campos, i).length > 0).length;
+    if (faltam > 0) {
+      essencial(m.id, `“${curto(m.titulo)}”: ${faltam === 1 ? "1 item a traduzir" : `${faltam} itens a traduzir`}.`);
+    }
+    for (const i of itens) {
+      const pt = listaDePontos(i.pontos).length;
+      const en = listaDePontos(i.en?.pontos).length;
+      if (en > 0 && pt > 0 && en !== pt) {
+        const nome = curto(resumoDoItem(m, i, mesAtual, "en").titulo);
+        const texto = `“${nome}”: ${pt} ${pt === 1 ? "ponto" : "pontos"} em português e ${en} em inglês.`;
+        avisos.push({ id: `traduzir|${m.id}|${i.id}`, nivel: "melhoria", texto });
+      }
+    }
+  }
+  return avisos;
 }

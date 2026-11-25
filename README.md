@@ -108,6 +108,8 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - **Gerador de currículo** no formato usual das vagas de computação: uma página, uma coluna, texto selecionável (lido por sistemas de triagem/ATS) e links clicáveis.
 - Módulos editáveis (dados, resumo, formação, experiência, projetos, habilidades, atividades, certificações, prêmios, idiomas) com **prévia ao vivo** idêntica ao arquivo; experiências e formação se ordenam sozinhas da mais recente para a mais antiga.
 - Ocultar um item sem apagar, reordenar módulos, letra que se ajusta para caber em uma página e uma **revisão** que aponta o que falta ou pode melhorar.
+- **Versão em inglês** do mesmo currículo: datas, links e ordem são compartilhados, cada texto tem a sua tradução e a revisão mostra o que falta traduzir.
+- **Módulos próprios** com título livre (ex.: Voluntariado) e certificações **puxadas da tela Certificados** (copia o título; o link é o oficial do emissor, nunca o do arquivo guardado).
 - O PDF é gerado no próprio aparelho, **offline e sem nenhuma biblioteca** (`utils/curriculoLayout.js` + `utils/pdf.js`).
 
 ### ☁️ Sincronização e backup
@@ -154,7 +156,7 @@ type AppData = {
   certificados: Certificado[];    // { id, titulo, cor, tags[], arquivo{ caminho, url, ... }, criadoEm } (arquivo no Storage)
   tagsCertificados: Tag[];        // { id, nome }
   arquivosParaApagar: { caminho: string; desde: number }[];  // lixeira de 30 dias
-  curriculo: Curriculo;           // { dados, resumo, secoes: { [modulo]: item[] }, ordem[] }
+  curriculo: Curriculo;           // { dados, resumo, resumoEn, secoes: { [modulo]: item[] }, ordem[], modulosLivres[] }
   periodoAtivoId: string | null;
 };
 ```

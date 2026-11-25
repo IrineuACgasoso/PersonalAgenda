@@ -511,9 +511,11 @@ export default function App() {
 
   /* ---- ações currículo (listas e regras em utils/curriculo.js) ---- */
   const salvarDadosCurriculo = (patch) => gravar((d) => cv.salvarDados(d, patch));
-  const salvarResumoCurriculo = (texto) => gravar((d) => cv.salvarResumo(d, texto));
+  const salvarTraducaoDadosCurriculo = (en) => gravar((d) => cv.salvarTraducaoDados(d, en));
+  const salvarResumoCurriculo = (texto, idioma) => gravar((d) => cv.salvarResumo(d, texto, idioma));
   const salvarItemCurriculo = (idModulo, item) =>
     gravar((d) => cv.salvarItem(d, idModulo, { ...item, id: item.id || uid() }));
+  const salvarTraducaoCurriculo = (idModulo, id, en) => gravar((d) => cv.salvarTraducao(d, idModulo, id, en));
   const alternarOcultoCurriculo = (idModulo, id) => gravar((d) => cv.alternarOculto(d, idModulo, id));
   const moverItemCurriculo = (idModulo, id, passo) => gravar((d) => cv.moverItem(d, idModulo, id, passo));
   const moverModuloCurriculo = (idModulo, passo) => gravar((d) => cv.moverModulo(d, idModulo, passo));
@@ -527,6 +529,28 @@ export default function App() {
     });
     if (!gravouAlgo(r) || !removido) return;
     avisarComDesfazer(`"${titulo}" excluído do currículo`, (d) => cv.devolverItem(d, idModulo, removido));
+  };
+
+  const salvarModuloCurriculo = (modulo) =>
+    gravar((d) => cv.salvarModuloLivre(d, { ...modulo, id: modulo.id || uid() }));
+
+  // Leva os itens junto: com itens, confirma antes; e dá para desfazer.
+  const excluirModuloCurriculo = async (id, titulo, quantos) => {
+    const ok =
+      quantos === 0 ||
+      (await confirmar(
+        `Excluir o módulo “${titulo}” e ${quantos === 1 ? "o item dele" : `os ${quantos} itens dele`}?`,
+        { titulo: "Excluir módulo", textoConfirmar: "Excluir", perigo: true },
+      ));
+    if (!ok) return;
+    let removido = null;
+    const r = gravar((d) => {
+      const resultado = cv.excluirModuloLivre(d, id);
+      removido = resultado.removido;
+      return resultado.dados;
+    });
+    if (!gravouAlgo(r) || !removido) return;
+    avisarComDesfazer(`Módulo "${titulo}" excluído`, (d) => cv.devolverModuloLivre(d, removido));
   };
 
   /* ---- ações eventos concluidos / excluídos por instância ---- */
@@ -800,9 +824,15 @@ export default function App() {
         ) : aba === "curriculo" ? (
           <VisaoCurriculo
             curriculo={data.curriculo}
+            certificados={data.certificados || []}
+            tagsCertificados={data.tagsCertificados || []}
             onSalvarDados={salvarDadosCurriculo}
+            onSalvarTraducaoDados={salvarTraducaoDadosCurriculo}
             onSalvarResumo={salvarResumoCurriculo}
             onSalvarItem={salvarItemCurriculo}
+            onSalvarTraducao={salvarTraducaoCurriculo}
+            onSalvarModulo={salvarModuloCurriculo}
+            onExcluirModulo={excluirModuloCurriculo}
             onAlternarOculto={alternarOcultoCurriculo}
             onMoverItem={moverItemCurriculo}
             onMoverModulo={moverModuloCurriculo}

@@ -1,7 +1,8 @@
 // src/components/curriculo/FormularioCurriculo.jsx
 // Modal único de edição do currículo: os campos vêm declarados em
 // utils/curriculo.js (dados, resumo e cada módulo). Só grava no "Salvar";
-// fechar com algo digitado pergunta antes.
+// fechar com algo digitado pergunta antes. Na tradução, cada campo mostra o
+// texto em português (`original`).
 import { useState } from "react";
 import { Modal } from "../ui/Dialogos.jsx";
 import useDialogos from "../../hooks/useDialogos";
@@ -14,7 +15,8 @@ function Campo({ campo, valor, autofoco, onMudar }) {
     className: "input",
     value: valor,
     onChange: (e) => onMudar(e.target.value),
-    "aria-describedby": campo.ajuda ? `${id}-ajuda` : undefined,
+    "aria-describedby":
+      [campo.original && `${id}-original`, campo.ajuda && `${id}-ajuda`].filter(Boolean).join(" ") || undefined,
     "data-autofoco": autofoco ? "" : undefined,
   };
   const multilinha = campo.tipo === "longo" || campo.tipo === "pontos";
@@ -42,7 +44,7 @@ function Campo({ campo, valor, autofoco, onMudar }) {
         {...comum}
         type={campo.tipo === "mes" ? "month" : "text"}
         inputMode={campo.modo || (campo.tipo === "link" ? "url" : undefined)}
-        maxLength={300}
+        maxLength={campo.max || 300}
         // Só aparece onde o navegador não tem campo de mês.
         placeholder={campo.tipo === "mes" ? "MM/AAAA" : campo.exemplo}
       />
@@ -55,6 +57,11 @@ function Campo({ campo, valor, autofoco, onMudar }) {
         {campo.rotulo}
         {campo.obrigatorio && " *"}
       </label>
+      {campo.original && (
+        <span className="curriculo-original" id={`${id}-original`}>
+          {campo.original}
+        </span>
+      )}
       {controle}
       {campo.ajuda && (
         <span className="curriculo-ajuda" id={`${id}-ajuda`}>
@@ -65,7 +72,8 @@ function Campo({ campo, valor, autofoco, onMudar }) {
   );
 }
 
-export default function FormularioCurriculo({ titulo, dica, campos, valor, onSalvar, onFechar }) {
+// `validar(rascunho)`: regra extra; devolve a mensagem do problema ou null.
+export default function FormularioCurriculo({ titulo, dica, campos, valor, validar, onSalvar, onFechar }) {
   const [inicial] = useState(() => Object.fromEntries(campos.map((c) => [c.id, valor?.[c.id] || ""])));
   const [rascunho, setRascunho] = useState(inicial);
   const [erro, setErro] = useState(null);
@@ -74,7 +82,7 @@ export default function FormularioCurriculo({ titulo, dica, campos, valor, onSal
   const salvar = (e) => {
     e.preventDefault();
     const limpo = limparRascunho(campos, rascunho);
-    const problema = erroDoRascunho(campos, limpo);
+    const problema = erroDoRascunho(campos, limpo) || validar?.(limpo) || null;
     setErro(problema);
     if (problema) return;
     if (onSalvar(limpo).ok) onFechar();

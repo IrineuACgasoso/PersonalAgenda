@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-11-25 (28) — Currículo: puxar dos certificados (#58), versão em inglês (#59), módulos livres (#60)
+- **#58:** botão "Puxar dos certificados" em Certificações e cursos (modal com busca, marca "Já no currículo"). Decisão do usuário: **copia só o título**; emissor, data e **link oficial** são digitados. O link do arquivo no Storage **nunca** entra (abre sem login para quem tiver o endereço e quebra ao trocar o arquivo). Título com link agora sai **sublinhado** (prévia e PDF): antes ninguém via que era clicável.
+- **#59:** botões Português | Inglês no topo. É o **mesmo** currículo (itens, datas, links, ordem, ocultos); cada texto ganha uma tradução em `en`. Em inglês o lápis vira "Traduzir" (mostra o português acima do campo) e não há "Adicionar". Sem tradução sai o português e a revisão cobra como essencial (nomes próprios não são cobrados). Automático: títulos, meses, Present/expected, níveis e idiomas comuns. Revisão em inglês tem verbos próprios e compara o nº de pontos. Mudar o português de algo traduzido mostra um lembrete. PDF: `Resume_Nome.pdf`, `/Lang en-US`.
+- **#60:** "Adicionar módulo" no fim (título + título em inglês, sem repetir); itens no formato de Atividades; renomear, mover, excluir (com itens confirma; "Desfazer" devolve tudo no lugar).
+- **Schema:** em `curriculo`, novos `resumoEn`, `modulosLivres[]`, `dados.en`, `item.en` (todos no `sanitizarCurriculo`, opcionais): sem migração e **sem mudança nas Rules**. `curriculoVazio` conta os novos. Aparelho ainda na versão antiga preserva tudo, menos a posição dos módulos livres (voltam para o fim).
+- **Código:** `utils/curriculoIdiomas.js` (textos fixos por língua), tradução e módulos livres em `curriculo.js`, `curriculo/EscolherCertificado.jsx`.
+- **Verificado no navegador** (Chrome headless, build de produção, 1280/900/390/320px, 38 checagens): os três fluxos, Desfazer, rascunho, reload, os dois PDFs em disco (texto extraído na ordem, links e língua certos), sem rolagem lateral nem erro no console. `npm run check` ✅ (587 testes). **Não testado:** Android de verdade.
+- **➡ Próximo:** usuário traduzir os textos no app e conferir os dois PDFs. Segue aberto o #57 (backup `.json` perde os padrões de lembretes).
+
 ## 2026-11-25 (27) — Tela Currículo (gerador de PDF) + Agenda da semana em "Visão geral"
 - **Pedido:** Agenda da semana no fim da seção "Visão geral" da sidebar; tela nova "Currículo" (Visão) que gera o currículo: edita cada módulo, salva e baixa sempre a versão atual, no formato usual das vagas de computação.
 - **Formato (padrão):** 1 página A4, 1 coluna, sem foto/idade/CPF, texto selecionável (ATS), mais recente primeiro. Ordem: cabeçalho (nome, vaga, contatos com links) → Resumo → Formação → Experiência → Projetos → Habilidades → Atividades acadêmicas → Certificações → Prêmios → Idiomas. Módulo vazio não aparece. A letra encolhe (10,5 → 9,5) para caber em 1 página; não cabendo, usa 2 com corpo 10. A data fica à direita e o local/link na linha de baixo: com dois textos à direita o `pdftotext` lia fora de ordem.
@@ -79,10 +88,3 @@
 - **Agenda da semana:** blocos que se cruzam ficam **lado a lado** (antes um cobria o outro), com contorno tracejado e ⚠; contador "N em conflito" no cabeçalho. `--col/--cols` no `.agenda-bloco` (agenda.css + mobile.css).
 - `npm run check` ✅ (410 testes). Não verificado no navegador nesta sessão.
 - **➡ Próximo:** #34 (faltas) e #35 (notas) — proposta de modelo enviada ao usuário, aguardando aprovação (mexe no modelo da cadeira).
-
-## 2026-11-21 (18) — Hoje: data centralizada, atalho na linha do título · afazer de data única antes dos repetidos
-- **Pedido:** "o titulo ainda permanece descentralizado. centralize ele e jogue o atalho hoje um pouco mais para cima" + "afazeres de uma data unica possuem prioridade sobre os repetitivos. meus afazeres repetitivos ainda ficam na frente".
-- **Hoje:** `< data >` centralizada na linha (o "+" ficou absoluto no canto direito, sem empurrar o centro). O "↶ Hoje" saiu da linha própria (`.hoje-topo`, removida) e foi para a direita da linha do título "Hoje" (`.hoje-header`: botão absoluto + `padding-right` reservado sempre, então aparecer/sumir não move nada). A navegação subiu ~18px.
-- **Ordem do dia:** `grupoNoDia` (`utils/projecao.js`) separou os afazeres: **data única** (2) → **repetidos** (3) → sem data (4); urgência desempata dentro de cada grupo. Vale na Hoje e no calendário geral. Teste de regressão em `projecao.test.js`.
-- **Verificado no navegador** (preview, 390px e 1280px): centro da data = centro da linha (195/195 e 684/684), setas e "+" nas mesmas posições em hoje e +1 dia, atalho na altura do título; "Entregar lista" (única, urg. 1) acima de "Academia" (diária, urg. 3); sem erros no console. `npm run check` ✅.
-- **➡ Próximo:** usuário vai dizer as novas features.

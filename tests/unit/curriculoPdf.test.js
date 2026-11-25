@@ -139,6 +139,22 @@ describe("montarPaginas", () => {
   });
 });
 
+describe("link da credencial", () => {
+  const com = (item) => paginasDe(curriculo({ certificacoes: [{ id: "c", titulo: "AWS Cloud", ...item }] })).paginas[0];
+
+  it("título que é link sai sublinhado, na largura do texto; sem link, não", () => {
+    const pagina = com({ emissor: "Amazon", link: "credly.com/x" });
+    const titulo = textos(pagina).find((o) => o.texto.startsWith("AWS"));
+    const traco = pagina[pagina.indexOf(titulo) + 1];
+    expect(titulo.url).toBe("https://credly.com/x");
+    expect(traco).toMatchObject({ tipo: "traco", x: titulo.x });
+    expect(traco.largura).toBeCloseTo(larguraDoTexto("AWS Cloud", titulo.tamanho, "negrito"));
+    expect(traco.y).toBeGreaterThan(titulo.y);
+    const tracos = (p) => p.filter((o) => o.tipo === "traco").length;
+    expect(tracos(pagina) - tracos(com({ emissor: "Amazon" }))).toBe(1);
+  });
+});
+
 describe("pdfDeTexto", () => {
   const { paginas } = paginasDe(curriculo({ experiencia: experiencias(14) }));
   const pdf = pdfDeTexto(paginas, { ...PAGINA, titulo: "Currículo", autor: "José" });
@@ -162,6 +178,12 @@ describe("pdfDeTexto", () => {
     for (const m of texto.matchAll(/<< \/Length (\d+) >>\nstream\n([\s\S]*?)\nendstream/g)) {
       expect(m[2].length).toBe(Number(m[1]));
     }
+  });
+
+  it("língua do documento", () => {
+    expect(texto).toContain("/Lang (pt-BR)");
+    const ingles = pdfDeTexto([[op]], { ...PAGINA, lang: "en-US" });
+    expect(new TextDecoder("latin1").decode(ingles)).toContain("/Lang (en-US)");
   });
 
   it("acentos, parênteses e barras são escapados", () => {

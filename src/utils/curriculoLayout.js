@@ -78,12 +78,15 @@ export function quebrarLinhas(trechos, max) {
 /* ---------- linhas prontas ---------- */
 
 // Trechos lado a lado a partir de x → operações (y relativo à linha de base).
+// `sublinhado`: traço embaixo, sem cobrir o espaço que separa do próximo trecho.
 function operacoes(trechos, x) {
   let pos = x;
-  return trechos.map((t) => {
+  return trechos.flatMap(({ sublinhado, ...t }) => {
     const op = { tipo: "texto", ...t, x: pos, y: 0, largura: largura(t) };
     pos += op.largura;
-    return op;
+    if (!sublinhado) return [op];
+    const comprimento = largura({ ...t, texto: t.texto.trimEnd() });
+    return [op, { tipo: "traco", x: op.x, y: t.tamanho * 0.14, largura: comprimento, tom: t.tom }];
   });
 }
 
@@ -143,7 +146,9 @@ function linhasDoBloco(b, base, primeiro) {
   const direita = (texto) => t(texto, { tom: CINZA })[0] || { ...normal, texto: "" };
 
   if (b.tipo === "linha") {
-    const esquerda = [...t(b.rotulo, { fonte: "negrito", url: b.url }), ...t(b.texto)];
+    // Título que é link: sublinhado, senão ninguém percebe que dá para clicar
+    // (nos outros links o próprio texto é o endereço).
+    const esquerda = [...t(b.rotulo, { fonte: "negrito", url: b.url, sublinhado: !!b.url }), ...t(b.texto)];
     return linhaDupla(esquerda, direita(b.direita), { antes });
   }
 

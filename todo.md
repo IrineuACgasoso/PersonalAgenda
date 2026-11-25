@@ -89,13 +89,14 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#35 Notas e média por cadeira** (2026-11-21). Árvore de notas/grupos com peso ou bônus; média parcial, nota necessária, final (regra UFPE); nota criada a partir das datas importantes. `utils/notas.js`, `abas/AbaNotas.jsx`.
 
 ### Ideias propostas pelo Claude (registradas a pedido do usuário em 2026-11-25; confirmar antes de implementar)
-- [ ] **#58 Currículo: puxar da tela Certificados.** No módulo "Certificações e cursos", escolher um certificado já guardado para preencher o item (título e link). O registro de certificado não tem emissor nem data de emissão (`criadoEm` é quando foi cadastrado): completar esses dois à mão. Decidir se copia os dados ou fica ligado ao certificado.
-- [ ] **#59 Currículo: versão em inglês.** Títulos das seções, meses e "Atual/previsão" traduzidos, e os textos do usuário em duas línguas (campo por língua ou segundo currículo). Ajustar também `/Lang` do PDF, nome do arquivo e as regras da revisão (verbos).
-- [ ] **#60 Currículo: módulos com título livre.** "Adicionar módulo" com nome escolhido (ex.: Voluntariado) e itens no formato de Atividades acadêmicas. Hoje `MODULOS` (`utils/curriculo.js`) é fixo e `sanitizarOrdem` descarta módulo desconhecido.
+- [x] **#58 Currículo: puxar da tela Certificados** (2026-11-25). Copia só o título; emissor, data e link oficial à mão. O link do arquivo no Storage não entra (decisão do usuário).
+- [x] **#59 Currículo: versão em inglês** (2026-11-25). Mesmo currículo, tradução por campo (`en`); revisão cobra o que falta traduzir.
+- [x] **#60 Currículo: módulos com título livre** (2026-11-25). `modulosLivres[]`; itens no formato de Atividades acadêmicas.
 
 ---
 
 ## ✅ Feito recentemente
+- [x] Currículo: #58 puxar dos certificados · #59 versão em inglês · #60 módulos livres (2026-11-25).
 - [x] Tela **Currículo** (gerador de PDF, prévia, revisão) + Agenda da semana em "Visão geral" (2026-11-25).
 - [x] Tela **Certificados** (arquivos no Firebase Storage, tags, busca) + coloração leve nas linhas de compromissos, afazeres e da lista do dia (Hoje e calendário) (2026-11-23). Storage ativado e as duas regras (`storage`, `firestore:rules`) publicadas pelo usuário.
 - [~] Certificados: tocar abre **Abrir / Baixar PDF** (imagem convertida em PDF no aparelho) (2026-11-24). Código pronto; **falta o usuário aplicar o CORS no bucket** (`storage.cors.json`, passo 9 do README) e testar no celular.

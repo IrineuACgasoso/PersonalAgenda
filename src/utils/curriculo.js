@@ -9,10 +9,19 @@
 // de cima para baixo) e o mais recente primeiro.
 //
 // Modelo (AppData.curriculo):
-//   { dados: { nome, cargo, ... }, resumo, secoes: { [idModulo]: item[] }, ordem: idModulo[] }
-//   item: { id, oculto?: true, ...campos do módulo (sempre string) }
+//   { dados: { nome, cargo, ..., en? }, resumo, resumoEn, secoes: { [idModulo]: item[] },
+//     ordem: idModulo[], modulosLivres: [{ id, titulo, tituloEn }] }
+//   item: { id, oculto?: true, en?: { campo: tradução }, ...campos do módulo (sempre string) }
 // Campo novo num módulo ⇒ basta declará-lo em MODULOS (a sanitização e o
 // formulário leem daqui).
+//
+// Inglês (#59): é o MESMO currículo (itens, datas, links, ordem e ocultos
+// valem para os dois); só os textos têm tradução, em `en`. `traduzir` no campo:
+// "sempre" = texto em português não pode sair na versão em inglês (a revisão
+// avisa); "nome" = nome próprio, que costuma ficar igual. Sem tradução, sai o
+// português. `automatico` = tradução feita pelo app.
+import { normalizarTexto } from "./certificados.js";
+import { NIVEIS_IDIOMA, TEXTOS, linguaEmIngles, nivelEmIngles } from "./curriculoIdiomas.js";
 import { normalizarUrl } from "./links.js";
 import { reinserirPorId, separarRemovidos } from "./desfazer.js";
 
@@ -21,8 +30,14 @@ import { reinserirPorId, separarRemovidos } from "./desfazer.js";
 
 export const CAMPOS_DADOS = [
   { id: "nome", rotulo: "Nome completo", tipo: "texto", obrigatorio: true, exemplo: "ex: Maria Souza Lima" },
-  { id: "cargo", rotulo: "Título / vaga desejada", tipo: "texto", exemplo: "ex: Estágio em Desenvolvimento Back-end" },
-  { id: "local", rotulo: "Cidade", tipo: "texto", exemplo: "ex: Recife, PE" },
+  {
+    id: "cargo",
+    rotulo: "Título / vaga desejada",
+    tipo: "texto",
+    traduzir: "sempre",
+    exemplo: "ex: Estágio em Desenvolvimento Back-end",
+  },
+  { id: "local", rotulo: "Cidade", tipo: "texto", traduzir: "nome", exemplo: "ex: Recife, PE" },
   { id: "telefone", rotulo: "Telefone", tipo: "texto", modo: "tel", exemplo: "ex: (81) 99999-9999" },
   { id: "email", rotulo: "E-mail", tipo: "texto", modo: "email", exemplo: "ex: maria@email.com" },
   { id: "linkedin", rotulo: "LinkedIn", tipo: "link", exemplo: "ex: linkedin.com/in/maria" },
@@ -35,6 +50,7 @@ export const CAMPOS_RESUMO = [
     id: "resumo",
     rotulo: "Resumo",
     tipo: "longo",
+    traduzir: "sempre",
     largo: true,
     exemplo:
       "ex: Estudante de Ciência da Computação na UFPE com foco em back-end. Experiência com Java, Spring e PostgreSQL em projetos acadêmicos e monitoria. Busco estágio em desenvolvimento.",
@@ -46,21 +62,46 @@ export const DICAS_FIXAS = {
   resumo: "2 ou 3 linhas: quem você é, no que é bom e o que procura. Opcional: se não acrescentar, deixe vazio.",
 };
 
-const NIVEIS_IDIOMA = ["Básico", "Intermediário", "Avançado", "Fluente", "Nativo"];
-
 const DICA_PONTOS =
   "Um por linha: verbo de ação + o que fez + tecnologia + resultado. Ex.: “Reduzi em 40% o tempo das consultas criando índices no PostgreSQL”.";
 
 const campoInicio = { id: "inicio", rotulo: "Início", tipo: "mes" };
 const campoFim = { id: "fim", rotulo: "Fim", tipo: "mes", ajuda: "Vazio = até hoje" };
-const campoPontos = { id: "pontos", rotulo: "O que você fez", tipo: "pontos", largo: true, ajuda: DICA_PONTOS };
+const campoPontos = {
+  id: "pontos",
+  rotulo: "O que você fez",
+  tipo: "pontos",
+  traduzir: "sempre",
+  largo: true,
+  ajuda: DICA_PONTOS,
+};
+
+// Atividades acadêmicas e módulos livres: mesmos campos e mesmo desenho.
+const camposDeAtividade = (papel, organizacao) => [
+  { id: "papel", tipo: "texto", traduzir: "sempre", obrigatorio: true, ...papel },
+  { id: "organizacao", rotulo: "Organização", tipo: "texto", traduzir: "nome", ...organizacao },
+  { id: "local", rotulo: "Local", tipo: "texto", traduzir: "nome", exemplo: "ex: Recife, PE" },
+  campoInicio,
+  campoFim,
+  campoPontos,
+];
+
+const blocoDeAtividade = (i, mesAtual, idioma) => ({
+  tipo: "item",
+  titulo: i.papel,
+  direita: textoPeriodo(i.inicio, i.fim, mesAtual, idioma),
+  subtitulo: i.organizacao,
+  complemento: i.local,
+  pontos: listaDePontos(i.pontos),
+});
 
 // `ordenacao`: "data" = mais recente primeiro, automático; "manual" = ↑/↓.
-// `bloco(item, mesAtual)` = como o item aparece no documento.
+// `bloco(item, mesAtual, idioma)` = como o item (já traduzido) aparece no documento.
 export const MODULOS = [
   {
     id: "formacao",
     titulo: "Formação acadêmica",
+    tituloEn: "Education",
     novo: "Nova formação",
     ordenacao: "data",
     dica: "Enquanto você é estudante, fica no topo. Ensino médio só se for técnico na área.",
@@ -69,6 +110,7 @@ export const MODULOS = [
         id: "curso",
         rotulo: "Curso",
         tipo: "texto",
+        traduzir: "sempre",
         obrigatorio: true,
         exemplo: "ex: Bacharelado em Ciência da Computação",
       },
@@ -76,24 +118,26 @@ export const MODULOS = [
         id: "instituicao",
         rotulo: "Instituição",
         tipo: "texto",
+        traduzir: "nome",
         obrigatorio: true,
         exemplo: "ex: Universidade Federal de Pernambuco (UFPE)",
       },
-      { id: "local", rotulo: "Local", tipo: "texto", exemplo: "ex: Recife, PE" },
+      { id: "local", rotulo: "Local", tipo: "texto", traduzir: "nome", exemplo: "ex: Recife, PE" },
       campoInicio,
       { ...campoFim, rotulo: "Fim ou previsão" },
       {
         id: "pontos",
         rotulo: "Destaques",
         tipo: "pontos",
+        traduzir: "sempre",
         largo: true,
         ajuda: "Um por linha. Ex.: média (se for boa), disciplinas relevantes para a vaga, intercâmbio.",
       },
     ],
-    bloco: (i, mesAtual) => ({
+    bloco: (i, mesAtual, idioma) => ({
       tipo: "item",
       titulo: i.curso,
-      direita: textoPeriodo(i.inicio, i.fim, mesAtual),
+      direita: textoPeriodo(i.inicio, i.fim, mesAtual, idioma),
       subtitulo: i.instituicao,
       complemento: i.local,
       pontos: listaDePontos(i.pontos),
@@ -102,6 +146,7 @@ export const MODULOS = [
   {
     id: "experiencia",
     titulo: "Experiência profissional",
+    tituloEn: "Experience",
     novo: "Nova experiência",
     ordenacao: "data",
     dica: "Estágio, emprego, freelance, empresa júnior. De 2 a 5 pontos por experiência.",
@@ -110,11 +155,12 @@ export const MODULOS = [
         id: "cargo",
         rotulo: "Cargo",
         tipo: "texto",
+        traduzir: "sempre",
         obrigatorio: true,
         exemplo: "ex: Estagiário(a) de Desenvolvimento",
       },
-      { id: "empresa", rotulo: "Empresa", tipo: "texto", obrigatorio: true },
-      { id: "local", rotulo: "Local", tipo: "texto", exemplo: "ex: Recife, PE · Remoto" },
+      { id: "empresa", rotulo: "Empresa", tipo: "texto", traduzir: "nome", obrigatorio: true },
+      { id: "local", rotulo: "Local", tipo: "texto", traduzir: "nome", exemplo: "ex: Recife, PE · Remoto" },
       campoInicio,
       campoFim,
       campoPontos,
@@ -122,33 +168,43 @@ export const MODULOS = [
         id: "tecnologias",
         rotulo: "Tecnologias",
         tipo: "texto",
+        traduzir: "nome",
         largo: true,
         exemplo: "ex: Java, Spring Boot, PostgreSQL",
       },
     ],
-    bloco: (i, mesAtual) => ({
+    bloco: (i, mesAtual, idioma) => ({
       tipo: "item",
       titulo: i.cargo,
-      direita: textoPeriodo(i.inicio, i.fim, mesAtual),
+      direita: textoPeriodo(i.inicio, i.fim, mesAtual, idioma),
       subtitulo: i.empresa,
       complemento: i.local,
       pontos: listaDePontos(i.pontos),
-      rodape: i.tecnologias ? { rotulo: "Tecnologias:", texto: i.tecnologias } : null,
+      rodape: i.tecnologias ? { rotulo: TEXTOS[idioma].tecnologias, texto: i.tecnologias } : null,
     }),
   },
   {
     id: "projetos",
     titulo: "Projetos",
+    tituloEn: "Projects",
     novo: "Novo projeto",
     ordenacao: "manual",
     dica: "Os 2 a 4 melhores, com o mais relevante para a vaga no topo. Link do repositório com README ajuda muito.",
     campos: [
-      { id: "nome", rotulo: "Nome", tipo: "texto", obrigatorio: true, exemplo: "ex: Minha Agenda (PWA)" },
+      {
+        id: "nome",
+        rotulo: "Nome",
+        tipo: "texto",
+        traduzir: "nome",
+        obrigatorio: true,
+        exemplo: "ex: Minha Agenda (PWA)",
+      },
       { id: "link", rotulo: "Link", tipo: "link", exemplo: "ex: github.com/maria/agenda" },
       {
         id: "tecnologias",
         rotulo: "Tecnologias",
         tipo: "texto",
+        traduzir: "nome",
         largo: true,
         exemplo: "ex: React, Firebase, Vitest",
       },
@@ -156,10 +212,10 @@ export const MODULOS = [
       campoFim,
       campoPontos,
     ],
-    bloco: (i, mesAtual) => ({
+    bloco: (i, mesAtual, idioma) => ({
       tipo: "item",
       titulo: i.nome,
-      direita: textoPeriodo(i.inicio, i.fim, mesAtual),
+      direita: textoPeriodo(i.inicio, i.fim, mesAtual, idioma),
       subtitulo: i.tecnologias,
       complemento: textoDoLink(i.link),
       complementoUrl: urlDoLink(i.link),
@@ -169,15 +225,17 @@ export const MODULOS = [
   {
     id: "habilidades",
     titulo: "Habilidades técnicas",
+    tituloEn: "Technical Skills",
     novo: "Novo grupo de habilidades",
     ordenacao: "manual",
     dica: "Um grupo por linha (Linguagens, Frameworks, Bancos de dados, Ferramentas). Só o que você defenderia numa entrevista: nada de barrinhas ou porcentagens.",
     campos: [
-      { id: "grupo", rotulo: "Grupo", tipo: "texto", obrigatorio: true, exemplo: "ex: Linguagens" },
+      { id: "grupo", rotulo: "Grupo", tipo: "texto", traduzir: "sempre", obrigatorio: true, exemplo: "ex: Linguagens" },
       {
         id: "itens",
         rotulo: "Habilidades",
         tipo: "texto",
+        traduzir: "nome",
         obrigatorio: true,
         largo: true,
         exemplo: "ex: Python, Java, C, JavaScript",
@@ -188,49 +246,53 @@ export const MODULOS = [
   {
     id: "atividades",
     titulo: "Atividades acadêmicas",
+    tituloEn: "Academic Activities",
     novo: "Nova atividade",
     ordenacao: "data",
     dica: "Monitoria, iniciação científica, extensão, liga, maratona de programação. Conta como experiência para quem está começando.",
-    campos: [
-      { id: "papel", rotulo: "Atividade", tipo: "texto", obrigatorio: true, exemplo: "ex: Monitoria de Algoritmos" },
-      { id: "organizacao", rotulo: "Organização", tipo: "texto", exemplo: "ex: Centro de Informática, UFPE" },
-      { id: "local", rotulo: "Local", tipo: "texto", exemplo: "ex: Recife, PE" },
-      campoInicio,
-      campoFim,
-      campoPontos,
-    ],
-    bloco: (i, mesAtual) => ({
-      tipo: "item",
-      titulo: i.papel,
-      direita: textoPeriodo(i.inicio, i.fim, mesAtual),
-      subtitulo: i.organizacao,
-      complemento: i.local,
-      pontos: listaDePontos(i.pontos),
-    }),
+    campos: camposDeAtividade(
+      { rotulo: "Atividade", exemplo: "ex: Monitoria de Algoritmos" },
+      { exemplo: "ex: Centro de Informática, UFPE" },
+    ),
+    bloco: blocoDeAtividade,
   },
   {
     id: "certificacoes",
     titulo: "Certificações e cursos",
+    tituloEn: "Certifications and Courses",
     novo: "Nova certificação ou curso",
     ordenacao: "data",
-    dica: "Só os que têm a ver com a vaga. O link da credencial permite conferir.",
+    dica: "Só os que têm a ver com a vaga. O link oficial da credencial, se houver, permite conferir.",
     campos: [
-      { id: "titulo", rotulo: "Título", tipo: "texto", obrigatorio: true, exemplo: "ex: AWS Cloud Practitioner" },
-      { id: "emissor", rotulo: "Emissor", tipo: "texto", exemplo: "ex: Amazon Web Services" },
+      {
+        id: "titulo",
+        rotulo: "Título",
+        tipo: "texto",
+        traduzir: "nome",
+        obrigatorio: true,
+        exemplo: "ex: AWS Cloud Practitioner",
+      },
+      { id: "emissor", rotulo: "Emissor", tipo: "texto", traduzir: "nome", exemplo: "ex: Amazon Web Services" },
       { id: "data", rotulo: "Data", tipo: "mes" },
-      { id: "link", rotulo: "Link da credencial", tipo: "link" },
+      {
+        id: "link",
+        rotulo: "Link da credencial",
+        tipo: "link",
+        ajuda: "A página de verificação do emissor (Credly, Coursera, Alura…). Se não houver, deixe vazio.",
+      },
     ],
-    bloco: (i) => ({
+    bloco: (i, mesAtual, idioma) => ({
       tipo: "linha",
       rotulo: i.titulo,
       texto: i.emissor ? `– ${i.emissor}` : "",
-      direita: textoMes(i.data),
+      direita: textoMes(i.data, idioma),
       url: urlDoLink(i.link),
     }),
   },
   {
     id: "premios",
     titulo: "Prêmios e publicações",
+    tituloEn: "Awards and Publications",
     novo: "Novo prêmio ou publicação",
     ordenacao: "data",
     dica: "Olimpíadas, hackathons, bolsas, artigos.",
@@ -239,33 +301,50 @@ export const MODULOS = [
         id: "titulo",
         rotulo: "Título",
         tipo: "texto",
+        traduzir: "sempre",
         obrigatorio: true,
         exemplo: "ex: 2º lugar no Hackathon do CIn",
       },
-      { id: "organizacao", rotulo: "Organização / evento", tipo: "texto" },
+      { id: "organizacao", rotulo: "Organização / evento", tipo: "texto", traduzir: "nome" },
       { id: "data", rotulo: "Data", tipo: "mes" },
       { id: "link", rotulo: "Link", tipo: "link" },
     ],
-    bloco: (i) => ({
+    bloco: (i, mesAtual, idioma) => ({
       tipo: "linha",
       rotulo: i.titulo,
       texto: i.organizacao ? `– ${i.organizacao}` : "",
-      direita: textoMes(i.data),
+      direita: textoMes(i.data, idioma),
       url: urlDoLink(i.link),
     }),
   },
   {
     id: "idiomas",
     titulo: "Idiomas",
+    tituloEn: "Languages",
     novo: "Novo idioma",
     ordenacao: "manual",
     // Todos numa linha só: economiza espaço para caber em uma página.
     juntar: true,
     dica: "Nível real: é comum a entrevista mudar para inglês. Teste de proficiência vai na observação.",
     campos: [
-      { id: "idioma", rotulo: "Idioma", tipo: "texto", obrigatorio: true, exemplo: "ex: Inglês" },
-      { id: "nivel", rotulo: "Nível", tipo: "opcoes", opcoes: NIVEIS_IDIOMA, obrigatorio: true },
-      { id: "obs", rotulo: "Observação", tipo: "texto", exemplo: "ex: TOEFL ITP 590" },
+      {
+        id: "idioma",
+        rotulo: "Idioma",
+        tipo: "texto",
+        traduzir: "sempre",
+        automatico: linguaEmIngles,
+        obrigatorio: true,
+        exemplo: "ex: Inglês",
+      },
+      {
+        id: "nivel",
+        rotulo: "Nível",
+        tipo: "opcoes",
+        opcoes: NIVEIS_IDIOMA,
+        automatico: nivelEmIngles,
+        obrigatorio: true,
+      },
+      { id: "obs", rotulo: "Observação", tipo: "texto", traduzir: "nome", exemplo: "ex: TOEFL ITP 590" },
     ],
     bloco: (i) => ({
       tipo: "linha",
@@ -275,8 +354,60 @@ export const MODULOS = [
   },
 ];
 
-const MODULO_POR_ID = Object.fromEntries(MODULOS.map((m) => [m.id, m]));
-export const moduloPorId = (id) => MODULO_POR_ID[id];
+const IDS_FIXOS = MODULOS.map((m) => m.id);
+
+/* ---------- módulos livres (#60) ---------- */
+
+export const CAMPOS_MODULO_LIVRE = [
+  {
+    id: "titulo",
+    rotulo: "Título do módulo",
+    tipo: "texto",
+    obrigatorio: true,
+    max: 60,
+    largo: true,
+    exemplo: "ex: Voluntariado",
+  },
+  {
+    id: "tituloEn",
+    rotulo: "Título em inglês",
+    tipo: "texto",
+    max: 60,
+    largo: true,
+    exemplo: "ex: Volunteering",
+    ajuda: "Usado só na versão em inglês.",
+  },
+];
+
+const moduloLivre = ({ id, titulo, tituloEn }) => ({
+  id,
+  titulo,
+  tituloEn,
+  livre: true,
+  novo: `Novo item: ${titulo}`,
+  ordenacao: "data",
+  dica: "Módulo seu: só aparece no currículo quando tiver algum item.",
+  campos: camposDeAtividade({ rotulo: "Título do item", exemplo: "ex: Professor voluntário de programação" }),
+  bloco: blocoDeAtividade,
+});
+
+const livresDe = (curriculo) => (Array.isArray(curriculo?.modulosLivres) ? curriculo.modulosLivres : []);
+
+/** Módulos fixos + livres, na ordem de exibição. Espera o currículo já sanitizado. */
+export function modulosDoCurriculo(curriculo) {
+  const porId = new Map([...MODULOS, ...livresDe(curriculo).map(moduloLivre)].map((m) => [m.id, m]));
+  return curriculo.ordem.map((id) => porId.get(id));
+}
+
+/** Módulo fixo. */
+export const moduloPorId = (id) => MODULOS.find((m) => m.id === id);
+
+/** Título repetido confundiria na tela e no PDF. `id`: o módulo em edição, se houver. */
+export function erroDoModuloLivre(curriculo, titulo, id) {
+  const alvo = normalizarTexto(titulo);
+  const outros = [...MODULOS, ...livresDe(curriculo).filter((m) => m.id !== id)].map((m) => m.titulo);
+  return ["Resumo", ...outros].some((t) => normalizarTexto(t) === alvo) ? "Já existe um módulo com esse título." : null;
+}
 
 /* ---------- sanitização ---------- */
 
@@ -306,7 +437,29 @@ function sanitizarItem(modulo, bruto, indice) {
   // Fora do currículo sem apagar; ausente = aparece.
   if (bruto.oculto === true) item.oculto = true;
   else delete item.oculto;
-  return item;
+  return comTraducao(item, modulo.campos);
+}
+
+// `en` só com traduções preenchidas (e o que uma versão mais nova tiver posto).
+function comTraducao(alvo, campos) {
+  const en = { ...objeto(alvo.en) };
+  for (const c of campos) {
+    if (c.traduzir && !texto(en[c.id]).trim()) delete en[c.id];
+  }
+  const saida = { ...alvo, en };
+  if (Object.keys(en).length === 0) delete saida.en;
+  return saida;
+}
+
+// Id repetido ou de módulo fixo juntaria as listas de dois módulos.
+function sanitizarLivres(brutos) {
+  const vistos = new Set(IDS_FIXOS);
+  return (Array.isArray(brutos) ? brutos : []).filter(ehObjeto).flatMap((m) => {
+    const id = texto(m.id);
+    if (!id || vistos.has(id)) return [];
+    vistos.add(id);
+    return [{ ...m, id, titulo: texto(m.titulo).trim() || "Sem título", tituloEn: texto(m.tituloEn).trim() }];
+  });
 }
 
 /** Sempre completo e idempotente; campos desconhecidos (versão mais nova) são mantidos. */
@@ -314,26 +467,34 @@ export function sanitizarCurriculo(bruto) {
   const c = objeto(bruto);
   const dados = objeto(c.dados);
   const secoes = objeto(c.secoes);
+  const modulosLivres = sanitizarLivres(c.modulosLivres);
+  const modulos = [...MODULOS, ...modulosLivres.map(moduloLivre)];
   return {
     ...c,
-    dados: { ...dados, ...Object.fromEntries(CAMPOS_DADOS.map(({ id }) => [id, texto(dados[id])])) },
+    dados: comTraducao(
+      { ...dados, ...Object.fromEntries(CAMPOS_DADOS.map(({ id }) => [id, texto(dados[id])])) },
+      CAMPOS_DADOS,
+    ),
     resumo: texto(c.resumo),
+    resumoEn: texto(c.resumoEn),
     secoes: {
       ...secoes,
       ...Object.fromEntries(
-        MODULOS.map((m) => {
+        modulos.map((m) => {
           const itens = Array.isArray(secoes[m.id]) ? secoes[m.id].filter(ehObjeto) : [];
           return [m.id, itens.map((item, i) => sanitizarItem(m, item, i))];
         }),
       ),
     },
-    ordem: sanitizarOrdem(c.ordem),
+    ordem: sanitizarOrdem(c.ordem, modulos),
+    modulosLivres,
   };
 }
 
-function sanitizarOrdem(bruta) {
-  const salvos = Array.isArray(bruta) ? bruta.filter((id) => MODULO_POR_ID[id]) : [];
-  return [...new Set([...salvos, ...MODULOS.map((m) => m.id)])];
+function sanitizarOrdem(bruta, modulos) {
+  const ids = modulos.map((m) => m.id);
+  const salvos = Array.isArray(bruta) ? bruta.filter((id) => ids.includes(id)) : [];
+  return [...new Set([...salvos, ...ids])];
 }
 
 export const CURRICULO_PADRAO = sanitizarCurriculo(null);
@@ -342,6 +503,8 @@ export function curriculoVazio(curriculo) {
   const c = sanitizarCurriculo(curriculo);
   return (
     !c.resumo.trim() &&
+    !c.resumoEn.trim() &&
+    c.modulosLivres.length === 0 &&
     CAMPOS_DADOS.every(({ id }) => !c.dados[id].trim()) &&
     MODULOS.every((m) => c.secoes[m.id].length === 0)
   );
@@ -356,12 +519,20 @@ export function curriculoDoBackup(backup, atual) {
 
 const comCurriculo = (d, mudar) => ({ ...d, curriculo: mudar(sanitizarCurriculo(d.curriculo)) });
 
-const comSecao = (d, idModulo, mudar) =>
-  comCurriculo(d, (c) => ({ ...c, secoes: { ...c.secoes, [idModulo]: mudar(c.secoes[idModulo]) } }));
+// Módulo livre excluído enquanto isso (outro aparelho, "Desfazer" antigo): não muda nada.
+function comSecao(d, idModulo, mudar) {
+  const c = sanitizarCurriculo(d.curriculo);
+  if (!c.ordem.includes(idModulo)) return d;
+  return { ...d, curriculo: { ...c, secoes: { ...c.secoes, [idModulo]: mudar(c.secoes[idModulo]) } } };
+}
 
 export const salvarDados = (d, patch) => comCurriculo(d, (c) => ({ ...c, dados: { ...c.dados, ...patch } }));
 
-export const salvarResumo = (d, resumo) => comCurriculo(d, (c) => ({ ...c, resumo }));
+export const salvarTraducaoDados = (d, en) =>
+  comCurriculo(d, (c) => ({ ...c, dados: { ...c.dados, en: { ...c.dados.en, ...en } } }));
+
+export const salvarResumo = (d, resumo, idioma = "pt") =>
+  comCurriculo(d, (c) => ({ ...c, [idioma === "en" ? "resumoEn" : "resumo"]: resumo }));
 
 /** Cria (id novo) ou edita no lugar. */
 export const salvarItem = (d, idModulo, item) =>
@@ -371,11 +542,16 @@ export const salvarItem = (d, idModulo, item) =>
       : [...lista, item],
   );
 
+/** Só edita: traduzir um item já excluído não o recria. */
+export const salvarTraducao = (d, idModulo, id, en) =>
+  comSecao(d, idModulo, (lista) => lista.map((x) => (x.id === id ? { ...x, en: { ...x.en, ...en } } : x)));
+
 export const alternarOculto = (d, idModulo, id) =>
   comSecao(d, idModulo, (lista) => lista.map((x) => (x.id === id ? { ...x, oculto: !x.oculto } : x)));
 
 export function excluirItem(d, idModulo, id) {
-  const lista = sanitizarCurriculo(d.curriculo).secoes[idModulo];
+  const c = sanitizarCurriculo(d.curriculo);
+  const lista = c.ordem.includes(idModulo) ? c.secoes[idModulo] : [];
   const { restantes, removidos } = separarRemovidos(lista, (x) => x.id === id);
   if (removidos.length === 0) return { dados: d, removido: null };
   return { dados: comSecao(d, idModulo, () => restantes), removido: removidos[0] };
@@ -404,6 +580,39 @@ export const moverItem = (d, idModulo, id, passo) =>
 
 export const moverModulo = (d, idModulo, passo) =>
   comCurriculo(d, (c) => ({ ...c, ordem: trocarComVizinho(c.ordem, c.ordem.indexOf(idModulo), passo) }));
+
+/** Cria (id novo, no fim) ou renomeia um módulo livre. */
+export const salvarModuloLivre = (d, modulo) =>
+  comCurriculo(d, (c) => ({
+    ...c,
+    modulosLivres: c.modulosLivres.some((m) => m.id === modulo.id)
+      ? c.modulosLivres.map((m) => (m.id === modulo.id ? { ...m, ...modulo } : m))
+      : [...c.modulosLivres, modulo],
+  }));
+
+/** Leva junto os itens do módulo. `removido` = o que devolverModuloLivre precisa. */
+export function excluirModuloLivre(d, id) {
+  const c = sanitizarCurriculo(d.curriculo);
+  const { restantes, removidos } = separarRemovidos(c.modulosLivres, (m) => m.id === id);
+  if (removidos.length === 0) return { dados: d, removido: null };
+  const { [id]: itens, ...secoes } = c.secoes;
+  const ordem = c.ordem.filter((x) => x !== id);
+  return {
+    dados: { ...d, curriculo: { ...c, modulosLivres: restantes, secoes, ordem } },
+    removido: { ...removidos[0], itens, posicao: c.ordem.indexOf(id) },
+  };
+}
+
+export const devolverModuloLivre = (d, { item, indice, itens, posicao }) =>
+  comCurriculo(d, (c) => {
+    if (c.modulosLivres.some((m) => m.id === item.id)) return c;
+    return {
+      ...c,
+      modulosLivres: reinserirPorId(c.modulosLivres, item, indice),
+      secoes: { ...c.secoes, [item.id]: itens },
+      ordem: [...c.ordem.slice(0, posicao), item.id, ...c.ordem.slice(posicao)],
+    };
+  });
 
 /** Limpa o que saiu do formulário: espaços das pontas e o mês digitado à mão. */
 export function limparRascunho(campos, rascunho) {
@@ -434,20 +643,19 @@ export const ehEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 /* ---------- textos ---------- */
 
-const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
 /** "2025-03" → "Mar 2025". */
-export function textoMes(mes) {
-  return ehMes(mes) ? `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}` : "";
+export function textoMes(mes, idioma = "pt") {
+  return ehMes(mes) ? `${TEXTOS[idioma].meses[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}` : "";
 }
 
 /** "Mar 2025 – Atual"; fim no futuro vira previsão (formação). */
-export function textoPeriodo(inicio, fim, mesAtual) {
-  const de = textoMes(inicio);
-  const ate = textoMes(fim);
-  const previsao = ate && mesAtual && fim > mesAtual ? " (previsão)" : "";
+export function textoPeriodo(inicio, fim, mesAtual, idioma = "pt") {
+  const t = TEXTOS[idioma];
+  const de = textoMes(inicio, idioma);
+  const ate = textoMes(fim, idioma);
+  const previsao = ate && mesAtual && fim > mesAtual ? ` (${t.previsao})` : "";
   if (de && ate) return de === ate ? de : `${de} – ${ate}${previsao}`;
-  if (de) return `${de} – Atual`;
+  if (de) return `${de} – ${t.atual}`;
   return ate ? `${ate}${previsao}` : "";
 }
 
@@ -480,15 +688,71 @@ function perfil(valor, base) {
   return t && !/[./]/.test(t) ? `${base}${t}` : t;
 }
 
-/** "Curriculo_Maria_Souza.pdf": sem acento nem espaço, aceito por qualquer formulário de vaga. */
-export function nomeDoArquivo(curriculo) {
+/** "Curriculo_Maria_Souza.pdf" ("Resume_…" em inglês): sem acento nem espaço, aceito por qualquer formulário de vaga. */
+export function nomeDoArquivo(curriculo, idioma = "pt") {
   const nome = texto(curriculo?.dados?.nome)
     .normalize("NFD")
     .replace(/[^A-Za-z0-9\s-]/g, "")
     .trim()
     .replace(/\s+/g, "_");
-  return nome ? `Curriculo_${nome}.pdf` : "Curriculo.pdf";
+  return `${[TEXTOS[idioma].arquivo, nome].filter(Boolean).join("_")}.pdf`;
 }
+
+/* ---------- tradução (#59) ---------- */
+
+/** Objeto (item ou dados) com os textos na língua pedida; sem tradução, fica o português. */
+export function noIdioma(campos, valor, idioma) {
+  if (idioma === "pt") return valor;
+  const saida = { ...valor };
+  for (const c of campos) {
+    const original = texto(valor[c.id]);
+    // Campo apagado em português some também em inglês, mesmo já traduzido.
+    if (!original.trim()) continue;
+    const manual = c.traduzir ? texto(valor.en?.[c.id]).trim() : "";
+    saida[c.id] = manual || c.automatico?.(original) || original;
+  }
+  return saida;
+}
+
+/** Campos que sairiam em português na versão em inglês. */
+export const camposSemTraducao = (campos, valor) =>
+  campos.filter((c) => {
+    const original = texto(valor[c.id]).trim();
+    if (c.traduzir !== "sempre" || !original) return false;
+    return !texto(valor.en?.[c.id]).trim() && !c.automatico?.(original);
+  });
+
+/** Formulário de tradução: só o que há para traduzir, com o português como referência (`original`). */
+export function camposDeTraducao(campos, valor) {
+  return campos
+    .filter((c) => c.traduzir && texto(valor?.[c.id]).trim())
+    .map((c) => {
+      const original = valor[c.id].trim();
+      const padrao = c.automatico?.(original) || (c.traduzir === "nome" ? "igual ao português" : "");
+      return {
+        id: c.id,
+        rotulo: c.rotulo,
+        tipo: c.tipo,
+        largo: true,
+        original,
+        exemplo: padrao ? `Vazio = ${padrao}` : "Em inglês",
+        ajuda:
+          c.tipo === "pontos"
+            ? "Um por linha, na mesma ordem, com verbo no passado: Developed, Built, Automated, Reduced…"
+            : undefined,
+      };
+    });
+}
+
+/** Mudou em português um texto que já tem tradução? (a tradução pode ter ficado velha) */
+export const traducaoPodeEstarVelha = (campos, antes, depois) =>
+  campos.some(
+    (c) =>
+      c.traduzir &&
+      c.id in depois &&
+      texto(antes?.en?.[c.id]).trim() &&
+      texto(antes[c.id]).trim() !== texto(depois[c.id]).trim(),
+  );
 
 /* ---------- ordem dos itens e documento ---------- */
 
@@ -524,32 +788,38 @@ function contatos(dados) {
 
 /**
  * O que entra no currículo: sem módulos vazios nem itens ocultos, na ordem
- * final. `mesAtual` = "YYYY-MM" (previsão de formatura).
+ * final e na língua pedida. `mesAtual` = "YYYY-MM" (previsão de formatura).
  * { nome, cargo, contatos: [{ texto, url? }], secoes: [{ id, titulo, blocos }] }
  */
-export function documentoDoCurriculo(curriculo, mesAtual) {
+export function documentoDoCurriculo(curriculo, mesAtual, idioma = "pt") {
   const c = sanitizarCurriculo(curriculo);
-  const secoes = c.ordem.map((id) => {
-    const m = MODULO_POR_ID[id];
-    const itens = itensEmOrdem(m, c.secoes[id]).filter((i) => !i.oculto);
-    const blocos = itens.map((i) => m.bloco(i, mesAtual));
-    if (!m.juntar || blocos.length === 0) return { id, titulo: m.titulo, blocos };
+  const secoes = modulosDoCurriculo(c).map((m) => {
+    const titulo = (idioma === "en" && m.tituloEn) || m.titulo;
+    const itens = itensEmOrdem(m, c.secoes[m.id]).filter((i) => !i.oculto);
+    const blocos = itens.map((i) => m.bloco(noIdioma(m.campos, i, idioma), mesAtual, idioma));
+    if (!m.juntar || blocos.length === 0) return { id: m.id, titulo, blocos };
     const juntos = blocos.map((b) => `${b.rotulo} ${b.texto}`).join("  |  ");
-    return { id, titulo: m.titulo, blocos: [{ tipo: "paragrafo", texto: juntos }] };
+    return { id: m.id, titulo, blocos: [{ tipo: "paragrafo", texto: juntos }] };
   });
-  const resumo = c.resumo.trim();
-  if (resumo) secoes.unshift({ id: "resumo", titulo: "Resumo", blocos: [{ tipo: "paragrafo", texto: resumo }] });
+  const { resumo } = noIdioma(CAMPOS_RESUMO, resumoComTraducao(c), idioma);
+  if (resumo) {
+    secoes.unshift({ id: "resumo", titulo: TEXTOS[idioma].resumo, blocos: [{ tipo: "paragrafo", texto: resumo }] });
+  }
+  const dados = noIdioma(CAMPOS_DADOS, c.dados, idioma);
   return {
-    nome: semEspacos(c.dados.nome),
-    cargo: semEspacos(c.dados.cargo),
-    contatos: contatos(c.dados),
+    nome: semEspacos(dados.nome),
+    cargo: semEspacos(dados.cargo),
+    contatos: contatos(dados),
     secoes: secoes.filter((s) => s.blocos.length > 0),
   };
 }
 
+/** O resumo no formato dos itens ({ campo, en }), para as funções de tradução. */
+export const resumoComTraducao = (c) => ({ resumo: c.resumo.trim(), en: { resumo: c.resumoEn } });
+
 /** Linha do item na tela de edição: { titulo, detalhe }. */
-export function resumoDoItem(modulo, item, mesAtual) {
-  const b = modulo.bloco(item, mesAtual);
+export function resumoDoItem(modulo, item, mesAtual, idioma = "pt") {
+  const b = modulo.bloco(noIdioma(modulo.campos, item, idioma), mesAtual, idioma);
   const partes = b.tipo === "item" ? [b.subtitulo, b.direita] : [b.texto?.replace(/^– /, ""), b.direita];
   return { titulo: (b.titulo || b.rotulo || "").replace(/:$/, ""), detalhe: partes.filter(Boolean).join(" · ") };
 }

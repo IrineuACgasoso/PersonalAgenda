@@ -122,14 +122,14 @@ function enderecoLiteral(url) {
  * Páginas do layout (curriculoLayout.js) → Uint8Array do PDF, com texto
  * selecionável (é o que os sistemas de triagem leem) e links clicáveis.
  */
-export function pdfDeTexto(paginas, { largura, altura, titulo = "", autor = "" }) {
+export function pdfDeTexto(paginas, { largura, altura, titulo = "", autor = "", lang = "pt-BR" }) {
   const { objeto, fechar } = novoPdf();
   const fontes = Object.keys(FONTES);
   // 1 catálogo, 2 páginas, 3 informações, 4.. fontes, depois página + conteúdo.
   const idPagina = (i) => 4 + fontes.length + i * 2;
   const y = (op) => numero(altura - op.y);
 
-  objeto("<< /Type /Catalog /Pages 2 0 R /Lang (pt-BR) /ViewerPreferences << /DisplayDocTitle true >> >>");
+  objeto(`<< /Type /Catalog /Pages 2 0 R /Lang (${lang}) /ViewerPreferences << /DisplayDocTitle true >> >>`);
   objeto(
     `<< /Type /Pages /Kids [${paginas.map((_, i) => `${idPagina(i)} 0 R`).join(" ")}] /Count ${paginas.length} >>`,
   );

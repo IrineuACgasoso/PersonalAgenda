@@ -6,8 +6,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
+}
+
+/* Português | Inglês: junto do título; o "Baixar" fica na ponta. */
+.curriculo-idiomas {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+  margin-left: 4px;
 }
 
 /* Editar | Prévia: só existe no celular. */
@@ -60,6 +69,27 @@
   align-items: center;
   gap: 5px;
   margin-left: 4px;
+}
+
+.curriculo-puxar {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+}
+
+.curriculo-novo-modulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-style: dashed;
+}
+
+.curriculo-falta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fcd34d;
 }
 
 .curriculo .icon-btn-ghost:disabled {
@@ -226,8 +256,48 @@ button.curriculo-revisao-topo {
   resize: vertical;
 }
 
+/* Texto em português acima do campo da tradução. */
+.curriculo-original {
+  max-height: 180px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  border-left: 2px solid var(--vidro-borda-forte);
+  font-size: 13.5px;
+  line-height: 1.45;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  color: var(--texto-fraco);
+}
+
 .curriculo-ajuda {
   font-size: 12px;
   line-height: 1.4;
   color: var(--texto-sutil);
+}
+
+/* ---------- puxar dos certificados ---------- */
+.escolher-certificado {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* A coluna do modal não estica o campo na vertical. */
+.escolher-certificado .certificados-campo {
+  flex: none;
+}
+
+.escolher-certificado-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.escolher-certificado .item-lista-meta:empty {
+  display: none;
+}
+
+.escolher-certificado-titulo {
+  display: block;
+  overflow-wrap: anywhere;
 }
