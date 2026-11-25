@@ -72,6 +72,10 @@
 | Certificados: regras (validação, filtro, tags, lixeira de arquivos, backup) | `src/utils/certificados.js` (PURO) |
 | Certificados: abrir/baixar (modal ao tocar na linha, imagem → PDF) | `certificados/OpcoesCertificado.jsx`; `baixarArquivo`/`imagemEmPdf`/`salvarNoAparelho` (`src/arquivos.js`); puro: `opcoesDeDownload`, `nomeParaBaixar`, `mensagemErroDownload` (`utils/certificados.js`), `pdfDeJpeg` (`utils/pdf.js`); precisa do CORS do bucket (`storage.cors.json`, aplicado pelo usuário) |
 | Certificados: enviar/apagar arquivo no Storage | `src/arquivos.js` (SDK por import(); não passa pelo persist) + `storage.rules`; faxina dos 30 dias em `hooks/useFaxinaArquivos.js` |
+| Currículo: tela, formulário, módulos, prévia | `components/VisaoCurriculo.jsx` + `components/curriculo/` (`ModuloCurriculo`, `FormularioCurriculo`, `PreviaCurriculo`); ações no `App.jsx` ("ações currículo"); CSS `curriculo.css` |
+| Currículo: campo/módulo novo, textos, ordem, o que entra | `src/utils/curriculo.js` (PURO): `CAMPOS_DADOS`, `MODULOS` (campos + `bloco`; formulário e sanitização leem daqui), `documentoDoCurriculo` |
+| Currículo: aparência da página (margens, tamanhos, quebras) | `src/utils/curriculoLayout.js` (PURO): `montarPaginas` → serve à prévia E ao PDF; larguras em `fontesPdf.js`; arquivo em `pdfDeTexto` (`pdf.js`) |
+| Currículo: dicas/avisos da revisão | `src/utils/curriculoRevisao.js` (PURO): `revisarCurriculo` |
 | Coloração leve das linhas (compromissos, afazeres, certificados, lista do dia) | `.item-lista` em `listas.css` e `.detalhe-dia .data-item` em `calendario.css` (`--cor-item`); cards: `.card-cadeira::before` em `cadeiras.css` |
 | Lembretes: UI | `ui/ModalLembretes.jsx` (Sidebar → Ajustes → Lembretes), `ui/SeletorLembretes.jsx` (form do compromisso, com `personalizavel`), `ui/AdicionarLembrete.jsx` ("+ Adicionar" valor | h/dia/semana: compromisso e data importante); CSS `lembretes.css` |
 | Push / clique na notificação / cache offline | `src/sw.js` (service worker próprio, `injectManifest` no `vite.config.js`) |
@@ -102,6 +106,9 @@ eventosExcluidos[]   chaves de ocorrências removidas (todas as fontes)
 certificados[]       { id, titulo, cor, tags: idTag[], arquivo { caminho, url, nome, tipo, tamanho }, criadoEm }  ← arquivo em si no Storage
 tagsCertificados[]   { id, nome }
 arquivosParaApagar[] { caminho, desde(ms) }  ← lixeira de 30 dias dos arquivos excluídos/trocados
+curriculo            { dados { nome, cargo, local, telefone, email, linkedin, github, site }, resumo,
+                       secoes { [idModulo]: item[] }, ordem: idModulo[] }  ← opcional no doc (fora das Rules); item = { id, oculto?: true, campos string }
+                       módulos: formacao, experiencia, projetos, habilidades, atividades, certificacoes, premios, idiomas (meses "YYYY-MM"; `pontos` = um por linha)
 ```
 Fora do AppData (subcoleções de `users/{uid}`, não passam pelo `persist()`): `backups/{ts}` (snapshots, #8),
 `dispositivos/{id}` `{ token, aparelho, criadoEm, atualizadoEm, testeEm?, testeRespondidoEm? }` (app grava; Rules limitam campos),
@@ -184,6 +191,8 @@ UFPE/
 │       ├── certificados.test.js   Arquivo aceito, sanitização, busca/filtro, tags, lixeira (nunca apaga em uso), backup
 │       ├── baixarCertificado.test.js  Opções/nome do download, PDF a partir de JPEG, fetch (offline, CORS, 404, cancelar)
 │       ├── arquivos.test.js       Envio/exclusão no Storage com o SDK simulado (cancelar, falha, progresso)
+│       ├── curriculo.test.js      Currículo: sanitização (nada some), edição, textos, documento, revisão, backup
+│       ├── curriculoPdf.test.js   Larguras/codificação, quebra de linha, 1 página, pé de página, PDF bem formado, links
 │       ├── lembretes.test.js      #23: sanitização, fuso, listarLembretes (padrão/próprio/[]/feito/excluída/vigência/sem hora), textos do push, dedupe, estado do aparelho
 │       └── integridade.test.js    Estático: ícones PWA (existem; maskable 192/512 opacos), título da aba, ordem/escopo do CSS, .env, regressões de UI,
 │                                  Rules em sincronia (e-mail = EMAIL_PERMITIDO, campos ⊂ DADOS_PADRAO),
@@ -197,7 +206,7 @@ UFPE/
     │                    watchdog de 12s no loading (reload no máx. 1×/sessão, depois TelaErroCarga), TODAS as ações CRUD, alternar concluído,
     │                    mover instância, excluir instância, limpar concluídos, export/import/restore,
     │                    gravar() (persist + aviso de recusa, #44), excluir com Desfazer (#18), entrar() (aviso de login),
-    │                    roteamento por `aba` ("hoje" = inicial | "visaogeral" | "afazeres" | "compromissos" | "rotinas" | "cadeiras" | "agenda");
+    │                    roteamento por `aba` ("hoje" = inicial | "visaogeral" | "afazeres" | "compromissos" | "rotinas" | "cadeiras" | "agenda" | "certificados" | "curriculo");
     │                    cadeiras/agenda exigem período ativo; rotinas/compromissos/afazeres não
     ├── sw.js            Service worker (injectManifest): precache do app shell + fallback /index.html, `push` (mostra a
     │                    notificação a partir de `data` {titulo, corpo, tag, url}), `notificationclick` (foca/abre o app)
@@ -273,7 +282,12 @@ UFPE/
     │   │                         cadeiraEstaAtivaNaData (aliases vigenciaDe/estaAtivoNaData p/ rotinas), textoVigencia, ehDataISO, dataCompleta, erroDeVigencia, vigenciaPadraoParaNovaCadeira
     │   ├── rotinas.js            PURO (Fase 5): diasAtivosDaRotina, minutosPorSemana, textoDuracao, proximaOcorrenciaRotina (vigência), rotinaEncerrada,
     │   │                         horariosNaSemana (agenda semanal, #56) — ui/ResumoRotina.jsx
-    │   ├── pdf.js                PURO: pdfDeJpeg (PDF de 1 página com um JPEG), tamanhoDaPagina
+    │   ├── pdf.js                PURO: pdfDeJpeg (PDF de 1 página com um JPEG), tamanhoDaPagina, pdfDeTexto (páginas do currículo, links)
+    │   ├── fontesPdf.js          PURO: larguraDoTexto (Helvetica), textoParaPdf (Windows-1252 + perdidos), codigoNaFonte
+    │   ├── curriculo.js          PURO: MODULOS/CAMPOS_DADOS, sanitizarCurriculo, curriculoVazio, curriculoDoBackup, edição (salvarItem, excluirItem,
+    │   │                         moverItem, moverModulo, alternarOculto…), erroDoRascunho, documentoDoCurriculo, nomeDoArquivo
+    │   ├── curriculoLayout.js    PURO: montarPaginas (cabe em 1 página encolhendo a letra; não separa título do conteúdo), quebrarLinhas
+    │   ├── curriculoRevisao.js   PURO: revisarCurriculo → avisos essenciais/melhorias
     │   ├── certificados.js       PURO: tipos/tamanho aceitos, sanitização, filtrarCertificados, tags (erroDaTag, excluirTag/devolverTag),
     │   │                         salvarCertificado/excluirCertificado + lixeira (arquivosVencidos, tirarDaLixeira), certificadosDoBackup, mensagemErroArquivo
     │   ├── lembretes.js          PURO, SEM IMPORTS (#23; copiado p/ functions/): LEMBRETES_PADRAO, OPCOES_LEMBRETE, UNIDADES_LEMBRETE,
@@ -295,7 +309,7 @@ UFPE/
     │   ├── desfazer.js           reinserirPorId, reinserirVarios, separarRemovidos (#18)
     │   └── id.js                 uid() — crypto.randomUUID (#29); sem contexto seguro, 16 chars aleatórios
     ├── components/
-    │   ├── Sidebar.jsx           Nav (Cadeiras, Rotinas, Compromissos, Afazeres, Agenda · Visão geral: Hoje, Calendário geral), Backup
+    │   ├── Sidebar.jsx           Nav (Cadeiras, Rotinas, Compromissos, Afazeres, Certificados, Currículo · Visão geral: Hoje, Calendário geral, Agenda da semana), Backup
     │   │                         (exportar/importar/restaurar nuvem), conta/login, status de sync. Menu deslizante no mobile
     │   ├── VisaoHoje.jsx         Tela inicial (#31): aviso de atrasados (abre o calendário no dia) + < data > + ListaDoDia do dia (sem filtros, sem arrasto); botão "Hoje" volta
     │   ├── VisaoGeral.jsx        Calendário geral: filtros, calendário e, EMBAIXO, a ListaDoDia "Eventos em DD/MM";
@@ -312,6 +326,8 @@ UFPE/
     │   ├── VisaoCompromissos.jsx Compromissos pontuais: FormularioCompromisso (nome, data, início, fim?, cor) + Hoje/Próximos/Passados
     │   ├── VisaoCertificados.jsx Busca + filtro de tags + "+", linhas coloridas que abrem o arquivo (link)
     │   ├── certificados/         FormularioCertificado (modal criar/editar, envio com progresso) · OpcoesCertificado (modal Abrir/Baixar) · FiltroTags (popover) · SeletorTags (dropdown)
+    │   ├── VisaoCurriculo.jsx    Gerador de currículo: revisão, módulos e prévia lado a lado (celular: Editar | Prévia), "Baixar PDF"
+    │   ├── curriculo/            ModuloCurriculo (lista + olho/↑↓) · FormularioCurriculo (modal por campos, rascunho) · PreviaCurriculo (SVG)
     │   ├── VisaoAgenda.jsx       Filtros cadeiras/rotinas, grade semanal posicionada por %, lista de próximas datas
     │   ├── PainelCadeira.jsx     Drawer: nome (salva no blur), cor, vigência De/Até (grava a cada data válida, #19), resumo e seções recolhíveis Horários/Links/Datas (#21)
     │   ├── PainelRotina.jsx      Drawer: nome, ResumoRotina, cor, vigência opcional (CampoVigencia), seção Horários (AbaHorarios)
@@ -357,6 +373,7 @@ UFPE/
         ├── tela-cadeira.css    TelaCadeira (overlay z 70, caixa fixa, abas com brilho), mini agenda, cartões, materiais, datas/sininho,
         │                       modal de lembretes da data, boletim e caixa final (cores de status próprias)
         ├── certificados.css    Topo (título · busca + filtro · +), popover de tags, linha e formulário de certificado
+        ├── curriculo.css       Duas colunas, módulos, revisão, página da prévia, formulário
         ├── calendario.css      filtro-chip, cabeçalho e grid do calendário, células (estados hoje/selecionada/avaliação/arrasto, #24), pontos, marcadores, menu "+", .detalhe-dia (lista do dia, sem altura fixa)
         ├── hoje.css            Cabeçalho < data > da tela Hoje (.hoje-nav centralizada, largura fixa; "+" absoluto à direita), atalho "Hoje" na linha do título (.hoje-header, absoluto + padding reservado), menu do + abre para dentro, aviso de atrasados (.aviso-atrasados)
         ├── modal.css           .modal-overlay/.modal (z 100), .btn-perigo, lista de restaurar, .toast (z 90) + .toast-progresso (barra de tempo do Desfazer)

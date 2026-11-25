@@ -1,0 +1,233 @@
+/* curriculo.css
+   VisaoCurriculo.jsx + components/curriculo/*: módulos editáveis à esquerda,
+   prévia da página à direita. No celular (mobile.css) aparece um por vez. */
+
+.curriculo-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* Editar | Prévia: só existe no celular. */
+.curriculo-vistas {
+  display: none;
+}
+
+/* Sem espaço para as duas colunas, a prévia desce. */
+.curriculo-corpo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: 24px;
+}
+
+.curriculo-edicao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ---------- módulo ---------- */
+.curriculo-modulo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-md);
+  background: var(--vidro-grad), var(--vidro-cor);
+}
+
+.curriculo-modulo-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.curriculo-modulo-acoes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.curriculo-adicionar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 4px;
+}
+
+.curriculo .icon-btn-ghost:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.curriculo-dica {
+  margin: 0;
+  font-size: var(--fs-sutil);
+  line-height: 1.45;
+  color: var(--texto-fraco);
+  overflow-wrap: anywhere;
+}
+
+.curriculo-contatos {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- item ---------- */
+.curriculo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px 9px 12px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.curriculo-item:hover {
+  border-color: var(--vidro-borda-forte);
+}
+
+.curriculo-item.oculto .item-lista-texto {
+  opacity: 0.55;
+}
+
+.curriculo-item-acoes {
+  display: flex;
+  flex-shrink: 0;
+}
+
+/* ---------- revisão ---------- */
+.curriculo-revisao {
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  border-radius: var(--raio-md);
+  background: rgba(129, 140, 248, 0.08);
+  color: #c7cbf9;
+}
+
+.curriculo-revisao.essencial {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fcd34d;
+}
+
+.curriculo-revisao.ok {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+  color: #34d399;
+}
+
+.curriculo-revisao-topo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+button.curriculo-revisao-topo {
+  cursor: pointer;
+}
+
+.curriculo-revisao-topo > svg {
+  flex-shrink: 0;
+}
+
+.curriculo-revisao-topo .secao-lista-seta {
+  margin-left: auto;
+  color: inherit;
+}
+
+.curriculo-revisao-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0 16px 14px 32px;
+  color: var(--texto);
+  font-size: 13.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.curriculo-revisao-lista .essencial::marker {
+  color: #fbbf24;
+}
+
+.curriculo-revisao-lista .melhoria::marker {
+  color: var(--accent-2);
+}
+
+/* ---------- prévia ---------- */
+.curriculo-previa {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+}
+
+.curriculo-paginas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.curriculo-pagina {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: var(--vidro-sombra);
+  font-family: Helvetica, Arial, "Liberation Sans", sans-serif;
+}
+
+/* ---------- formulário ---------- */
+.modal.modal-curriculo {
+  max-width: 620px;
+}
+
+.form-curriculo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-curriculo .modal-acoes {
+  margin-top: 4px;
+}
+
+/* Ícone do campo de mês e lista do select no tema escuro. */
+.form-curriculo .input {
+  color-scheme: dark;
+  font-family: inherit;
+}
+
+.form-curriculo .input option {
+  background: #14161b;
+  color: var(--texto);
+}
+
+.curriculo-textarea {
+  min-height: 110px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.curriculo-ajuda {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--texto-sutil);
+}

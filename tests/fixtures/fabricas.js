@@ -83,6 +83,41 @@ export function afazer(overrides = {}) {
   };
 }
 
+// Currículo completo, sem nenhum aviso na revisão. `secoes` troca módulos inteiros.
+export function curriculo(secoes = {}) {
+  return {
+    dados: {
+      nome: "Maria Conceição",
+      cargo: "Estágio em Back-end",
+      local: "Recife, PE",
+      telefone: "(81) 99999-9999",
+      email: "maria@example.com",
+      linkedin: "linkedin.com/in/maria",
+      github: "github.com/maria",
+      site: "",
+    },
+    resumo: "Estudante de Ciência da Computação.",
+    secoes: {
+      formacao: [{ id: "f1", curso: "Ciência da Computação", instituicao: "UFPE", inicio: "2024-03", fim: "2028-12" }],
+      experiencia: [
+        { id: "e1", cargo: "Estágio", empresa: "Empresa", inicio: "2026-02", pontos: "Desenvolvi 12 rotas REST" },
+      ],
+      projetos: [
+        { id: "p1", nome: "Agenda", link: "github.com/maria/agenda", tecnologias: "React", pontos: "Construí um PWA" },
+        { id: "p2", nome: "Compilador", tecnologias: "C", pontos: "Implementei o analisador léxico" },
+      ],
+      habilidades: [{ id: "h1", grupo: "Linguagens", itens: "Python, Java" }],
+      atividades: [{ id: "a1", papel: "Monitoria", organizacao: "CIn", inicio: "2025-03", pontos: "Atendi 60 alunos" }],
+      certificacoes: [{ id: "c1", titulo: "AWS", emissor: "Amazon", data: "2026-05" }],
+      idiomas: [
+        { id: "i1", idioma: "Português", nivel: "Nativo" },
+        { id: "i2", idioma: "Inglês", nivel: "Avançado", obs: "TOEFL 590" },
+      ],
+      ...secoes,
+    },
+  };
+}
+
 export function appData(overrides = {}) {
   const p = periodo({ id: "per-x" });
   return {

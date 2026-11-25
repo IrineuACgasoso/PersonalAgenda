@@ -27,6 +27,8 @@ npm run format    # corrige a formatação (Prettier) e o que o ESLint souber co
 | `unit/cadeiras.test.js` | Resumo da cadeira (#21): próxima aula (em andamento, removida da agenda, vigência), próxima avaliação, progresso da vigência e textos |
 | `unit/desfazer.test.js` | "Desfazer" (#18): reinserir na posição original, sem duplicar, excluir+desfazer = lista original |
 | `unit/links.test.js` | `normalizarUrl` e `hrefSeguro` (só http(s) vira link, #50) |
+| `unit/curriculo.test.js` | Currículo: nenhum campo some ao salvar, edição das listas, ordem e textos do documento, revisão, backup |
+| `unit/curriculoPdf.test.js` | Diagramação (cabe na página, quebras, uma página) e o PDF gerado (tabela de objetos, acentos, links) |
 | `unit/integridade.test.js` | Checagens estáticas: ícones do PWA (#15), ordem do CSS, `@media` só no `mobile.css`, `.env` ignorado, regressões de UI (#42, #50, sem `toISOString()` em `src/` #13, sem `alert/confirm/prompt` nativos #17), `check` roda o lint com `src` explícito (#16) |
 
 ## Convenções

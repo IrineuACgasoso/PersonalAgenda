@@ -4,6 +4,7 @@ import {
   Award,
   BookOpen,
   Calendar,
+  Contact,
   ListChecks,
   Repeat,
   Star,
@@ -86,11 +87,11 @@ export default function Sidebar({
           <button className={`nav-btn${aba === "afazeres" ? " ativo" : ""}`} onClick={() => irPara("afazeres")}>
             <ListChecks size={15} /> Afazeres
           </button>
-          <button className={`nav-btn${aba === "agenda" ? " ativo" : ""}`} onClick={() => irPara("agenda")}>
-            <Calendar size={15} /> Agenda da semana
-          </button>
           <button className={`nav-btn${aba === "certificados" ? " ativo" : ""}`} onClick={() => irPara("certificados")}>
             <Award size={15} /> Certificados
+          </button>
+          <button className={`nav-btn${aba === "curriculo" ? " ativo" : ""}`} onClick={() => irPara("curriculo")}>
+            <Contact size={15} /> Currículo
           </button>
         </div>
 
@@ -103,6 +104,9 @@ export default function Sidebar({
           </button>
           <button className={`nav-btn${aba === "visaogeral" ? " ativo" : ""}`} onClick={() => irPara("visaogeral")}>
             <LayoutGrid size={15} /> Calendário geral
+          </button>
+          <button className={`nav-btn${aba === "agenda" ? " ativo" : ""}`} onClick={() => irPara("agenda")}>
+            <Calendar size={15} /> Agenda da semana
           </button>
         </div>
 

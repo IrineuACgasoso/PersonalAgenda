@@ -165,6 +165,39 @@
     display: none;
   }
 
+  /* Currículo: edição OU prévia, escolhida nos botões do topo. */
+  .curriculo-vistas {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .curriculo.vista-editar .curriculo-previa,
+  .curriculo.vista-previa .curriculo-edicao {
+    display: none;
+  }
+
+  .curriculo-previa {
+    position: static;
+  }
+
+  /* Ações embaixo do texto: lado a lado sobrava pouca largura para o título. */
+  .curriculo-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .curriculo-item-acoes {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .curriculo .icon-btn-ghost {
+    width: 34px;
+    height: 34px;
+  }
+
   /* Marcadores da célula: menores para caber com o número do dia. */
   .calendario-marcos {
     top: 3px;

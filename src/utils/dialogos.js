@@ -3,6 +3,7 @@
 // recusada (#44). O componente (`ui/Dialogos.jsx`) só desenha e resolve
 // promises; tudo que dá para testar sem React fica aqui.
 
+import { curriculoVazio } from "./curriculo.js";
 import { migrarDados } from "./migracoes.js";
 
 /**
@@ -80,5 +81,6 @@ export function resumoDoBackup(payload) {
   // Só quando há: backups anteriores à tela de Certificados nem têm o campo.
   const certificados = tamanho(dados?.certificados);
   if (certificados > 0) partes.push(plural(certificados, "certificado", "certificados"));
+  if (!curriculoVazio(dados?.curriculo)) partes.push("currículo");
   return partes.join(" · ");
 }

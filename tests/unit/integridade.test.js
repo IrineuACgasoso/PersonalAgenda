@@ -342,3 +342,18 @@ describe("Tela Hoje (#31)", () => {
     expect(ler("src/hooks/useEventosCalendario.js")).not.toContain("new Date()");
   });
 });
+
+describe("Currículo", () => {
+  it("importar e restaurar backup preservam o currículo", () => {
+    expect(ler("src/App.jsx").match(/\.\.\.cv\.curriculoDoBackup\(/g)).toHaveLength(2);
+  });
+
+  it("sidebar: Currículo em Visão; Agenda da semana por último em Visão geral", () => {
+    const sidebar = ler("src/components/Sidebar.jsx");
+    const pos = (t) => sidebar.indexOf(t);
+    expect(pos('irPara("curriculo")')).toBeGreaterThan(pos('irPara("certificados")'));
+    expect(pos('irPara("curriculo")')).toBeLessThan(pos("<span>Visão geral</span>"));
+    expect(pos('irPara("agenda")')).toBeGreaterThan(pos('irPara("visaogeral")'));
+    expect(pos('irPara("agenda")')).toBeLessThan(pos("<span>Ajustes</span>"));
+  });
+});

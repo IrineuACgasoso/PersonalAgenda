@@ -12,6 +12,7 @@ import VisaoAfazeres from "./components/VisaoAfazeres";
 import VisaoGeral from "./components/VisaoGeral";
 import VisaoHoje from "./components/VisaoHoje";
 import VisaoCertificados from "./components/VisaoCertificados";
+import VisaoCurriculo from "./components/VisaoCurriculo";
 import PainelCadeira from "./components/PainelCadeira";
 import TelaCadeira from "./components/TelaCadeira";
 import PainelRotina from "./components/PainelRotina";
@@ -40,6 +41,7 @@ import {
   salvarCertificado as porCertificado,
   tirarDaLixeira,
 } from "./utils/certificados";
+import * as cv from "./utils/curriculo";
 import { motivoParaNaoExcluirPeriodo } from "./utils/cadeiras";
 import { conflitosDoHorario, fontesDeHorarios } from "./utils/conflitos";
 import {
@@ -507,6 +509,26 @@ export default function App() {
     avisarComDesfazer(`Tag "${removida.tag.nome}" excluída`, (d) => devolverTag(d, removida));
   };
 
+  /* ---- ações currículo (listas e regras em utils/curriculo.js) ---- */
+  const salvarDadosCurriculo = (patch) => gravar((d) => cv.salvarDados(d, patch));
+  const salvarResumoCurriculo = (texto) => gravar((d) => cv.salvarResumo(d, texto));
+  const salvarItemCurriculo = (idModulo, item) =>
+    gravar((d) => cv.salvarItem(d, idModulo, { ...item, id: item.id || uid() }));
+  const alternarOcultoCurriculo = (idModulo, id) => gravar((d) => cv.alternarOculto(d, idModulo, id));
+  const moverItemCurriculo = (idModulo, id, passo) => gravar((d) => cv.moverItem(d, idModulo, id, passo));
+  const moverModuloCurriculo = (idModulo, passo) => gravar((d) => cv.moverModulo(d, idModulo, passo));
+
+  const excluirItemCurriculo = (idModulo, id, titulo) => {
+    let removido = null;
+    const r = gravar((d) => {
+      const resultado = cv.excluirItem(d, idModulo, id);
+      removido = resultado.removido;
+      return resultado.dados;
+    });
+    if (!gravouAlgo(r) || !removido) return;
+    avisarComDesfazer(`"${titulo}" excluído do currículo`, (d) => cv.devolverItem(d, idModulo, removido));
+  };
+
   /* ---- ações eventos concluidos / excluídos por instância ---- */
   const eventosConcluidos = data.eventosConcluidos || [];
   const eventosExcluidos = data.eventosExcluidos || [];
@@ -629,6 +651,7 @@ export default function App() {
         eventosExcluidos: importado.eventosExcluidos ?? [],
         periodoAtivoId: importado.periodoAtivoId ?? null,
         ...certificadosDoBackup(importado, atual, Date.now()),
+        ...cv.curriculoDoBackup(importado, atual),
       }));
       if (r.ok) notificar("Backup importado.");
     };
@@ -659,6 +682,7 @@ export default function App() {
     const r = gravar((atual) => ({
       ...escolhido.payload,
       ...certificadosDoBackup(escolhido.payload, atual, Date.now()),
+      ...cv.curriculoDoBackup(escolhido.payload, atual),
     }));
     if (!r.ok) return;
     setRestaurandoNuvem(false);
@@ -689,7 +713,7 @@ export default function App() {
         logout={logout}
       />
 
-      <main className={`main${aba === "visaogeral" ? " main-larga" : ""}`}>
+      <main className={`main${aba === "visaogeral" || aba === "curriculo" ? " main-larga" : ""}`}>
         {aba === "afazeres" ? (
           <VisaoAfazeres
             afazeres={afazeres}
@@ -772,6 +796,17 @@ export default function App() {
             onExcluir={excluirCertificado}
             onCriarTag={criarTagCertificado}
             onExcluirTag={excluirTagCertificado}
+          />
+        ) : aba === "curriculo" ? (
+          <VisaoCurriculo
+            curriculo={data.curriculo}
+            onSalvarDados={salvarDadosCurriculo}
+            onSalvarResumo={salvarResumoCurriculo}
+            onSalvarItem={salvarItemCurriculo}
+            onAlternarOculto={alternarOcultoCurriculo}
+            onMoverItem={moverItemCurriculo}
+            onMoverModulo={moverModuloCurriculo}
+            onExcluirItem={excluirItemCurriculo}
           />
         ) : !periodoAtivo ? (
           <EstadoVazio

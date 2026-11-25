@@ -88,6 +88,8 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 ---
 
 ## ✅ Feito recentemente
+- [x] Tela **Currículo** (gerador de PDF, prévia, revisão) + Agenda da semana em "Visão geral" (2026-11-25).
+- [ ] 🟡 **#57 Importar backup `.json` perde os padrões de lembretes:** `importarBackup` (`App.jsx`) não copia `lembretes`, que voltam a 15 min/1 dia (restaurar da nuvem não tem o problema). Achado em 2026-11-25.
 - [x] Tela **Certificados** (arquivos no Firebase Storage, tags, busca) + coloração leve nas linhas de compromissos, afazeres e da lista do dia (Hoje e calendário) (2026-11-23). Storage ativado e as duas regras (`storage`, `firestore:rules`) publicadas pelo usuário.
 - [~] Certificados: tocar abre **Abrir / Baixar PDF** (imagem convertida em PDF no aparelho) (2026-11-24). Código pronto; **falta o usuário aplicar o CORS no bucket** (`storage.cors.json`, passo 9 do README) e testar no celular.
 - [x] #34 faltas (✗) · #35 notas e média (2026-11-21). **Escopo ideal concluído.**

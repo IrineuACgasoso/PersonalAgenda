@@ -104,6 +104,12 @@ Painel pessoal para organizar a vida acadêmica e a rotina: **períodos, cadeira
 - Os arquivos (PDF, imagem, Word, PowerPoint; até 20 MB) ficam no **Firebase Storage**. Os dados do app guardam só um registro leve com o link, e o SDK do Storage só é baixado ao enviar, então a abertura do app não pesa.
 - Excluir ou trocar um arquivo tem "Desfazer": ele só é apagado de verdade depois de 30 dias.
 
+### 📄 Currículo
+- **Gerador de currículo** no formato usual das vagas de computação: uma página, uma coluna, texto selecionável (lido por sistemas de triagem/ATS) e links clicáveis.
+- Módulos editáveis (dados, resumo, formação, experiência, projetos, habilidades, atividades, certificações, prêmios, idiomas) com **prévia ao vivo** idêntica ao arquivo; experiências e formação se ordenam sozinhas da mais recente para a mais antiga.
+- Ocultar um item sem apagar, reordenar módulos, letra que se ajusta para caber em uma página e uma **revisão** que aponta o que falta ou pode melhorar.
+- O PDF é gerado no próprio aparelho, **offline e sem nenhuma biblioteca** (`utils/curriculoLayout.js` + `utils/pdf.js`).
+
 ### ☁️ Sincronização e backup
 - **Sem login:** dados salvos em `localStorage`.
 - **Com login Google:** sincronização em tempo real entre dispositivos via Firestore, com indicador de status (salvo, salvando, offline, erro) e horário da última sincronização.
@@ -148,6 +154,7 @@ type AppData = {
   certificados: Certificado[];    // { id, titulo, cor, tags[], arquivo{ caminho, url, ... }, criadoEm } (arquivo no Storage)
   tagsCertificados: Tag[];        // { id, nome }
   arquivosParaApagar: { caminho: string; desde: number }[];  // lixeira de 30 dias
+  curriculo: Curriculo;           // { dados, resumo, secoes: { [modulo]: item[] }, ordem[] }
   periodoAtivoId: string | null;
 };
 ```
@@ -310,7 +317,7 @@ src/
     ├── Sidebar.jsx
     ├── VisaoGeral.jsx       # Calendário mensal + drag-and-drop
     ├── VisaoAgenda.jsx      # Grade semanal
-    ├── VisaoCadeiras.jsx / VisaoRotinas.jsx / VisaoCompromissos.jsx / VisaoAfazeres.jsx / VisaoCertificados.jsx
+    ├── VisaoCadeiras.jsx / VisaoRotinas.jsx / VisaoCompromissos.jsx / VisaoAfazeres.jsx / VisaoCertificados.jsx / VisaoCurriculo.jsx
     ├── PainelCadeira.jsx / PainelRotina.jsx   # Drawers de edição
     ├── abas/                # Horários, Links, Datas
     └── ui/                  # SeletorData, SeletorCor, SecaoLista, ResumoCadeira/Rotina, ...

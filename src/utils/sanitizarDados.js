@@ -13,6 +13,7 @@ import { VERSAO_ATUAL, migrarDados, versaoDos } from "./migracoes.js";
 import { ehDataISO } from "./calendario.js";
 import { sanitizarItensNota, sanitizarNota } from "./notas.js";
 import { sanitizarCertificados, sanitizarLixeira, sanitizarTags } from "./certificados.js";
+import { CURRICULO_PADRAO, curriculoVazio, sanitizarCurriculo } from "./curriculo.js";
 import { LEMBRETES_PADRAO, sanitizarListaLembretes, sanitizarPreferenciasLembretes } from "./lembretes.js";
 
 export const DADOS_PADRAO = {
@@ -32,6 +33,8 @@ export const DADOS_PADRAO = {
   // Padrões dos lembretes (#23): minutos de antecedência. Opcional no doc
   // (sem migração nem Rules): ausente ⇒ estes valores.
   lembretes: LEMBRETES_PADRAO,
+  // Currículo: um objeto só (curriculo.js). Também opcional no doc.
+  curriculo: CURRICULO_PADRAO,
 };
 
 // Mantém só os itens que são objetos de verdade. Um `null`/string perdido
@@ -145,6 +148,7 @@ function normalizar(raw) {
     certificados: sanitizarCertificados(raw.certificados),
     tagsCertificados: sanitizarTags(raw.tagsCertificados),
     arquivosParaApagar: sanitizarLixeira(raw.arquivosParaApagar),
+    curriculo: sanitizarCurriculo(raw.curriculo),
     afazeres: Array.isArray(raw.afazeres)
       ? listaDeObjetos(raw.afazeres).map((a) => ({
           ...a,
@@ -186,5 +190,8 @@ export function pareceVazio(dados) {
   const semCertificados = !dados.certificados || dados.certificados.length === 0;
   const periodosPadrao =
     !dados.periodos || dados.periodos.length === 0 || (dados.periodos.length === 1 && dados.periodos[0]?.id === "p1");
-  return semCadeiras && semRotinas && semCompromissos && semAfazeres && semCertificados && periodosPadrao;
+  const semCurriculo = curriculoVazio(dados.curriculo);
+  return (
+    semCadeiras && semRotinas && semCompromissos && semAfazeres && semCertificados && semCurriculo && periodosPadrao
+  );
 }
