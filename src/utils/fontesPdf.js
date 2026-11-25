@@ -163,9 +163,15 @@ function larguraDoCaractere(c, negrito) {
   return tabela[base - 32] ?? 556;
 }
 
+// Larguras já prontas por caractere: a diagramação mede cada palavra várias
+// vezes (até três tamanhos de letra), a cada edição.
+const tabelaDeLarguras = (negrito) => new Map([...CODIGO.keys()].map((c) => [c, larguraDoCaractere(c, negrito)]));
+const LARGURAS = { normal: tabelaDeLarguras(false), negrito: tabelaDeLarguras(true) };
+
 /** Largura em pontos. fonte: "normal" | "negrito" | "italico". */
 export function larguraDoTexto(texto, tamanho, fonte = "normal") {
+  const tabela = fonte === "negrito" ? LARGURAS.negrito : LARGURAS.normal;
   let total = 0;
-  for (const c of texto) total += larguraDoCaractere(c, fonte === "negrito");
+  for (const c of texto) total += tabela.get(c) ?? 556;
   return (total * tamanho) / 1000;
 }

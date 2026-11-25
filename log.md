@@ -13,6 +13,7 @@
 - **Schema:** campo novo `curriculo` (objeto, opcional, com padrão): sem migração e **sem mudança nas Rules**. `pareceVazio` conta o currículo; importar/restaurar usam `curriculoDoBackup` (backup anterior à tela mantém o atual).
 - **Verificado no navegador** (Chrome headless, build de produção, 1280/900/390px, 32 checagens): todos os módulos, validação, rascunho, ocultar, mover, excluir/desfazer, reload, PDF salvo em disco; texto extraído na ordem certa; PDF desenhado pelo leitor do Windows (1 e 2 páginas); larguras = Arial. **Não testado:** Android de verdade (download e campo de mês), leitura por um ATS real. `npm run check` ✅ (568 testes).
 - **Achado, não corrigido:** importar backup `.json` volta os padrões de lembretes para 15 min/1 dia (`importarBackup` não copia `lembretes`). Está no `todo.md`.
+- **Ideias registradas** no `todo.md` (#58 puxar certificados, #59 inglês, #60 módulos livres): confirmar antes de implementar.
 - **➡ Próximo:** usuário preencher o currículo no app e baixar o PDF no celular.
 
 ## 2026-11-24 (26) — Certificados: tocar abre as opções Abrir / Baixar PDF

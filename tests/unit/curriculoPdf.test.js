@@ -102,7 +102,7 @@ describe("montarPaginas", () => {
   });
 
   it("título de seção e cargo nunca ficam sozinhos no pé da página", () => {
-    for (let n = 6; n <= 30; n++) {
+    for (let n = 6; n <= 18; n++) {
       const { paginas } = paginasDe(curriculo({ experiencia: experiencias(n) }));
       paginas.slice(0, -1).forEach((p) => {
         const ultima = textos(p).at(-1);

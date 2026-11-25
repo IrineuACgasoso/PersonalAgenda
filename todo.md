@@ -62,6 +62,9 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#25 Bundle** (2026-11-20). Chunks estáveis `firebase` (757 kB) · `react` · `vendor` + app (~125 kB); `messaging` continua sob demanda. Lazy load do Firestore/Auth **descartado** (são necessários na abertura offline-first; mexeria no `usePersistedData`). O build aborta se houver ciclo entre chunks (`vite.chunks.js`).
 - [x] **#46 "Próximas datas importantes"** (2026-11-20). Futuras primeiro (↑); as que passaram vão para "Anteriores" (recolhida, mais recente primeiro). `datasImportantes` (`utils/cadeiras.js`).
 
+### Bugs achados depois das fases
+- [ ] **#57 Importar backup `.json` perde os padrões de lembretes:** `importarBackup` (`App.jsx`) não copia `lembretes`, que voltam a 15 min/1 dia (restaurar da nuvem não tem o problema). Achado em 2026-11-25.
+
 ---
 
 ## 🟢 BAIXO
@@ -85,11 +88,15 @@ Marcação: `[ ]` aberto · `[~]` em andamento · `[x]` feito (manter 1–2 sess
 - [x] **#34 Controle de faltas por cadeira** (2026-11-21). Check = presença; ✗ ao lado da lixeira = falta (aula concluída com "Falta"). Horas × 25% da carga horária (informada ou estimada); chip no card e toast com quanto ainda pode faltar. `utils/frequencia.js`.
 - [x] **#35 Notas e média por cadeira** (2026-11-21). Árvore de notas/grupos com peso ou bônus; média parcial, nota necessária, final (regra UFPE); nota criada a partir das datas importantes. `utils/notas.js`, `abas/AbaNotas.jsx`.
 
+### Ideias propostas pelo Claude (registradas a pedido do usuário em 2026-11-25; confirmar antes de implementar)
+- [ ] **#58 Currículo: puxar da tela Certificados.** No módulo "Certificações e cursos", escolher um certificado já guardado para preencher o item (título e link). O registro de certificado não tem emissor nem data de emissão (`criadoEm` é quando foi cadastrado): completar esses dois à mão. Decidir se copia os dados ou fica ligado ao certificado.
+- [ ] **#59 Currículo: versão em inglês.** Títulos das seções, meses e "Atual/previsão" traduzidos, e os textos do usuário em duas línguas (campo por língua ou segundo currículo). Ajustar também `/Lang` do PDF, nome do arquivo e as regras da revisão (verbos).
+- [ ] **#60 Currículo: módulos com título livre.** "Adicionar módulo" com nome escolhido (ex.: Voluntariado) e itens no formato de Atividades acadêmicas. Hoje `MODULOS` (`utils/curriculo.js`) é fixo e `sanitizarOrdem` descarta módulo desconhecido.
+
 ---
 
 ## ✅ Feito recentemente
 - [x] Tela **Currículo** (gerador de PDF, prévia, revisão) + Agenda da semana em "Visão geral" (2026-11-25).
-- [ ] 🟡 **#57 Importar backup `.json` perde os padrões de lembretes:** `importarBackup` (`App.jsx`) não copia `lembretes`, que voltam a 15 min/1 dia (restaurar da nuvem não tem o problema). Achado em 2026-11-25.
 - [x] Tela **Certificados** (arquivos no Firebase Storage, tags, busca) + coloração leve nas linhas de compromissos, afazeres e da lista do dia (Hoje e calendário) (2026-11-23). Storage ativado e as duas regras (`storage`, `firestore:rules`) publicadas pelo usuário.
 - [~] Certificados: tocar abre **Abrir / Baixar PDF** (imagem convertida em PDF no aparelho) (2026-11-24). Código pronto; **falta o usuário aplicar o CORS no bucket** (`storage.cors.json`, passo 9 do README) e testar no celular.
 - [x] #34 faltas (✗) · #35 notas e média (2026-11-21). **Escopo ideal concluído.**
